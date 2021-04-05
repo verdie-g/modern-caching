@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching", "ModernCaching\ModernCaching.csproj", "{BA57EC87-C960-4D27-9A9B-CAD01D0082C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching.Test", "ModernCaching.Test\ModernCaching.Test.csproj", "{338158B4-8269-4686-BF11-967DFA791853}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching.UTest", "ModernCaching.UTest\ModernCaching.UTest.csproj", "{338158B4-8269-4686-BF11-967DFA791853}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

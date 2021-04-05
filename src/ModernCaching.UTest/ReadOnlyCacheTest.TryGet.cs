@@ -3,7 +3,7 @@ using ModernCaching.LocalCaching;
 using Moq;
 using NUnit.Framework;
 
-namespace ModernCaching.Test
+namespace ModernCaching.UTest
 {
     public class ReadOnlyCacheTest
     {
