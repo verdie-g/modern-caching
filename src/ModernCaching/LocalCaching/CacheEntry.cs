@@ -2,15 +2,5 @@
 
 namespace ModernCaching.LocalCaching
 {
-    public class CacheEntry<TValue>
-    {
-        public TValue Value { get; }
-        public DateTime ExpirationTime { get; }
-
-        public CacheEntry(TValue value, DateTime expirationTime)
-        {
-            Value = value;
-            ExpirationTime = expirationTime;
-        }
-    }
+    public record CacheEntry<TValue>(TValue Value, DateTime ExpirationTime);
 }

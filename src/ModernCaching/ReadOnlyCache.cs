@@ -120,7 +120,7 @@ namespace ModernCaching
             }
 
             // Multiplex concurrent reload of the same key into a single task.
-            var reloadTaskCompletion = new TaskCompletionSource<(bool, TValue)>();
+            TaskCompletionSource<(bool, TValue)> reloadTaskCompletion = new();
             var reloadTask = _loadingTasks.GetOrAdd(key, reloadTaskCompletion.Task);
             if (reloadTask != reloadTaskCompletion.Task)
             {
@@ -211,7 +211,7 @@ namespace ModernCaching
                     continue;
                 }
 
-                var cacheEntry = new CacheEntry<TValue>(loadResult.Value, DateTime.UtcNow + loadResult.TimeToLive);
+                CacheEntry<TValue> cacheEntry = new(loadResult.Value, DateTime.UtcNow + loadResult.TimeToLive);
                 _ = Task.Run(() => SetRemotelyAsync(loadResult.Key, cacheEntry));
                 SetLocally(loadResult.Key, cacheEntry);
             }
@@ -271,13 +271,10 @@ namespace ModernCaching
             }
 
             string keyStr = BuildDistributedCacheKey(key);
-            var result = await _distributedCache.GetAsync(keyStr);
-            if (result.Status != AsyncCacheStatus.Hit)
-            {
-                return (result.Status, null);
-            }
-
-            return (result.Status, DeserializeDistributedCacheValue(result.Value));
+            var (status, bytes) = await _distributedCache.GetAsync(keyStr);
+            return status != AsyncCacheStatus.Hit
+                ? (status, null)
+                : (status, DeserializeDistributedCacheValue(bytes));
         }
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
@@ -313,8 +310,8 @@ namespace ModernCaching
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> cacheEntry)
         {
-            var memoryStream = new MemoryStream();
-            var writer = new BinaryWriter(memoryStream);
+            MemoryStream memoryStream = new();
+            BinaryWriter writer = new(memoryStream);
 
             writer.Write((byte)0); // Version, to add extra fields later.
 
@@ -330,7 +327,7 @@ namespace ModernCaching
             byte version = bytes[0];
 
             long expirationTimeTicks = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(1));
-            DateTime expirationTime = new DateTime(expirationTimeTicks, DateTimeKind.Utc);
+            DateTime expirationTime = new(expirationTimeTicks, DateTimeKind.Utc);
 
             TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
 
