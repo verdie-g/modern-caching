@@ -193,7 +193,7 @@ namespace ModernCaching
 
             while (true)
             {
-                LoadResult<TKey, TValue> loadResult;
+                DataSourceResult<TKey, TValue> dataSourceResult;
                 try
                 {
                     if (!await resultsEnumerator.MoveNextAsync())
@@ -201,16 +201,16 @@ namespace ModernCaching
                         break;
                     }
 
-                    loadResult = resultsEnumerator.Current;
+                    dataSourceResult = resultsEnumerator.Current;
                 }
                 catch
                 {
                     continue;
                 }
 
-                CacheEntry<TValue> cacheEntry = new(loadResult.Value, DateTime.UtcNow + loadResult.TimeToLive);
-                _ = Task.Run(() => SetRemotelyAsync(loadResult.Key, cacheEntry));
-                SetLocally(loadResult.Key, cacheEntry);
+                CacheEntry<TValue> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
+                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
+                SetLocally(dataSourceResult.Key, cacheEntry);
             }
 
             _backgroundLoadTimer.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
