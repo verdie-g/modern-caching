@@ -32,11 +32,6 @@ namespace ModernCaching
         private readonly IAsyncCache? _distributedCache;
 
         /// <summary>
-        /// Source of the data that is being cached.
-        /// </summary>
-        private readonly IDataSource<TKey, TValue> _dataSource;
-
-        /// <summary>
         /// Serializer for the <see cref="_distributedCache"/>. Should be set if <see cref="_distributedCache"/> is set.
         /// </summary>
         private readonly IKeyValueSerializer<TKey, TValue>? _keyValueSerializer;
@@ -45,6 +40,11 @@ namespace ModernCaching
         /// Prefix added to the keys of the <see cref="_distributedCache"/>.
         /// </summary>
         private readonly string? _distributedCacheKeyPrefix;
+
+        /// <summary>
+        /// Source of the data that is being cached.
+        /// </summary>
+        private readonly IDataSource<TKey, TValue> _dataSource;
 
         /// <summary>
         /// Batch of keys to load in the background. The boolean value is not used.
@@ -62,26 +62,23 @@ namespace ModernCaching
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue value)>> _loadingTasks;
 
         public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache, IAsyncCache? distributedCache,
-            IDataSource<TKey, TValue> dataSource, IKeyValueSerializer<TKey, TValue>? keyValueSerializer,
-            string? distributedCacheKeyPrefix)
+            IKeyValueSerializer<TKey, TValue>? keyValueSerializer, string? distributedCacheKeyPrefix,
+            IDataSource<TKey, TValue> dataSource)
         {
             _name = name;
             _localCache = localCache;
             _distributedCache = distributedCache;
-            _dataSource = dataSource;
             _keyValueSerializer = keyValueSerializer;
             _distributedCacheKeyPrefix = distributedCacheKeyPrefix;
+            _dataSource = dataSource;
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
             _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue)>>();
             _backgroundLoadTimer = new Timer(_ => Task.Run(BackgroundLoad), null, TimeSpan.FromSeconds(3),
                 Timeout.InfiniteTimeSpan);
 
-            if (_distributedCache != null)
+            if (_distributedCache != null && _keyValueSerializer == null)
             {
-                if (_keyValueSerializer == null)
-                {
-                    throw new ArgumentNullException(nameof(keyValueSerializer), "A serializer should be specified if a distributed cache is used");
-                }
+                throw new ArgumentNullException(nameof(keyValueSerializer), "A serializer should be specified if a distributed cache is used");
             }
         }
 
@@ -271,10 +268,20 @@ namespace ModernCaching
             }
 
             string keyStr = BuildDistributedCacheKey(key);
-            var (status, bytes) = await _distributedCache.GetAsync(keyStr);
+            AsyncCacheStatus status;
+            byte[]? bytes;
+            try
+            {
+                (status, bytes) = await _distributedCache.GetAsync(keyStr);
+            }
+            catch
+            {
+                (status, bytes) = (AsyncCacheStatus.Error, null);
+            }
+
             return status != AsyncCacheStatus.Hit
                 ? (status, null)
-                : (status, DeserializeDistributedCacheValue(bytes));
+                : (status, DeserializeDistributedCacheValue(bytes!));
         }
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>

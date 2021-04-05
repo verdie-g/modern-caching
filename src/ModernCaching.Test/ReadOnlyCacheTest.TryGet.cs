@@ -10,7 +10,7 @@ namespace ModernCaching.Test
         [Test]
         public void GettingNullKeyShouldThrow()
         {
-            ReadOnlyCache<string, string> cache = new("c", null, null, null!, null, null);
+            ReadOnlyCache<string, string> cache = new("c", null, null, null, null, null!);
             Assert.Throws<ArgumentNullException>(() => cache.TryGet(null!, out _));
         }
 
@@ -24,7 +24,7 @@ namespace ModernCaching.Test
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null!, null, null);
+            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!);
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
 
@@ -41,7 +41,7 @@ namespace ModernCaching.Test
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null!, null, null);
+            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!);
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
 
@@ -58,7 +58,7 @@ namespace ModernCaching.Test
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(false);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null!, null, null);
+            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!);
             Assert.IsFalse(cache.TryGet(5, out int val));
             Assert.Zero(val);
 
@@ -75,7 +75,7 @@ namespace ModernCaching.Test
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, object?> cache = new("c", localCacheMock.Object, null, null!, null, null);
+            ReadOnlyCache<int, object?> cache = new("c", localCacheMock.Object, null, null, null, null!);
             Assert.IsTrue(cache.TryGet(5, out object? val));
             Assert.IsNull(val);
         }
