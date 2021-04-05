@@ -131,6 +131,64 @@ namespace ModernCaching
             return reloadResult;
         }
 
+        public async Task LoadAsync(IEnumerable<TKey> keys)
+        {
+            // TODO: could also set tasks in _loadingTasks.
+
+            var distributedCacheResults = await Task.WhenAll(keys.Select(async key =>
+            {
+                var (status, cacheEntry) = await TryGetRemotelyAsync(key);
+                return (status, key, cacheEntry);
+            }));
+
+            var keysToLoadFromSource = new List<TKey>();
+            foreach (var (status, key, cacheEntry) in distributedCacheResults)
+            {
+                // Filter out errors. If the distributed cache is not available, no reload is performed.
+                if (status == AsyncCacheStatus.Error)
+                {
+                    continue;
+                }
+
+                if (status == AsyncCacheStatus.Hit)
+                {
+                    if (cacheEntry!.ExpirationTime < DateTime.UtcNow)
+                    {
+                        SetLocally(key, cacheEntry); // TODO: extend cacheEntry if != null.
+                        continue;
+                    }
+                }
+
+                keysToLoadFromSource.Add(key);
+            }
+
+            var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
+            var resultsEnumerable = _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken);
+            await using var resultsEnumerator = resultsEnumerable.GetAsyncEnumerator(cancellationToken);
+
+            while (true)
+            {
+                DataSourceResult<TKey, TValue> dataSourceResult;
+                try
+                {
+                    if (!await resultsEnumerator.MoveNextAsync())
+                    {
+                        break;
+                    }
+
+                    dataSourceResult = resultsEnumerator.Current;
+                }
+                catch
+                {
+                    continue;
+                }
+
+                CacheEntry<TValue> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
+                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
+                SetLocally(dataSourceResult.Key, cacheEntry);
+            }
+        }
+
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
         private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> cacheEntry)
         {
@@ -157,62 +215,8 @@ namespace ModernCaching
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryGet"/>.</summary>
         private async Task BackgroundLoad()
         {
-            // TODO: could also set tasks in _loadingTasks.
-
             ICollection<TKey> keys = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, bool>()).Keys;
-            var distributedCacheResults = await Task.WhenAll(keys.Select(async key =>
-            {
-                var (status, cacheEntry) = await TryGetRemotelyAsync(key);
-                return (status, key, cacheEntry);
-            }));
-
-            keys = new List<TKey>();
-            foreach (var (status, key, cacheEntry) in distributedCacheResults)
-            {
-                // Filter out errors. If the distributed cache is not available, no reload is performed.
-                if (status == AsyncCacheStatus.Error)
-                {
-                    continue;
-                }
-
-                if (status == AsyncCacheStatus.Hit)
-                {
-                    if (cacheEntry!.ExpirationTime < DateTime.UtcNow)
-                    {
-                        SetLocally(key, cacheEntry); // TODO: extend cacheEntry if != null.
-                        continue;
-                    }
-                }
-
-                keys.Add(key);
-            }
-
-            var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            var resultsEnumerable = _dataSource.LoadAsync(keys, cancellationToken);
-            await using var resultsEnumerator = resultsEnumerable.GetAsyncEnumerator(cancellationToken);
-
-            while (true)
-            {
-                DataSourceResult<TKey, TValue> dataSourceResult;
-                try
-                {
-                    if (!await resultsEnumerator.MoveNextAsync())
-                    {
-                        break;
-                    }
-
-                    dataSourceResult = resultsEnumerator.Current;
-                }
-                catch
-                {
-                    continue;
-                }
-
-                CacheEntry<TValue> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
-                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
-                SetLocally(dataSourceResult.Key, cacheEntry);
-            }
-
+            await LoadAsync(keys);
             _backgroundLoadTimer.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
         }
 

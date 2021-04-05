@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
 using ModernCaching.LocalCaching;
@@ -19,6 +21,8 @@ namespace ModernCaching
         private IAsyncCache? _distributedCache;
         private IKeyValueSerializer<TKey, TValue>? _keyValueSerializer;
         private string? _keyPrefix;
+        private Func<object?, Task<IEnumerable<TKey>>>? _getKeys;
+        private object? _getKeysState;
 
         /// <summary>
         /// Initializes a new instance of <see cref="ReadOnlyCacheBuilder{TKey,TValue}"/> class.
@@ -37,6 +41,7 @@ namespace ModernCaching
         /// </summary>
         /// <param name="localCache">The local cache.</param>
         /// <exception cref="ArgumentNullException"><see cref="localCache"/> is null.</exception>
+        /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithLocalCache(ICache<TKey, TValue> localCache)
         {
             _localCache = localCache ?? throw new ArgumentNullException(nameof(localCache));
@@ -51,6 +56,7 @@ namespace ModernCaching
         /// <param name="keyValueSerializer"><typeparamref name="TKey"/>/<typeparamref name="TValue"/> serializer.</param>
         /// <param name="keyPrefix">Prefix prepended to the distributed cache key.</param>
         /// <exception cref="ArgumentNullException"><see cref="distributedCache"/> or <see cref="keyValueSerializer"/> is null.</exception>
+        /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithDistributedCache(IAsyncCache distributedCache,
             IKeyValueSerializer<TKey, TValue> keyValueSerializer, string? keyPrefix = null)
         {
@@ -61,12 +67,37 @@ namespace ModernCaching
         }
 
         /// <summary>
-        /// Builds the <see cref="IReadOnlyCache{TKey,TValue}"/>.
+        /// Specifies the function to get the keys to preload in <see cref="BuildAsync"/>.
         /// </summary>
-        public IReadOnlyCache<TKey, TValue> Build()
+        /// <param name="getKeys">A function to get the keys to preload.</param>
+        /// <param name="state">An object containing information to be used by the <paramref name="getKeys"/> method, or null.</param>
+        /// <returns>A reference to this instance.</returns>
+        public ReadOnlyCacheBuilder<TKey, TValue> WithPreload(Func<object?, Task<IEnumerable<TKey>>> getKeys,
+            object? state)
         {
-            return new ReadOnlyCache<TKey, TValue>(_name, _localCache, _distributedCache, _keyValueSerializer,
+            _getKeys = getKeys ?? throw new ArgumentNullException(nameof(getKeys));
+            _getKeysState = state;
+            return this;
+        }
+
+        /// <summary>
+        /// Builds and preloads the <see cref="IReadOnlyCache{TKey,TValue}"/>. If <see cref="WithPreload"/> was not used,
+        /// this method will return synchronously.
+        /// </summary>
+        /// <returns>The built <see cref="IReadOnlyCache{TKey,TValue}"/>.</returns>
+        public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
+        {
+            var cache = new ReadOnlyCache<TKey, TValue>(_name, _localCache, _distributedCache, _keyValueSerializer,
                 _keyPrefix, _dataSource);
+
+            if (_getKeys == null)
+            {
+                return cache;
+            }
+
+            var keys = await _getKeys(_getKeysState);
+            await cache.LoadAsync(keys);
+            return cache;
         }
     }
 }
