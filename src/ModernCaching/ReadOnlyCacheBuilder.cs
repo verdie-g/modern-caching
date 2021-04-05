@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
 using ModernCaching.LocalCaching;
+using ModernCaching.Utils;
 
 namespace ModernCaching
 {
@@ -14,6 +15,8 @@ namespace ModernCaching
     /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
     public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : IEquatable<TKey>
     {
+        private static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
+
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;
 
@@ -88,7 +91,7 @@ namespace ModernCaching
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
             var cache = new ReadOnlyCache<TKey, TValue>(_name, _localCache, _distributedCache, _keyValueSerializer,
-                _keyPrefix, _dataSource);
+                _keyPrefix, _dataSource, LoadingTimer);
 
             if (_getKeys == null)
             {

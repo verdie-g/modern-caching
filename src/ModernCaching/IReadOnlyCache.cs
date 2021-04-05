@@ -8,7 +8,7 @@ namespace ModernCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
-    public interface IReadOnlyCache<in TKey, TValue> where TKey : IEquatable<TKey>
+    public interface IReadOnlyCache<in TKey, TValue> : IDisposable where TKey : IEquatable<TKey>
     {
         /// <summary>
         /// Gets the value associated with the specified key from the local cache and the local cache only. Reloads the

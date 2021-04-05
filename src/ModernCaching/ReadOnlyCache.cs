@@ -7,9 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
 using ModernCaching.LocalCaching;
+using ModernCaching.Utils;
 
 namespace ModernCaching
 {
@@ -54,7 +56,7 @@ namespace ModernCaching
         /// <summary>
         /// Timer to load the keys from <see cref="_keysToLoad"/>.
         /// </summary>
-        private readonly Timer _backgroundLoadTimer;
+        private readonly ITimer _backgroundLoadTimer;
 
         /// <summary>
         /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
@@ -63,7 +65,7 @@ namespace ModernCaching
 
         public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache, IAsyncCache? distributedCache,
             IKeyValueSerializer<TKey, TValue>? keyValueSerializer, string? distributedCacheKeyPrefix,
-            IDataSource<TKey, TValue> dataSource)
+            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer)
         {
             _name = name;
             _localCache = localCache;
@@ -73,13 +75,14 @@ namespace ModernCaching
             _dataSource = dataSource;
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
             _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue)>>();
-            _backgroundLoadTimer = new Timer(_ => Task.Run(BackgroundLoad), null, TimeSpan.FromSeconds(3),
-                Timeout.InfiniteTimeSpan);
+            _backgroundLoadTimer = loadingTimer;
 
             if (_distributedCache != null && _keyValueSerializer == null)
             {
                 throw new ArgumentNullException(nameof(keyValueSerializer), "A serializer should be specified if a distributed cache is used");
             }
+
+            _backgroundLoadTimer.Elapsed += BackgroundLoad;
         }
 
         /// <inheritdoc />
@@ -189,6 +192,11 @@ namespace ModernCaching
             }
         }
 
+        public void Dispose()
+        {
+            _backgroundLoadTimer.Elapsed -= BackgroundLoad;
+        }
+
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
         private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> cacheEntry)
         {
@@ -213,11 +221,10 @@ namespace ModernCaching
         }
 
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryGet"/>.</summary>
-        private async Task BackgroundLoad()
+        private void BackgroundLoad(object _, ElapsedEventArgs __)
         {
             ICollection<TKey> keys = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, bool>()).Keys;
-            await LoadAsync(keys);
-            _backgroundLoadTimer.Change(TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+            Task.Run(() => LoadAsync(keys));
         }
 
         /// <summary>
