@@ -322,7 +322,8 @@ namespace ModernCaching
 
             writer.Write((byte)0); // Version, to add extra fields later.
 
-            writer.Write(cacheEntry.ExpirationTime.Ticks);
+            long unixExpirationTime = new DateTimeOffset(cacheEntry.ExpirationTime).ToUnixTimeMilliseconds();
+            writer.Write(unixExpirationTime);
 
             _keyValueSerializer!.SerializeValue(cacheEntry.Value, memoryStream);
 
@@ -333,8 +334,8 @@ namespace ModernCaching
         {
             byte version = bytes[0];
 
-            long expirationTimeTicks = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(1));
-            DateTime expirationTime = new(expirationTimeTicks, DateTimeKind.Utc);
+            long unixExpirationTime = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(1));
+            DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
             TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
 
