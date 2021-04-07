@@ -25,12 +25,12 @@ namespace ModernCaching.DistributedCaching
         string StringifyKey(TKey key);
 
         /// <summary>
-        /// Writes the <paramref name="value"/> to <paramref name="stream"/>.
+        /// Writes the <paramref name="value"/> to <paramref name="writer"/>.
         /// </summary>
         /// <remarks>The method should handle null values if the data source can return null values.</remarks>
         /// <param name="value">The value to write.</param>
-        /// <param name="stream">The stream to write to.</param>
-        void SerializeValue(TValue value, Stream stream);
+        /// <param name="writer">The writer to write to.</param>
+        void SerializeValue(TValue value, BinaryWriter writer);
 
         /// <summary>
         /// Reads a value from its bytes representation.

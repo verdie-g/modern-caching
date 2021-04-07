@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -336,7 +335,7 @@ namespace ModernCaching
             long unixExpirationTime = new DateTimeOffset(cacheEntry.ExpirationTime).ToUnixTimeMilliseconds();
             writer.Write(unixExpirationTime);
 
-            _keyValueSerializer!.SerializeValue(cacheEntry.Value, memoryStream);
+            _keyValueSerializer!.SerializeValue(cacheEntry.Value, writer);
 
             return memoryStream.GetBuffer();
         }
@@ -345,7 +344,7 @@ namespace ModernCaching
         {
             byte version = bytes[0];
 
-            long unixExpirationTime = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(1));
+            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(1));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
             TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
