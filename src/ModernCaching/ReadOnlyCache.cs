@@ -154,7 +154,7 @@ namespace ModernCaching
 
                 if (status == AsyncCacheStatus.Hit)
                 {
-                    if (cacheEntry!.ExpirationTime < DateTime.UtcNow)
+                    if (!IsCacheEntryStale(cacheEntry!))
                     {
                         SetLocally(key, cacheEntry); // TODO: extend cacheEntry if != null.
                         continue;
@@ -242,10 +242,10 @@ namespace ModernCaching
 
             if (status == AsyncCacheStatus.Hit)
             {
-                if (distributedCacheEntry!.ExpirationTime < DateTime.UtcNow)
+                if (!IsCacheEntryStale(distributedCacheEntry!))
                 {
-                    SetLocally(key, distributedCacheEntry); // TODO: extend cacheEntry if != null.
-                    return (true, distributedCacheEntry.Value);
+                    SetLocally(key, distributedCacheEntry!); // TODO: extend cacheEntry if != null.
+                    return (true, distributedCacheEntry!.Value);
                 }
             }
 
@@ -311,7 +311,7 @@ namespace ModernCaching
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
         private bool IsCacheEntryStale(CacheEntry<TValue> value)
         {
-            return value.ExpirationTime > DateTime.Now;
+            return value.ExpirationTime < DateTime.UtcNow;
         }
 
         /// <summary>{prefix}|{cacheName}|{version}|{key}</summary>
