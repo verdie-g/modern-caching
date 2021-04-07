@@ -165,20 +165,29 @@ namespace ModernCaching
             }
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            var resultsEnumerable = _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken);
-            await using var resultsEnumerator = resultsEnumerable.GetAsyncEnumerator(cancellationToken);
+            IAsyncEnumerator<DataSourceResult<TKey, TValue>> results;
+            try
+            {
+                results = _dataSource
+                    .LoadAsync(keysToLoadFromSource, cancellationToken)
+                    .GetAsyncEnumerator(cancellationToken);
+            }
+            catch
+            {
+                return;
+            }
 
             while (true)
             {
                 DataSourceResult<TKey, TValue> dataSourceResult;
                 try
                 {
-                    if (!await resultsEnumerator.MoveNextAsync())
+                    if (!await results.MoveNextAsync())
                     {
                         break;
                     }
 
-                    dataSourceResult = resultsEnumerator.Current;
+                    dataSourceResult = results.Current;
                 }
                 catch
                 {
@@ -189,6 +198,8 @@ namespace ModernCaching
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
+
+            await results.DisposeAsync();
         }
 
         public void Dispose()
@@ -357,14 +368,15 @@ namespace ModernCaching
             try
             {
                 var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-                var resultsEnumerable = _dataSource.LoadAsync(new[] { key }, cancellationToken);
-                await using var resultsEnumerator = resultsEnumerable.GetAsyncEnumerator(cancellationToken);
-                if (!await resultsEnumerator.MoveNextAsync())
+                await using var results = _dataSource
+                    .LoadAsync(new[] { key }, cancellationToken)
+                    .GetAsyncEnumerator(cancellationToken);
+                if (!await results.MoveNextAsync())
                 {
                     return (true, null);
                 }
 
-                var result = resultsEnumerator.Current;
+                var result = results.Current;
                 DateTime expirationTime = DateTime.UtcNow + result.TimeToLive;
                 return (true, new CacheEntry<TValue>(result.Value, expirationTime));
             }
