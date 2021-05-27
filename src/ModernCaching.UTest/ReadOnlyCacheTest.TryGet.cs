@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace ModernCaching.UTest
 {
-    public class ReadOnlyCacheTest
+    public class ReadOnlyCacheTest_TryGet
     {
         [Test]
         public void GettingNullKeyShouldThrow()
@@ -28,8 +28,6 @@ namespace ModernCaching.UTest
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
-
-            // TODO: check no reload.
         }
 
         [Test]
@@ -45,8 +43,6 @@ namespace ModernCaching.UTest
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
-
-            // TODO: check reload.
         }
 
         [Test]
@@ -62,8 +58,6 @@ namespace ModernCaching.UTest
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsFalse(cache.TryGet(5, out int val));
             Assert.Zero(val);
-
-            // TODO: check reload.
         }
 
         [Test]
