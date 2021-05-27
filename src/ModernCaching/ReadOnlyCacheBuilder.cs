@@ -90,8 +90,10 @@ namespace ModernCaching
         /// <returns>The built <see cref="IReadOnlyCache{TKey,TValue}"/>.</returns>
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
-            var cache = new ReadOnlyCache<TKey, TValue>(_name, _localCache, _distributedCache, _keyValueSerializer,
-                _keyPrefix, _dataSource, LoadingTimer);
+            IDistributedCache<TKey, TValue>? distributedCache = _distributedCache != null
+                ? new DistributedCache<TKey, TValue>(_name, _distributedCache, _keyValueSerializer!, _keyPrefix)
+                : null;
+            var cache = new ReadOnlyCache<TKey, TValue>(_localCache, distributedCache, _dataSource, LoadingTimer);
 
             if (_getKeys == null)
             {

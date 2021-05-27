@@ -11,7 +11,7 @@ namespace ModernCaching.UTest
         [Test]
         public void GettingNullKeyShouldThrow()
         {
-            ReadOnlyCache<string, string> cache = new("c", null, null, null, null, null!, Mock.Of<ITimer>());
+            ReadOnlyCache<string, string> cache = new(null, null, null!, Mock.Of<ITimer>());
             Assert.Throws<ArgumentNullException>(() => cache.TryGet(null!, out _));
         }
 
@@ -25,7 +25,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!, Mock.Of<ITimer>());
+            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
 
@@ -42,7 +42,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!, Mock.Of<ITimer>());
+            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsTrue(cache.TryGet(5, out int val));
             Assert.AreEqual(10, val);
 
@@ -59,7 +59,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(false);
 
-            ReadOnlyCache<int, int> cache = new("c", localCacheMock.Object, null, null, null, null!, Mock.Of<ITimer>());
+            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsFalse(cache.TryGet(5, out int val));
             Assert.Zero(val);
 
@@ -76,7 +76,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, object?> cache = new("c", localCacheMock.Object, null, null, null, null!, Mock.Of<ITimer>());
+            ReadOnlyCache<int, object?> cache = new(localCacheMock.Object, null, null!, Mock.Of<ITimer>());
             Assert.IsTrue(cache.TryGet(5, out object? val));
             Assert.IsNull(val);
         }

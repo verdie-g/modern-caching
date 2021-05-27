@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,11 +17,6 @@ namespace ModernCaching
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : IEquatable<TKey>
     {
         /// <summary>
-        /// Name of cache. Used in the distributed cache key, logging and metrics.
-        /// </summary>
-        private readonly string _name;
-
-        /// <summary>
         /// First caching layer, local to the program. If null, this layer is always skipped.
         /// </summary>
         private readonly ICache<TKey, TValue>? _localCache;
@@ -30,17 +24,7 @@ namespace ModernCaching
         /// <summary>
         /// Second caching layer that is accessible from all instances of the program. If null this layer is always skipped.
         /// </summary>
-        private readonly IAsyncCache? _distributedCache;
-
-        /// <summary>
-        /// Serializer for the <see cref="_distributedCache"/>. Should be set if <see cref="_distributedCache"/> is set.
-        /// </summary>
-        private readonly IKeyValueSerializer<TKey, TValue>? _keyValueSerializer;
-
-        /// <summary>
-        /// Prefix added to the keys of the <see cref="_distributedCache"/>.
-        /// </summary>
-        private readonly string? _distributedCacheKeyPrefix;
+        private readonly IDistributedCache<TKey, TValue>? _distributedCache;
 
         /// <summary>
         /// Source of the data that is being cached.
@@ -62,24 +46,15 @@ namespace ModernCaching
         /// </summary>
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
-        public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache, IAsyncCache? distributedCache,
-            IKeyValueSerializer<TKey, TValue>? keyValueSerializer, string? distributedCacheKeyPrefix,
+        public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
             IDataSource<TKey, TValue> dataSource, ITimer loadingTimer)
         {
-            _name = name;
             _localCache = localCache;
             _distributedCache = distributedCache;
-            _keyValueSerializer = keyValueSerializer;
-            _distributedCacheKeyPrefix = distributedCacheKeyPrefix;
             _dataSource = dataSource;
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
             _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
-
-            if (_distributedCache != null && _keyValueSerializer == null)
-            {
-                throw new ArgumentNullException(nameof(keyValueSerializer), "A serializer should be specified if a distributed cache is used");
-            }
 
             _backgroundLoadTimer.Elapsed += BackgroundLoad;
         }
@@ -195,7 +170,7 @@ namespace ModernCaching
                 }
 
                 CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
-                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
+                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry.Value, cacheEntry.ExpirationTime));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
 
@@ -274,49 +249,9 @@ namespace ModernCaching
                 return (false, default)!;
             }
 
-            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
+            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry.Value, dataSourceEntry.ExpirationTime));
             SetLocally(key, dataSourceEntry);
             return (true, dataSourceEntry.Value);
-        }
-
-        /// <summary>Gets the value associated with the specified key from the distributed cache.</summary>
-        private async Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)
-        {
-            if (_distributedCache == null)
-            {
-                // If there is no L2, consider it as a miss.
-                return (AsyncCacheStatus.Miss, null);
-            }
-
-            string keyStr = BuildDistributedCacheKey(key);
-            AsyncCacheStatus status;
-            byte[]? bytes;
-            try
-            {
-                (status, bytes) = await _distributedCache.GetAsync(keyStr);
-            }
-            catch
-            {
-                (status, bytes) = (AsyncCacheStatus.Error, null);
-            }
-
-            return status != AsyncCacheStatus.Hit
-                ? (status, null)
-                : (status, DeserializeDistributedCacheValue(bytes!));
-        }
-
-        /// <summary>Sets the specified key and entry to the distributed cache.</summary>
-        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue?> cacheEntry)
-        {
-            if (_distributedCache == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            string keyStr = BuildDistributedCacheKey(key);
-            byte[] valueBytes = SerializeDistributedCacheValue(cacheEntry);
-            TimeSpan timeToLive = cacheEntry.ExpirationTime - DateTime.UtcNow;
-            return _distributedCache.SetAsync(keyStr, valueBytes, timeToLive);
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
@@ -325,42 +260,25 @@ namespace ModernCaching
             return value.ExpirationTime < DateTime.UtcNow;
         }
 
-        /// <summary>{prefix}|{cacheName}|{version}|{key}</summary>
-        private string BuildDistributedCacheKey(TKey key)
+        private Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)
         {
-            string prefix = !string.IsNullOrEmpty(_distributedCacheKeyPrefix)
-                ? _distributedCacheKeyPrefix + '|'
-                : string.Empty;
-            return prefix + _name
-                          + '|' + _keyValueSerializer!.Version.ToString()
-                          + '|' + _keyValueSerializer!.StringifyKey(key);
+            if (_distributedCache == null)
+            {
+                // If there is no L2, consider it as a miss.
+                return Task.FromResult((AsyncCacheStatus.Miss, null as CacheEntry<TValue?>));
+            }
+
+            return _distributedCache.GetAsync(key);
         }
 
-        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue?> cacheEntry)
+        private Task SetRemotelyAsync(TKey key, TValue? value, DateTime expirationTime)
         {
-            MemoryStream memoryStream = new();
-            BinaryWriter writer = new(memoryStream);
+            if (_distributedCache == null)
+            {
+                return Task.CompletedTask;
+            }
 
-            writer.Write((byte)0); // Version, to add extra fields later.
-
-            long unixExpirationTime = new DateTimeOffset(cacheEntry.ExpirationTime).ToUnixTimeMilliseconds();
-            writer.Write(unixExpirationTime);
-
-            _keyValueSerializer!.SerializeValue(cacheEntry.Value, writer);
-
-            return memoryStream.GetBuffer();
-        }
-
-        private CacheEntry<TValue?> DeserializeDistributedCacheValue(byte[] bytes)
-        {
-            byte version = bytes[0];
-
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(byte)));
-            DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
-
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(byte) + sizeof(long)));
-
-            return new CacheEntry<TValue?>(value, expirationTime);
+            return _distributedCache.SetAsync(key, value, expirationTime);
         }
 
         private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
