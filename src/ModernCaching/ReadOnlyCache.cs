@@ -94,7 +94,7 @@ namespace ModernCaching
             }
 
             // Multiplex concurrent reload of the same key into a single task.
-            TaskCompletionSource<(bool, TValue?)> reloadTaskCompletion = new();
+            TaskCompletionSource<(bool, TValue?)> reloadTaskCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var reloadTask = _loadingTasks.GetOrAdd(key, reloadTaskCompletion.Task);
             if (reloadTask != reloadTaskCompletion.Task)
             {
