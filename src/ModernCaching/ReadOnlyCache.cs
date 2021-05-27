@@ -355,10 +355,10 @@ namespace ModernCaching
         {
             byte version = bytes[0];
 
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(1));
+            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(byte)));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
+            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(byte) + sizeof(long)));
 
             return new CacheEntry<TValue?>(value, expirationTime);
         }
