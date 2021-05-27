@@ -247,9 +247,9 @@ namespace ModernCaching
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
-        private bool IsCacheEntryStale(CacheEntry<TValue?> value)
+        private bool IsCacheEntryStale(CacheEntry<TValue?> entry)
         {
-            return value.ExpirationTime < DateTime.UtcNow;
+            return entry.ExpirationTime < DateTime.UtcNow;
         }
 
         private Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)

@@ -13,19 +13,19 @@ namespace ModernCaching.LocalCaching
         /// Gets the value associated with the specified key.
         /// </summary>
         /// <param name="key">The key of the element to get.</param>
-        /// <param name="value">Value associated with the specified key, if the key is found; otherwise, the default
-        /// value for the type of the value parameter. Existing value should be returned even if stale. <see cref="CacheEntry{TValue}.Value"/>
-        /// can be null if the data source returns null.</param>
-        /// <returns>True if the cache contains an element with the specified key; otherwise, false.</returns>
+        /// <param name="entry">Entry associated with the specified key, if the key is found; otherwise, the value is
+        /// set to the default for the type of the value parameter. Existing entries should be returned even if stale.
+        /// <see cref="CacheEntry{TValue}.Value"/> can be null if the data source returns null.</param>
+        /// <returns>True if the cache contains an entry with the specified key; otherwise, false.</returns>
         /// <remarks>This method should never throw.</remarks>
-        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> value);
+        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> entry);
 
         /// <summary>
-        /// Sets the value associated with the specified key.
+        /// Sets the entry associated with the specified key.
         /// </summary>
         /// <param name="key">The key of the element to set.</param>
-        /// <param name="value">The value associated with the specified key.</param>
+        /// <param name="entry">The entry associated with the specified key.</param>
         /// <remarks>This method should never throw.</remarks>
-        void Set(TKey key, CacheEntry<TValue?> value);
+        void Set(TKey key, CacheEntry<TValue?> entry);
     }
 }
