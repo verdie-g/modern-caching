@@ -60,7 +60,7 @@ namespace ModernCaching
         /// <summary>
         /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
         /// </summary>
-        private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue value)>> _loadingTasks;
+        private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache, IAsyncCache? distributedCache,
             IKeyValueSerializer<TKey, TValue>? keyValueSerializer, string? distributedCacheKeyPrefix,
@@ -73,7 +73,7 @@ namespace ModernCaching
             _distributedCacheKeyPrefix = distributedCacheKeyPrefix;
             _dataSource = dataSource;
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
-            _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue)>>();
+            _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
 
             if (_distributedCache != null && _keyValueSerializer == null)
@@ -85,7 +85,7 @@ namespace ModernCaching
         }
 
         /// <inheritdoc />
-        public bool TryGet(TKey key, out TValue value)
+        public bool TryGet(TKey key, out TValue? value)
         {
             if (key == null)
             {
@@ -101,12 +101,12 @@ namespace ModernCaching
 
             // Not found or stale.
             _keysToLoad[key] = true;
-            value = (found ? cacheEntry!.Value : default)!;
+            value = found ? cacheEntry!.Value : default;
             return found;
         }
 
         /// <inheritdoc />
-        public async ValueTask<(bool found, TValue value)> TryGetAsync(TKey key)
+        public async ValueTask<(bool found, TValue? value)> TryGetAsync(TKey key)
         {
             if (key == null)
             {
@@ -119,7 +119,7 @@ namespace ModernCaching
             }
 
             // Multiplex concurrent reload of the same key into a single task.
-            TaskCompletionSource<(bool, TValue)> reloadTaskCompletion = new();
+            TaskCompletionSource<(bool, TValue?)> reloadTaskCompletion = new();
             var reloadTask = _loadingTasks.GetOrAdd(key, reloadTaskCompletion.Task);
             if (reloadTask != reloadTaskCompletion.Task)
             {
@@ -156,7 +156,7 @@ namespace ModernCaching
                 {
                     if (!IsCacheEntryStale(cacheEntry!))
                     {
-                        SetLocally(key, cacheEntry); // TODO: extend cacheEntry if != null.
+                        SetLocally(key, cacheEntry!); // TODO: extend cacheEntry if != null.
                         continue;
                     }
                 }
@@ -165,7 +165,7 @@ namespace ModernCaching
             }
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            IAsyncEnumerator<DataSourceResult<TKey, TValue>> results;
+            IAsyncEnumerator<DataSourceResult<TKey, TValue?>> results;
             try
             {
                 results = _dataSource
@@ -179,7 +179,7 @@ namespace ModernCaching
 
             while (true)
             {
-                DataSourceResult<TKey, TValue> dataSourceResult;
+                DataSourceResult<TKey, TValue?> dataSourceResult;
                 try
                 {
                     if (!await results.MoveNextAsync())
@@ -194,7 +194,7 @@ namespace ModernCaching
                     continue;
                 }
 
-                CacheEntry<TValue> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
+                CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
@@ -208,7 +208,7 @@ namespace ModernCaching
         }
 
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
-        private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> cacheEntry)
+        private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> cacheEntry)
         {
             if (_localCache == null)
             {
@@ -220,7 +220,7 @@ namespace ModernCaching
         }
 
         /// <summary>Sets the specified key and entry to the local cache.</summary>
-        private void SetLocally(TKey key, CacheEntry<TValue> cacheEntry)
+        private void SetLocally(TKey key, CacheEntry<TValue?> cacheEntry)
         {
             if (_localCache == null)
             {
@@ -241,7 +241,7 @@ namespace ModernCaching
         /// Reloads a key from the distributed cache or data source. Can return a stale value if of these two layers
         /// are unavailable.
         /// </summary>
-        private async Task<(bool found, TValue value)> ReloadAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
+        private async Task<(bool found, TValue? value)> ReloadAsync(TKey key, CacheEntry<TValue?>? localCacheEntry)
         {
             var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
             if (status == AsyncCacheStatus.Error)
@@ -280,7 +280,7 @@ namespace ModernCaching
         }
 
         /// <summary>Gets the value associated with the specified key from the distributed cache.</summary>
-        private async Task<(AsyncCacheStatus status, CacheEntry<TValue>? cacheEntry)> TryGetRemotelyAsync(TKey key)
+        private async Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)
         {
             if (_distributedCache == null)
             {
@@ -306,7 +306,7 @@ namespace ModernCaching
         }
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
-        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue> cacheEntry)
+        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue?> cacheEntry)
         {
             if (_distributedCache == null)
             {
@@ -320,7 +320,7 @@ namespace ModernCaching
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
-        private bool IsCacheEntryStale(CacheEntry<TValue> value)
+        private bool IsCacheEntryStale(CacheEntry<TValue?> value)
         {
             return value.ExpirationTime < DateTime.UtcNow;
         }
@@ -336,7 +336,7 @@ namespace ModernCaching
                           + '|' + _keyValueSerializer!.StringifyKey(key);
         }
 
-        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> cacheEntry)
+        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue?> cacheEntry)
         {
             MemoryStream memoryStream = new();
             BinaryWriter writer = new(memoryStream);
@@ -351,19 +351,19 @@ namespace ModernCaching
             return memoryStream.GetBuffer();
         }
 
-        private CacheEntry<TValue> DeserializeDistributedCacheValue(byte[] bytes)
+        private CacheEntry<TValue?> DeserializeDistributedCacheValue(byte[] bytes)
         {
             byte version = bytes[0];
 
             long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(1));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
-            TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
+            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(5));
 
-            return new CacheEntry<TValue>(value, expirationTime);
+            return new CacheEntry<TValue?>(value, expirationTime);
         }
 
-        private async Task<(bool success, CacheEntry<TValue>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
+        private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
         {
             try
             {
@@ -378,7 +378,7 @@ namespace ModernCaching
 
                 var result = results.Current;
                 DateTime expirationTime = DateTime.UtcNow + result.TimeToLive;
-                return (true, new CacheEntry<TValue>(result.Value, expirationTime));
+                return (true, new CacheEntry<TValue?>(result.Value, expirationTime));
             }
             catch
             {

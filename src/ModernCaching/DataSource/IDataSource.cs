@@ -23,6 +23,6 @@ namespace ModernCaching.DataSource
         /// The loading results associated with a duration during which the data is considered fresh. The <see cref="IAsyncEnumerable{T}"/>
         /// can contain less elements than <paramref name="keys"/> if some keys were not found.
         /// </returns>
-        IAsyncEnumerable<DataSourceResult<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken);
+        IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken);
     }
 }

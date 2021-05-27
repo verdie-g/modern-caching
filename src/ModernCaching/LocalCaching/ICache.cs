@@ -18,7 +18,7 @@ namespace ModernCaching.LocalCaching
         /// can be null if the data source returns null.</param>
         /// <returns>True if the cache contains an element with the specified key; otherwise, false.</returns>
         /// <remarks>This method should never throw.</remarks>
-        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> value);
+        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> value);
 
         /// <summary>
         /// Sets the value associated with the specified key.
@@ -26,6 +26,6 @@ namespace ModernCaching.LocalCaching
         /// <param name="key">The key of the element to set.</param>
         /// <param name="value">The value associated with the specified key.</param>
         /// <remarks>This method should never throw.</remarks>
-        void Set(TKey key, CacheEntry<TValue> value);
+        void Set(TKey key, CacheEntry<TValue?> value);
     }
 }
