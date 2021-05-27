@@ -140,17 +140,9 @@ namespace ModernCaching
             }
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            IAsyncEnumerator<DataSourceResult<TKey, TValue?>> results;
-            try
-            {
-                results = _dataSource
-                    .LoadAsync(keysToLoadFromSource, cancellationToken)
-                    .GetAsyncEnumerator(cancellationToken);
-            }
-            catch
-            {
-                return;
-            }
+            var results = _dataSource
+                .LoadAsync(keysToLoadFromSource, cancellationToken)
+                .GetAsyncEnumerator(cancellationToken);
 
             while (true)
             {
