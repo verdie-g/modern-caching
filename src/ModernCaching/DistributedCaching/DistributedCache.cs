@@ -7,11 +7,11 @@ namespace ModernCaching.DistributedCaching
 {
     internal interface IDistributedCache<in TKey, TValue> where TKey : IEquatable<TKey>
     {
-        /// <summary>Gets the value associated with the specified key from the distributed cache.</summary>
-        Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> GetAsync(TKey key);
+        /// <summary>Gets the entry associated with the specified key from the distributed cache.</summary>
+        Task<(AsyncCacheStatus status, CacheEntry<TValue?>? entry)> GetAsync(TKey key);
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
-        Task SetAsync(TKey key, TValue? value, DateTime expirationTime);
+        Task SetAsync(TKey key, CacheEntry<TValue?> entry);
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ namespace ModernCaching.DistributedCaching
         }
 
         /// <inheritdoc />
-        public async Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> GetAsync(TKey key)
+        public async Task<(AsyncCacheStatus status, CacheEntry<TValue?>? entry)> GetAsync(TKey key)
         {
             string keyStr = BuildDistributedCacheKey(key);
             AsyncCacheStatus status;
@@ -70,11 +70,11 @@ namespace ModernCaching.DistributedCaching
         }
 
         /// <inheritdoc />
-        public Task SetAsync(TKey key, TValue? value, DateTime expirationTime)
+        public Task SetAsync(TKey key, CacheEntry<TValue?> entry)
         {
             string keyStr = BuildDistributedCacheKey(key);
-            byte[] valueBytes = SerializeDistributedCacheValue(value, expirationTime);
-            TimeSpan timeToLive = expirationTime - DateTime.UtcNow;
+            byte[] valueBytes = SerializeDistributedCacheValue(entry);
+            TimeSpan timeToLive = entry.ExpirationTime - DateTime.UtcNow;
             return _cache.SetAsync(keyStr, valueBytes, timeToLive);
         }
 
@@ -89,17 +89,17 @@ namespace ModernCaching.DistributedCaching
                           + '|' + _keyValueSerializer!.StringifyKey(key);
         }
 
-        private byte[] SerializeDistributedCacheValue(TValue? value, DateTime expirationTime)
+        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue?> entry)
         {
             MemoryStream memoryStream = new();
             BinaryWriter writer = new(memoryStream);
 
             writer.Write((byte)0); // Version, to add extra fields later.
 
-            long unixExpirationTime = new DateTimeOffset(expirationTime).ToUnixTimeMilliseconds();
+            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
             writer.Write(unixExpirationTime);
 
-            _keyValueSerializer!.SerializeValue(value, writer);
+            _keyValueSerializer!.SerializeValue(entry.Value, writer);
 
             return memoryStream.GetBuffer();
         }

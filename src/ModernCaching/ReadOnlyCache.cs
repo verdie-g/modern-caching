@@ -170,7 +170,7 @@ namespace ModernCaching
                 }
 
                 CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
-                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry.Value, cacheEntry.ExpirationTime));
+                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
 
@@ -249,7 +249,7 @@ namespace ModernCaching
                 return (false, default)!;
             }
 
-            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry.Value, dataSourceEntry.ExpirationTime));
+            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
             SetLocally(key, dataSourceEntry);
             return (true, dataSourceEntry.Value);
         }
@@ -271,14 +271,14 @@ namespace ModernCaching
             return _distributedCache.GetAsync(key);
         }
 
-        private Task SetRemotelyAsync(TKey key, TValue? value, DateTime expirationTime)
+        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue?> entry)
         {
             if (_distributedCache == null)
             {
                 return Task.CompletedTask;
             }
 
-            return _distributedCache.SetAsync(key, value, expirationTime);
+            return _distributedCache.SetAsync(key, entry);
         }
 
         private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
