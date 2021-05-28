@@ -1,6 +1,17 @@
-# modern-caching
+# ModernCaching
 
 A 2-layer, performant and predicable caching solution for modern .NET.
+
+A typical cache provided by this library consists of:
+- a synchronous local cache that implements [`ICache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/ICache.cs)
+- an asynchronous distributed cache that implements [`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs)
+  (e.g. memcache, redis)
+- a data source that implements [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs)
+  (e.g. relational database, Web API, ...)
+
+These 3 components form an [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs).
+The 2 cache layers are populated from the `IDataSource` with a backfilling
+mechanism when getting a value or by preloading some data when building the cache.
 
 ## Features
 
@@ -16,7 +27,9 @@ A 2-layer, performant and predicable caching solution for modern .NET.
   simple type keys such as `int` or more complex user-defined objects. See the
   [benchmarks](https://github.com/verdie-g/modern-caching#benchmarks).
 - Predictability. Since the number of layers is fixed, it's easy to define
-  what should be done when one of these layers is down.
+  what should be done when one of these layers is down. For instance, the
+  data source is skipped if the distributed cache is unavailable to avoid
+  DDOSing it.
 
 ## Example
 
@@ -33,26 +46,31 @@ var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_c
     .WithPreload(_ => Task.FromResult<IEnumerable<int>>(new[] { 1, 2, 3 }), null)
     .BuildAsync();
 
-bool found = cache.TryGet(5, out int? internalId); // Only check local cache.
-(bool found, int value) res = await cache.TryGetAsync(5); // Check all layers.
+int externalId = 5;
+bool found = cache.TryGet(externalId, out int? internalId); // Only check local cache.
+(bool found, int? internalId) res = await cache.TryGetAsync(externalId); // Check all layers.
 
 class ExternalToInternalIdDataSource : IDataSource<int, int?>
 {
-    public async IAsyncEnumerable<DataSourceResult<int, int?>> LoadAsync(IEnumerable<int> keys, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<DataSourceResult<int, int?>> LoadAsync(IEnumerable<int> keys,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await using SqlConnection connection = new("Data Source=(local)");
-        string keysStr = string.Join(',', keys);
-        SqlCommand command = new($"SELECT external_id, internal_id FROM users WHERE external_id IN [{keysStr}]", connection);
+        string keysStr = "(" + string.Join('),(', keys) + ")";
+        SqlCommand command = new(@$"
+            SELECT u.external_id, u.internal_id
+            FROM (VALUES {keysStr}) as input(external_id)
+            RIGHT JOIN users u ON input.external_id = u.external_id",
+            connection);
         await connection.OpenAsync(cancellationToken);
         SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            int externalId = reader.GetInt32(0);
+            int externalId = reader[0] as int?;
             int internalId = reader.GetInt32(1);
             yield return new DataSourceResult<int, int?>(externalId, internalId, TimeSpan.FromHours(1));
         }
         await reader.CloseAsync();
-    
 }
 
 class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
