@@ -20,14 +20,14 @@ A 2-layer, performant and predicable caching solution for modern .NET.
 ## Example
 
 This example caches a mapping of "external id" to "internal id". The first
-layer is implemented with a concurrent dictionary, the second one is a memcache
+layer is implemented with an in-memory cache, the second one is a memcache
 where we specify how to create the key and how to serialize the value using the
 interface `IKeyValueSerializer`. Behind these two layers stands the `IDataSource`
 which is usually a relational database but it's up to the implementation.
 
 ```csharp
 var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_cache", new ExternalToInternalIdDataSource())
-    .WithLocalCache(new ConcurrentDictionaryCache<int, int?>())
+    .WithLocalCache(new InMemoryCache<int, int?>())
     .WithDistributedCache(new MemcacheAsyncCache(), new ExternalToInternalIdKeyValueSerializer())
     .WithPreload(_ => Task.FromResult<IEnumerable<int>>(new[] { 1, 2, 3 }), null)
     .BuildAsync();
