@@ -10,10 +10,10 @@ namespace ModernCaching.LocalCaching.InMemory
     /// <typeparam name="TValue">The type of the values.</typeparam>
     public class InMemoryCache<TKey, TValue> : ICache<TKey, TValue>
     {
-        private readonly ConcurrentDictionary<TKey, CacheEntry<TValue>> _dictionary;
+        private readonly ConcurrentDictionary<TKey, CacheEntry<TValue?>> _dictionary;
 
-        public InMemoryCache() => _dictionary = new ConcurrentDictionary<TKey, CacheEntry<TValue>>();
-        public bool TryGet(TKey key, out CacheEntry<TValue> entry) => _dictionary.TryGetValue(key, out entry);
-        public void Set(TKey key, CacheEntry<TValue> entry) => _dictionary[key] = entry;
+        public InMemoryCache() => _dictionary = new ConcurrentDictionary<TKey, CacheEntry<TValue?>>();
+        public bool TryGet(TKey key, out CacheEntry<TValue?> entry) => _dictionary.TryGetValue(key, out entry);
+        public void Set(TKey key, CacheEntry<TValue?> entry) => _dictionary[key] = entry;
     }
 }
