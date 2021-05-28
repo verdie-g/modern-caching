@@ -13,7 +13,8 @@ A 2-layer, performant and predicable caching solution for modern .NET.
 - Performance. Unlike other caching libraries that use a `string` as a key or an
   `object` as value or both, `ModernCaching` uses a generic key and value. That
   way, getting a value from the local cache doesn't require any allocation for
-  simple type keys such as `int` or more complex user-defined objects.
+  simple type keys such as `int` or more complex user-defined objects. See the
+  [benchmarks](https://github.com/verdie-g/modern-caching#benchmarks).
 - Predictability. Since the number of layers is fixed, it's easy to define
   what should be done when one of these layers is down.
 
@@ -68,3 +69,19 @@ class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
     }
 }
 ```
+
+## Benchmarks
+
+Benchmark of the very hot path of different caching libraries, that is
+getting data that is cached locally.
+
+|        Method |       Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------- |-----------:|---------:|---------:|-------:|------:|------:|----------:|
+| ModernCaching |   523.6 ns |  1.94 ns |  1.62 ns |      - |     - |     - |         - |
+|    CacheTower |   617.8 ns |  4.37 ns |  3.87 ns | 0.1011 |     - |     - |     160 B |
+|   EasyCaching | 2,566.3 ns | 24.55 ns | 22.96 ns | 0.6371 |     - |     - |   1,000 B |
+
+Since this library has a generic interface, getting a value doesn't involve any
+allocation.
+
+Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/modern-caching/tree/main/src/ModernCaching.Benchmarks).
