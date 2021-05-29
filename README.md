@@ -86,7 +86,7 @@ class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
     }
     public int? DeserializeValue(ReadOnlySpan<byte> valueBytes)
     {
-        return valueBytes.Length == 0 ? null : BitConverter.ToInt32(valueBytes);
+        return valueBytes.IsEmpty ? null : BitConverter.ToInt32(valueBytes);
     }
 }
 ```

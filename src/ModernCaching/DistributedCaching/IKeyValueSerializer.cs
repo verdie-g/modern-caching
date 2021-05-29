@@ -12,7 +12,7 @@ namespace ModernCaching.DistributedCaching
     {
         /// <summary>
         /// Version of the <typeparamref name="TValue"/> schema. Bump the <see cref="Version"/> everytime a breaking change
-        /// to the serialization/deserialization of <typeparam name="TValue"></typeparam> is made. The <see cref="Version"/>
+        /// to the serialization/deserialization of <typeparamref name="TValue"/> is made. The <see cref="Version"/>
         /// is included in the <see cref="IAsyncCache"/>'s key so that different versions are stored in different keys.
         /// </summary>
         int Version { get; }

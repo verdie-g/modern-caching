@@ -91,17 +91,18 @@ namespace ModernCaching.DistributedCaching
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue?> entry)
         {
-            MemoryStream memoryStream = new();
-            BinaryWriter writer = new(memoryStream);
+            using MemoryStream memoryStream = new();
+            using (BinaryWriter writer = new(memoryStream))
+            {
+                writer.Write((byte)0); // Version, to add extra fields later.
 
-            writer.Write((byte)0); // Version, to add extra fields later.
+                long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
+                writer.Write(unixExpirationTime);
 
-            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
-            writer.Write(unixExpirationTime);
+                _keyValueSerializer!.SerializeValue(entry.Value, writer);
+            }
 
-            _keyValueSerializer!.SerializeValue(entry.Value, writer);
-
-            return memoryStream.GetBuffer();
+            return memoryStream.ToArray();
         }
 
         private CacheEntry<TValue?> DeserializeDistributedCacheValue(byte[] bytes)
