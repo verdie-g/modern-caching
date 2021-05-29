@@ -13,6 +13,9 @@ These 3 components form an [`IReadOnlyCache`](https://github.com/verdie-g/modern
 The 2 cache layers are populated from the `IDataSource` with a backfilling
 mechanism when getting a value or by preloading some data when building the cache.
 
+ModernCaching doesn't provide implementations of `IAsyncCache` or `IDataSource`
+because they are usually tied to the business.
+
 ## Features
 
 - Strict API. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
@@ -56,7 +59,7 @@ class ExternalToInternalIdDataSource : IDataSource<int, int?>
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await using SqlConnection connection = new("Data Source=(local)");
-        string keysStr = "(" + string.Join('),(', keys) + ")";
+        string keysStr = "(" + string.Join("),(", keys) + ")";
         SqlCommand command = new(@$"
             SELECT u.external_id, u.internal_id
             FROM (VALUES {keysStr}) as input(external_id)
@@ -66,8 +69,8 @@ class ExternalToInternalIdDataSource : IDataSource<int, int?>
         SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            int externalId = reader[0] as int?;
-            int internalId = reader.GetInt32(1);
+            int externalId = reader.GetInt32(0);
+            int? internalId = reader[1] as int?;
             yield return new DataSourceResult<int, int?>(externalId, internalId, TimeSpan.FromHours(1));
         }
         await reader.CloseAsync();
