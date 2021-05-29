@@ -91,13 +91,15 @@ class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
 ## Benchmarks
 
 Benchmark of the very hot path of different caching libraries, that is
-getting data that is cached locally.
+getting locally cached data.
 
-|        Method |       Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|-------------- |-----------:|---------:|---------:|-------:|------:|------:|----------:|
-| ModernCaching |   523.6 ns |  1.94 ns |  1.62 ns |      - |     - |     - |         - |
-|    CacheTower |   617.8 ns |  4.37 ns |  3.87 ns | 0.1011 |     - |     - |     160 B |
-|   EasyCaching | 2,566.3 ns | 24.55 ns | 22.96 ns | 0.6371 |     - |     - |   1,000 B |
+|        Method |       Mean |    Error |    StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------- |-----------:|---------:|----------:|-------:|------:|------:|----------:|
+| ModernCaching |   571.3 ns | 11.53 ns |  29.96 ns |      - |     - |     - |         - |
+|    CacheTower |   680.1 ns | 13.39 ns |  13.75 ns | 0.1011 |     - |     - |     160 B |
+|   FusionCache | 2,007.2 ns | 40.05 ns |  91.22 ns | 0.1755 |     - |     - |     280 B |
+|   EasyCaching | 2,731.2 ns | 54.62 ns | 109.08 ns | 0.6371 |     - |     - |   1,000 B |
+
 
 Since this library has a generic interface, getting a value doesn't involve any
 allocation.
