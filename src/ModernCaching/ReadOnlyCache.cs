@@ -42,12 +42,17 @@ namespace ModernCaching
         private readonly ITimer _backgroundLoadTimer;
 
         /// <summary>
+        /// Random number generator to randomize time-to-lives.
+        /// </summary>
+        private readonly IRandom _random;
+
+        /// <summary>
         /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
         /// </summary>
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer)
+            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer, IRandom random)
         {
             _localCache = localCache;
             _distributedCache = distributedCache;
@@ -55,6 +60,7 @@ namespace ModernCaching
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
             _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
+            _random = random;
 
             _backgroundLoadTimer.Elapsed += BackgroundLoad;
         }
@@ -161,7 +167,8 @@ namespace ModernCaching
                     continue;
                 }
 
-                CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, DateTime.UtcNow + dataSourceResult.TimeToLive);
+                DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(dataSourceResult.TimeToLive);
+                CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, expirationTime);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
@@ -287,13 +294,20 @@ namespace ModernCaching
                 }
 
                 var result = results.Current;
-                DateTime expirationTime = DateTime.UtcNow + result.TimeToLive;
+                DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(result.TimeToLive);
                 return (true, new CacheEntry<TValue?>(result.Value, expirationTime));
             }
             catch
             {
                 return (false, null);
             }
+        }
+
+        private TimeSpan RandomizeTimeSpan(TimeSpan ts)
+        {
+            double seconds = ts.TotalSeconds;
+            seconds -= _random.Next(0, (int)(0.15 * seconds));
+            return TimeSpan.FromSeconds(seconds);
         }
     }
 }

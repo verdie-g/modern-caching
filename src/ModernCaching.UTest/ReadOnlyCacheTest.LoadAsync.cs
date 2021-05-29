@@ -15,6 +15,7 @@ namespace ModernCaching.UTest
     public class ReadOnlyCacheTest_LoadAsync
     {
         private static readonly ITimer Timer = Mock.Of<ITimer>();
+        private static readonly IRandom Random = new ThreadSafeRandom();
 
         [Test]
         public async Task ShouldLoadKeys()
@@ -51,7 +52,7 @@ namespace ModernCaching.UTest
                     new DataSourceResult<int, int>(5, 555, TimeSpan.FromHours(5)),
                 }));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Timer);
+            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Timer, Random);
             await cache.LoadAsync(new[] { 1, 2, 3, 4, 5 });
 
             localCacheMock.Verify(c => c.Set(1, It.IsAny<CacheEntry<int>>()), Times.Never);
@@ -73,7 +74,7 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Throws<Exception>();
 
-            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Timer);
+            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Timer, Random);
             Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(Array.Empty<int>()));
         }
 

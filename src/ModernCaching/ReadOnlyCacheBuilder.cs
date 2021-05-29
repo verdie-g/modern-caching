@@ -16,6 +16,7 @@ namespace ModernCaching
     public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : IEquatable<TKey>
     {
         private static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
+        private static readonly IRandom Random = new ThreadSafeRandom();
 
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;
@@ -93,7 +94,8 @@ namespace ModernCaching
             IDistributedCache<TKey, TValue>? distributedCache = _distributedCache != null
                 ? new DistributedCache<TKey, TValue>(_name, _distributedCache, _keyValueSerializer!, _keyPrefix)
                 : null;
-            var cache = new ReadOnlyCache<TKey, TValue>(_localCache, distributedCache, _dataSource, LoadingTimer);
+            var cache = new ReadOnlyCache<TKey, TValue>(_localCache, distributedCache, _dataSource, LoadingTimer,
+                Random);
 
             if (_getKeys == null)
             {
