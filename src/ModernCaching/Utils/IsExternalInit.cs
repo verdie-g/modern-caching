@@ -4,5 +4,5 @@
 namespace System.Runtime.CompilerServices
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public class IsExternalInit{}
+    internal class IsExternalInit{}
 }
