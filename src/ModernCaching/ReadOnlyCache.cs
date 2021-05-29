@@ -60,7 +60,7 @@ namespace ModernCaching
         }
 
         /// <inheritdoc />
-        public bool TryGet(TKey key, out TValue? value)
+        public bool TryPeek(TKey key, out TValue? value)
         {
             if (key == null)
             {
@@ -197,7 +197,7 @@ namespace ModernCaching
             _localCache.Set(key, cacheEntry);
         }
 
-        /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryGet"/>.</summary>
+        /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
         private void BackgroundLoad(object _, ElapsedEventArgs __)
         {
             ICollection<TKey> keys = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, bool>()).Keys;

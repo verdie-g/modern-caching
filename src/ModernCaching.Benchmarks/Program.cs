@@ -56,7 +56,7 @@ namespace ModernCaching.Benchmarks
             int sum = 0;
             foreach (var d in Data)
             {
-                _modernCache.TryGet(d.Key, out int val);
+                _modernCache.TryPeek(d.Key, out int val);
                 sum += val;
             }
 

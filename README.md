@@ -17,7 +17,7 @@ mechanism when getting a value or by preloading some data when building the cach
 
 - Strict API. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
   has only two methods:
-  - `TryGet`, a synchronous operation to only get the value if it's present in
+  - `TryPeek`, a synchronous operation to only get the value if it's present in
     the local cache.
   - `TryGetAsync`, an asynchronous operation to get the first fresh value in the
     local cache, distributed cache or the data source, in that order.
@@ -47,7 +47,7 @@ var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_c
     .BuildAsync();
 
 int externalId = 5;
-bool found = cache.TryGet(externalId, out int? internalId); // Only check local cache.
+bool found = cache.TryPeek(externalId, out int? internalId); // Only check local cache.
 (bool found, int? internalId) res = await cache.TryGetAsync(externalId); // Check all layers.
 
 class ExternalToInternalIdDataSource : IDataSource<int, int?>
