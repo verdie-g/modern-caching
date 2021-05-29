@@ -96,6 +96,8 @@ namespace ModernCaching.DistributedCaching
             {
                 writer.Write((byte)0); // Version, to add extra fields later.
 
+                writer.Write((int)AsyncCacheEntryOptions.None);
+
                 long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
                 writer.Write(unixExpirationTime);
 
@@ -109,10 +111,12 @@ namespace ModernCaching.DistributedCaching
         {
             byte version = bytes[0];
 
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(byte)));
+            var options = (AsyncCacheEntryOptions)BitConverter.ToInt64(bytes.AsSpan(sizeof(byte)));
+
+            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(int) + sizeof(byte)));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(byte) + sizeof(long)));
+            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(int) + sizeof(byte) + sizeof(long)));
 
             return new CacheEntry<TValue?>(value, expirationTime);
         }
