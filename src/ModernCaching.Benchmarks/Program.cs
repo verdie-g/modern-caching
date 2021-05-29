@@ -11,7 +11,7 @@ using CacheTower.Providers.Memory;
 using EasyCaching.Core;
 using EasyCaching.InMemory;
 using ModernCaching.DataSource;
-using ModernCaching.LocalCaching.InMemory;
+using ModernCaching.LocalCaching;
 
 namespace ModernCaching.Benchmarks
 {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace ModernCaching.LocalCaching.InMemory
+namespace ModernCaching.LocalCaching
 {
     /// <summary>
     /// Implementation of a <see cref="ICache{TKey,TValue}"/> using a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
