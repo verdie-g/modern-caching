@@ -111,12 +111,12 @@ namespace ModernCaching.DistributedCaching
         {
             byte version = bytes[0];
 
-            var options = (AsyncCacheEntryOptions)BitConverter.ToInt64(bytes.AsSpan(sizeof(byte)));
+            var options = (AsyncCacheEntryOptions)BitConverter.ToInt32(bytes.AsSpan(sizeof(byte), sizeof(int)));
 
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(int) + sizeof(byte)));
+            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(byte) + sizeof(int), sizeof(long)));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(int) + sizeof(byte) + sizeof(long)));
+            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(byte) + sizeof(int) + sizeof(long)));
 
             return new CacheEntry<TValue?>(value, expirationTime);
         }
