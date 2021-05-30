@@ -28,6 +28,7 @@ namespace ModernCaching.Benchmarks
     [MemoryDiagnoser]
     public class LocalGetBenchmark
     {
+        private const int DataCount = 5;
         private static readonly KeyValuePair<int, int>[] Data =
         {
             new (12, 999),
@@ -50,7 +51,7 @@ namespace ModernCaching.Benchmarks
             _easyCache = CreateEasyCache();
         }
 
-        [Benchmark]
+        [Benchmark(OperationsPerInvoke = DataCount)]
         public int ModernCaching()
         {
             int sum = 0;
@@ -63,7 +64,7 @@ namespace ModernCaching.Benchmarks
             return sum;
         }
 
-        [Benchmark]
+        [Benchmark(OperationsPerInvoke = DataCount)]
         public async ValueTask<int> CacheTower()
         {
             int sum = 0;
@@ -75,7 +76,7 @@ namespace ModernCaching.Benchmarks
             return sum;
         }
 
-        [Benchmark]
+        [Benchmark(OperationsPerInvoke = DataCount)]
         public int FusionCache()
         {
             int sum = 0;
@@ -87,7 +88,7 @@ namespace ModernCaching.Benchmarks
             return sum;
         }
 
-        [Benchmark]
+        [Benchmark(OperationsPerInvoke = DataCount)]
         public int EasyCaching()
         {
             int sum = 0;
