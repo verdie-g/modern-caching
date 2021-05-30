@@ -13,8 +13,14 @@ These 3 components form an [`IReadOnlyCache`](https://github.com/verdie-g/modern
 The 2 cache layers are populated from the `IDataSource` with a backfilling
 mechanism when getting a value or by preloading some data when building the cache.
 
-ModernCaching doesn't provide implementations of `IAsyncCache` or `IDataSource`
-because they are usually tied to the business.
+ModernCaching doesn't provide implementations of
+[`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs)
+or [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs)
+because they are usually tied to the business. Only a single implementation of
+[`ICache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/ICache.cs)
+is built-in: 
+[`InMemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/InMemoryCache.cs).
+
 
 ## Features
 
@@ -52,48 +58,55 @@ var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_c
 int externalId = 5;
 bool found = cache.TryPeek(externalId, out int? internalId); // Only check local cache.
 (bool found, int? internalId) res = await cache.TryGetAsync(externalId); // Check all layers.
-
-class ExternalToInternalIdDataSource : IDataSource<int, int?>
-{
-    public async IAsyncEnumerable<DataSourceResult<int, int?>> LoadAsync(IEnumerable<int> keys,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        await using SqlConnection connection = new("Data Source=(local)");
-        string keysStr = "(" + string.Join("),(", keys) + ")";
-        SqlCommand command = new(@$"
-            SELECT u.external_id, u.internal_id
-            FROM (VALUES {keysStr}) as input(external_id)
-            RIGHT JOIN users u ON input.external_id = u.external_id",
-            connection);
-        await connection.OpenAsync(cancellationToken);
-        SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
-        {
-            int externalId = reader.GetInt32(0);
-            int? internalId = reader[1] as int?;
-            yield return new DataSourceResult<int, int?>(externalId, internalId, TimeSpan.FromHours(1));
-        }
-        await reader.CloseAsync();
-}
-
-class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
-{
-    public int Version => 0; // Bump after making breaking change in the serialization.
-    public string StringifyKey(int key) => key.ToString();
-    public void SerializeValue(int? value, BinaryWriter writer)
-    {
-        if (value.HasValue) writer.Write(value.Value);
-    }
-    public int? DeserializeValue(ReadOnlySpan<byte> valueBytes)
-    {
-        return valueBytes.IsEmpty ? null : BitConverter.ToInt32(valueBytes);
-    }
-}
 ```
+
+<details>
+  <summary>See definitions of each layer</summary>
+
+  ```csharp
+  class ExternalToInternalIdDataSource : IDataSource<int, int?>
+  {
+      public async IAsyncEnumerable<DataSourceResult<int, int?>> LoadAsync(IEnumerable<int> keys,
+          [EnumeratorCancellation] CancellationToken cancellationToken)
+      {
+          await using SqlConnection connection = new("Data Source=(local)");
+          string keysStr = "(" + string.Join("),(", keys) + ")";
+          SqlCommand command = new(@$"
+              SELECT u.external_id, u.internal_id
+              FROM (VALUES {keysStr}) as input(external_id)
+              LEFT JOIN users u ON input.external_id = u.external_id",
+              connection);
+          await connection.OpenAsync(cancellationToken);
+          SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+          while (await reader.ReadAsync(cancellationToken))
+          {
+              int externalId = reader.GetInt32(0);
+              int? internalId = reader[1] as int?;
+              yield return new DataSourceResult<int, int?>(externalId, internalId, TimeSpan.FromHours(1));
+          }
+          await reader.CloseAsync();
+      }
+  }
+
+  class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
+  {
+      public int Version => 0; // Bump after making breaking change in the serialization.
+      public string StringifyKey(int key) => key.ToString();
+      public void SerializeValue(int? value, BinaryWriter writer)
+      {
+          if (value.HasValue) writer.Write(value.Value);
+      }
+      public int? DeserializeValue(ReadOnlySpan<byte> valueBytes)
+      {
+          return valueBytes.IsEmpty ? null : BitConverter.ToInt32(valueBytes);
+      }
+  }
+  ```
+</details>
 
 ## Benchmarks
 
-Benchmark of the very hot path of different caching libraries, that is
+Benchmark of the very hot path of different caching libraries, that is,
 getting locally cached data.
 
 |        Method |     Mean |    Error |  StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
