@@ -121,3 +121,12 @@ Since this library has a generic interface, getting a value doesn't involve any
 allocation.
 
 Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/modern-caching/tree/main/src/ModernCaching.Benchmarks).
+
+## Instrumentation
+
+Metrics are exposed using the standard way for modern .NET:
+[EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
+See the following example where the metrics are collected using
+[dotnet-counters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters).
+
+![metrics](https://user-images.githubusercontent.com/9092290/120233516-41b09680-c256-11eb-9088-cc4a033920fe.gif)
