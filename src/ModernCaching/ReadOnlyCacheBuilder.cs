@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
+using ModernCaching.Instrumentation;
 using ModernCaching.LocalCaching;
 using ModernCaching.Utils;
 
@@ -97,11 +98,16 @@ namespace ModernCaching
         /// <returns>The built <see cref="IReadOnlyCache{TKey,TValue}"/>.</returns>
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
-            IDistributedCache<TKey, TValue>? distributedCache = _distributedCache != null
-                ? new DistributedCache<TKey, TValue>(_name, _distributedCache, _keyValueSerializer!, _keyPrefix)
+            EventCounterCacheMetrics metrics = new(_name);
+            var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics) : null;
+            var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics) : null;
+            var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics);
+
+            IDistributedCache<TKey, TValue>? distributedCacheWrapper = distributedCache != null
+                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix)
                 : null;
-            var cache = new ReadOnlyCache<TKey, TValue>(_localCache, distributedCache, _dataSource, LoadingTimer,
-                Random);
+            var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
+                LoadingTimer, Random);
 
             if (_getKeys == null)
             {

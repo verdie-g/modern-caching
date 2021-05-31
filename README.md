@@ -21,24 +21,25 @@ because they are usually tied to the business. Only a single implementation of
 is built-in: 
 [`InMemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/InMemoryCache.cs).
 
-
 ## Features
 
-- Strict API. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
+- **Strict API**. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
   has only two methods:
   - `TryPeek`, a synchronous operation to only get the value if it's present in
     the local cache.
   - `TryGetAsync`, an asynchronous operation to get the first fresh value in the
     local cache, distributed cache or the data source, in that order.
-- Performance. Unlike other caching libraries that use a `string` as a key or an
+- **Performance**. Unlike other caching libraries that use a `string` as a key or an
   `object` as value or both, `ModernCaching` uses a generic key and value. That
   way, getting a value from the local cache doesn't require any allocation for
   simple type keys such as `int` or more complex user-defined objects. See the
   [benchmarks](https://github.com/verdie-g/modern-caching#benchmarks).
-- Predictability. Since the number of layers is fixed, it's easy to define
+- **Predictability**. Since the number of layers is fixed, it's easy to define
   what should be done when one of these layers is down. For instance, the
   data source is skipped if the distributed cache is unavailable to avoid
   DDOSing it.
+- **Instrumentation**. Metrics are exposed through
+  [EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
 
 ## Example
 

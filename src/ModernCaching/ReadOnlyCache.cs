@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
+using ModernCaching.Instrumentation;
 using ModernCaching.LocalCaching;
 using ModernCaching.Utils;
 
@@ -32,6 +33,11 @@ namespace ModernCaching
         private readonly IDataSource<TKey, TValue> _dataSource;
 
         /// <summary>
+        /// Library metrics.
+        /// </summary>
+        private readonly ICacheMetrics _metrics;
+
+        /// <summary>
         /// Batch of keys to load in the background. The boolean value is not used.
         /// </summary>
         private ConcurrentDictionary<TKey, bool> _keysToLoad;
@@ -52,11 +58,12 @@ namespace ModernCaching
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer, IRandom random)
+            IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics, ITimer loadingTimer, IRandom random)
         {
             _localCache = localCache;
             _distributedCache = distributedCache;
             _dataSource = dataSource;
+            _metrics = metrics;
             _keysToLoad = new ConcurrentDictionary<TKey, bool>();
             _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
@@ -148,8 +155,7 @@ namespace ModernCaching
             var keysNotFoundInSource = keysToLoadFromSource.ToHashSet();
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            var results = _dataSource
-                .LoadAsync(keysToLoadFromSource, cancellationToken)
+            var results = _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken)
                 .GetAsyncEnumerator(cancellationToken);
 
             while (true)
@@ -177,6 +183,9 @@ namespace ModernCaching
             }
 
             await results.DisposeAsync();
+
+            _metrics.IncrementDataSourceLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
+            _metrics.IncrementDataSourceLoadMisses(keysNotFoundInSource.Count);
 
             // If the key was not found in the data source, it means that maybe it never existed or that it was
             // removed recently. For that second case, we should remove the potential cached value.
@@ -256,7 +265,7 @@ namespace ModernCaching
                 }
             }
 
-            var (loadSuccessful, dataSourceEntry) = await LoadFromDataSourceAsync(key);
+            (bool loadSuccessful, var dataSourceEntry) = await LoadFromDataSourceAsync(key);
             if (!loadSuccessful)
             {
                 // If the data source is unavailable return the stale value of the distributed cache or the stale
@@ -315,14 +324,15 @@ namespace ModernCaching
             try
             {
                 var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-                await using var results = _dataSource
-                    .LoadAsync(new[] { key }, cancellationToken)
+                await using var results = _dataSource.LoadAsync(new[] { key }, cancellationToken)
                     .GetAsyncEnumerator(cancellationToken);
                 if (!await results.MoveNextAsync())
                 {
+                    _metrics.IncrementDataSourceLoadMisses();
                     return (true, null);
                 }
 
+                _metrics.IncrementDataSourceLoadHits();
                 var result = results.Current;
                 DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(result.TimeToLive);
                 return (true, new CacheEntry<TValue?>(result.Value, expirationTime));
