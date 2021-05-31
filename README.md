@@ -143,3 +143,8 @@ Use `WithLoggerFactory` on the builder to log all user-code errors coming from
 [`IKeyValueSerializer`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IKeyValueSerializer.cs) or
 [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs).
 
+## License
+
+All code found in this repository is licensed under MIT. See the
+[LICENSE](https://github.com/verdie-g/crpg/blob/master/LICENSE)
+file in the project root for the full license text.
