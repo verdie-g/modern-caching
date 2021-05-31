@@ -64,8 +64,8 @@ namespace ModernCaching
             _distributedCache = distributedCache;
             _dataSource = dataSource;
             _metrics = metrics;
-            _keysToLoad = new ConcurrentDictionary<TKey, bool>();
-            _loadingTasks = new ConcurrentDictionary<TKey, Task<(bool, TValue?)>>();
+            _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, bool>();
+            _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
             _random = random;
 
