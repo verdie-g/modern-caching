@@ -25,9 +25,9 @@ namespace ModernCaching.DistributedCaching
         Task SetAsync(string key, byte[] value, TimeSpan timeToLive);
 
         /// <summary>
-        /// Removes the value with the specified key.
+        /// Removes the value with the given key.
         /// </summary>
-        /// <param name="key">The key of the value to remove.</param>
-        Task Remove(string key);
+        /// <param name="key">The key of the element to remove.</param>
+        Task RemoveAsync(string key);
     }
 }

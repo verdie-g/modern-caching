@@ -102,7 +102,7 @@ namespace ModernCaching.UTest
                 return Task.CompletedTask;
             }
 
-            public Task Remove(string key)
+            public Task RemoveAsync(string key)
             {
                 _dictionary.Remove(key);
                 return Task.CompletedTask;
