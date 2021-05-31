@@ -20,7 +20,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object);
+            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
             instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None);
             metricsMock.Verify(m => m.IncrementDataSourceLoadOk(), Times.Once);
         }
@@ -35,7 +35,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object);
+            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
             try
             {
                 instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None);

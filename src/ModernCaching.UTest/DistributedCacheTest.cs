@@ -24,7 +24,7 @@ namespace ModernCaching.UTest
             keyValueSerializerMock.Setup(s => s.StringifyKey(10)).Returns("10");
 
             DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
-                keyValueSerializerMock.Object, null);
+                keyValueSerializerMock.Object, null, null);
 
             Assert.AreEqual((status, null as CacheEntry<int>), await distributedCache.GetAsync(10));
         }
@@ -40,7 +40,7 @@ namespace ModernCaching.UTest
             keyValueSerializerMock.Setup(s => s.StringifyKey(10)).Returns("10");
 
             DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
-                keyValueSerializerMock.Object, null);
+                keyValueSerializerMock.Object, null, null);
 
             Assert.AreEqual((AsyncCacheStatus.Error, null as CacheEntry<int>), await distributedCache.GetAsync(10));
         }
@@ -52,7 +52,7 @@ namespace ModernCaching.UTest
             DictionaryAsyncCache asyncCache = new();
             IntToIntKeyValueSerializer serializer = new();
 
-            DistributedCache<int, int?> distributedCache = new("c", asyncCache, serializer, "ab");
+            DistributedCache<int, int?> distributedCache = new("c", asyncCache, serializer, "ab", null);
 
             CacheEntry<int?> entry = new(value, DateTime.UtcNow.AddHours(1));
             await distributedCache.SetAsync(10, entry);

@@ -10,8 +10,10 @@ A typical cache provided by this library consists of:
   (e.g. relational database, Web API, ...)
 
 These 3 components form an [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs).
-The 2 cache layers are populated from the `IDataSource` with a backfilling
-mechanism when getting a value or by preloading some data when building the cache.
+The 2 cache layers are populated from the
+[`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs)
+with a backfilling mechanism when getting a value or by preloading some data
+when building the cache.
 
 ModernCaching doesn't provide implementations of
 [`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs)
@@ -40,14 +42,15 @@ is built-in:
   DDOSing it.
 - **Instrumentation**. Metrics are exposed through
   [EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
+  Errors from user-code are logged if a logger is specified.
 
 ## Example
 
 This example caches a mapping of "external id" to "internal id". The first
 layer is implemented with an in-memory cache, the second one is a memcache
 where we specify how to create the key and how to serialize the value using the
-interface `IKeyValueSerializer`. Behind these two layers stands the `IDataSource`
-which is usually a relational database but it's up to the implementation.
+interface `IKeyValueSerializer`. Behind these two layers stands the `IDataSource`,
+here it's an SQL Server.
 
 ```csharp
 var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_cache", new ExternalToInternalIdDataSource())
@@ -124,9 +127,19 @@ Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/
 
 ## Instrumentation
 
+### Metrics
+
 Metrics are exposed using the standard way for modern .NET:
 [EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
 See the following example where the metrics are collected using
 [dotnet-counters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters).
 
 ![metrics](https://user-images.githubusercontent.com/9092290/120233516-41b09680-c256-11eb-9088-cc4a033920fe.gif)
+
+### Logs
+
+Use `WithLoggerFactory` on the builder to log all user-code errors coming from
+[`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs),
+[`IKeyValueSerializer`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IKeyValueSerializer.cs) or
+[`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs).
+

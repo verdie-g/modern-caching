@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModernCaching.Instrumentation;
 
 namespace ModernCaching.DistributedCaching
@@ -9,16 +10,28 @@ namespace ModernCaching.DistributedCaching
     {
         private readonly IAsyncCache _cache;
         private readonly ICacheMetrics _metrics;
+        private readonly ILogger? _logger;
 
-        public InstrumentedAsyncCache(IAsyncCache cache, ICacheMetrics metrics)
+        public InstrumentedAsyncCache(IAsyncCache cache, ICacheMetrics metrics, ILogger? logger)
         {
             _cache = cache;
             _metrics = metrics;
+            _logger = logger;
         }
 
         public async Task<AsyncCacheResult> GetAsync(string key)
         {
-            var res = await _cache.GetAsync(key);
+            AsyncCacheResult res;
+            try
+            {
+                res = await _cache.GetAsync(key);
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError(e, "An error occured getting key '{key}' from distributed cache", key);
+                throw;
+            }
+
             switch (res.Status)
             {
                 case AsyncCacheStatus.Hit:

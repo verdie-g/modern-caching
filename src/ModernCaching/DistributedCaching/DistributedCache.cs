@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModernCaching.LocalCaching;
 
 namespace ModernCaching.DistributedCaching
@@ -40,13 +41,16 @@ namespace ModernCaching.DistributedCaching
         /// </summary>
         private readonly string? _keyPrefix;
 
+        private readonly ILogger? _logger;
+
         public DistributedCache(string name, IAsyncCache cache, IKeyValueSerializer<TKey, TValue> keyValueSerializer,
-            string? keyPrefix)
+            string? keyPrefix, ILogger? logger)
         {
             _name = name;
             _cache = cache;
             _keyValueSerializer = keyValueSerializer;
             _keyPrefix = keyPrefix;
+            _logger = logger;
         }
 
         /// <inheritdoc />
@@ -64,16 +68,37 @@ namespace ModernCaching.DistributedCaching
                 (status, bytes) = (AsyncCacheStatus.Error, null);
             }
 
-            return status != AsyncCacheStatus.Hit
-                ? (status, null)
-                : (status, DeserializeDistributedCacheValue(bytes!));
+            if (status != AsyncCacheStatus.Hit)
+            {
+                return (status, null);
+            }
+
+            try
+            {
+                return (status, DeserializeDistributedCacheValue(bytes!));
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError(e, "An error occured deserializing value for key '{key}' from cache '{cacheName}'", key, _name);
+                return (AsyncCacheStatus.Error, null);
+            }
         }
 
         /// <inheritdoc />
         public Task SetAsync(TKey key, CacheEntry<TValue?> entry)
         {
+            byte[] valueBytes;
+            try
+            {
+                valueBytes = SerializeDistributedCacheValue(entry);
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError(e, "An error occured serializing value for key '{key}' from cache '{cacheName}'", key, _name);
+                return Task.CompletedTask;
+            }
+
             string keyStr = BuildDistributedCacheKey(key);
-            byte[] valueBytes = SerializeDistributedCacheValue(entry);
             TimeSpan timeToLive = entry.ExpirationTime - DateTime.UtcNow;
             return _cache.SetAsync(keyStr, valueBytes, timeToLive);
         }

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using ModernCaching.Instrumentation;
 
 namespace ModernCaching.DataSource
@@ -9,11 +11,13 @@ namespace ModernCaching.DataSource
     {
         private readonly IDataSource<TKey, TValue> _dataSource;
         private readonly ICacheMetrics _metrics;
+        private readonly ILogger? _logger;
 
-        public InstrumentedDataSource(IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics)
+        public InstrumentedDataSource(IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics, ILogger? logger)
         {
             _dataSource = dataSource;
             _metrics = metrics;
+            _logger = logger;
         }
 
         public IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken)
@@ -24,9 +28,10 @@ namespace ModernCaching.DataSource
                 _metrics.IncrementDataSourceLoadOk();
                 return results;
             }
-            catch
+            catch (Exception e)
             {
                 _metrics.IncrementDataSourceLoadError();
+                _logger?.LogError(e, "An error occured loading keys from source");
                 throw;
             }
         }

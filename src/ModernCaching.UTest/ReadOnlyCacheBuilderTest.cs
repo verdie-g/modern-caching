@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Net;
+using Microsoft.Extensions.Logging.Abstractions;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
 using ModernCaching.LocalCaching;
@@ -18,6 +17,7 @@ namespace ModernCaching.UTest
                 new ReadOnlyCacheBuilder<string, IPEndPoint>("test", Mock.Of<IDataSource<string, IPEndPoint>>())
                     .WithLocalCache(Mock.Of<ICache<string, IPEndPoint>>())
                     .WithDistributedCache(Mock.Of<IAsyncCache>(), Mock.Of<IKeyValueSerializer<string, IPEndPoint>>())
+                    .WithLoggerFactory(new NullLoggerFactory())
                     .BuildAsync()
             );
         }

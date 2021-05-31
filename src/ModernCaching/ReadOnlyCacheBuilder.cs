@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
 using ModernCaching.Instrumentation;
@@ -34,6 +35,7 @@ namespace ModernCaching
         private string? _keyPrefix;
         private Func<object?, Task<IEnumerable<TKey>>>? _getKeys;
         private object? _getKeysState;
+        private ILoggerFactory? _loggerFactory;
 
         /// <summary>
         /// Initializes a new instance of <see cref="ReadOnlyCacheBuilder{TKey,TValue}"/> class.
@@ -92,6 +94,18 @@ namespace ModernCaching
         }
 
         /// <summary>
+        /// Sets the <see cref="ILoggerFactory"/> that will be used to create <see cref="ILogger"/> instances for
+        /// logging done by this cache..
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory to be used.</param>
+        /// <returns>A reference to this instance.</returns>
+        public ReadOnlyCacheBuilder<TKey, TValue> WithLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+            return this;
+        }
+
+        /// <summary>
         /// Builds and preloads the <see cref="IReadOnlyCache{TKey,TValue}"/>. If <see cref="WithPreload"/> was not used,
         /// this method will return synchronously.
         /// </summary>
@@ -99,12 +113,13 @@ namespace ModernCaching
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
             EventCounterCacheMetrics metrics = new(_name);
+            ILogger? logger = _loggerFactory?.CreateLogger<ReadOnlyCache<TKey, TValue>>();
             var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics) : null;
-            var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics) : null;
-            var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics);
+            var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics, logger) : null;
+            var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics, logger);
 
             IDistributedCache<TKey, TValue>? distributedCacheWrapper = distributedCache != null
-                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix)
+                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, logger)
                 : null;
             var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
                 LoadingTimer, Random);
