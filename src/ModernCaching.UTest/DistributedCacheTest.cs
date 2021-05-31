@@ -101,6 +101,12 @@ namespace ModernCaching.UTest
                 _dictionary[key] = value;
                 return Task.CompletedTask;
             }
+
+            public Task Remove(string key)
+            {
+                _dictionary.Remove(key);
+                return Task.CompletedTask;
+            }
         }
     }
 }

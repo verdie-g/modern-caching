@@ -17,6 +17,7 @@ namespace ModernCaching.LocalCaching
         public InMemoryCache() => _dictionary = new ConcurrentDictionary<TKey, CacheEntry<TValue?>>(GetComparer());
         public bool TryGet(TKey key, out CacheEntry<TValue?> entry) => _dictionary.TryGetValue(key, out entry);
         public void Set(TKey key, CacheEntry<TValue?> entry) => _dictionary[key] = entry;
+        public void Remove(TKey key) => _dictionary.Remove(key, out _);
 
         private IEqualityComparer<TKey?> GetComparer()
         {

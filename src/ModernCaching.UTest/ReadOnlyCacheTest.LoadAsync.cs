@@ -36,16 +36,20 @@ namespace ModernCaching.UTest
             distributedCacheMock.Setup(c => c.GetAsync(3)).ReturnsAsync((AsyncCacheStatus.Miss, remoteCacheEntry3));
 
             // 4: distributed cache hit
-            CacheEntry<int>? remoteCacheEntry4 = new(44, DateTime.UtcNow.AddHours(5));
+            CacheEntry<int> remoteCacheEntry4 = new(44, DateTime.UtcNow.AddHours(5));
             distributedCacheMock.Setup(c => c.GetAsync(4)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry4));
 
             // 5: distributed cache hit stale and data source hit
-            CacheEntry<int>? remoteCacheEntry5 = new(55, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int> remoteCacheEntry5 = new(55, DateTime.UtcNow.AddHours(-5));
             distributedCacheMock.Setup(c => c.GetAsync(5)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry5));
+
+            // 5: distributed cache hit stale and data source miss
+            CacheEntry<int> remoteCacheEntry6 = new(66, DateTime.UtcNow.AddHours(-5));
+            distributedCacheMock.Setup(c => c.GetAsync(6)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry6));
 
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
             dataSourceMock
-                .Setup(s => s.LoadAsync(It.Is<IEnumerable<int>>(e => e.Count() == 3), CancellationToken.None))
+                .Setup(s => s.LoadAsync(It.Is<IEnumerable<int>>(e => e.Count() == 4), CancellationToken.None))
                 .Returns(CreateDataSourceResults(new[]
                 {
                     new DataSourceResult<int, int>(3, 333, TimeSpan.FromHours(5)),
@@ -53,13 +57,15 @@ namespace ModernCaching.UTest
                 }));
 
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Timer, Random);
-            await cache.LoadAsync(new[] { 1, 2, 3, 4, 5 });
+            await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
             localCacheMock.Verify(c => c.Set(1, It.IsAny<CacheEntry<int>>()), Times.Never);
             localCacheMock.Verify(c => c.Set(2, It.IsAny<CacheEntry<int>>()), Times.Never);
             localCacheMock.Verify(c => c.Set(3, It.Is<CacheEntry<int>>(e => e.Value == 333)));
             localCacheMock.Verify(c => c.Set(4, It.Is<CacheEntry<int>>(e => e.Value == 44)));
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
+            localCacheMock.Verify(c => c.Set(6, It.IsAny<CacheEntry<int>>()), Times.Never);
+            localCacheMock.Verify(c => c.Remove(6));
 
             Assert.That(
                 () => distributedCacheMock.Invocations.Count(i => i.Method.Name == nameof(IAsyncCache.SetAsync)) == 2,

@@ -145,6 +145,8 @@ namespace ModernCaching
                 keysToLoadFromSource.Add(key);
             }
 
+            var keysNotFoundInSource = keysToLoadFromSource.ToHashSet();
+
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
             var results = _dataSource
                 .LoadAsync(keysToLoadFromSource, cancellationToken)
@@ -161,6 +163,7 @@ namespace ModernCaching
                     }
 
                     dataSourceResult = results.Current;
+                    keysNotFoundInSource.Remove(dataSourceResult.Key);
                 }
                 catch
                 {
@@ -174,6 +177,14 @@ namespace ModernCaching
             }
 
             await results.DisposeAsync();
+
+            // If the key was not found in the data source, it means that maybe it never existed or that it was
+            // removed recently. For that second case, we should remove the potential cached value.
+            // TODO: add an option to set to null instead of removing the entry?
+            foreach (var key in keysNotFoundInSource)
+            {
+                RemoveLocally(key);
+            }
         }
 
         public void Dispose()
@@ -202,6 +213,17 @@ namespace ModernCaching
             }
 
             _localCache.Set(key, cacheEntry);
+        }
+
+        /// <summary>Sets the specified key and entry to the local cache.</summary>
+        private void RemoveLocally(TKey key)
+        {
+            if (_localCache == null)
+            {
+                return;
+            }
+
+            _localCache.Remove(key);
         }
 
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
@@ -245,6 +267,14 @@ namespace ModernCaching
 
             if (dataSourceEntry == null) // If no results were returned from the data source.
             {
+                if (localCacheEntry != null)
+                {
+                    // The entry was recently removed from the data source so it should also be removed from the
+                    // local cache. The entry in the distributed cache is not removed as it is supposed to be
+                    // stale so it won't be used by this library and should get evicted soon.
+                    RemoveLocally(key);
+                }
+
                 return (false, default)!;
             }
 

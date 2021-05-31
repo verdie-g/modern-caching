@@ -200,6 +200,32 @@ namespace ModernCaching.UTest
         }
 
         [Test]
+        public async Task ShouldReturnFalseIfDataWasRemovedFromSource()
+        {
+            CacheEntry<int>? localCacheEntry = new(99, DateTime.UtcNow.AddHours(-5));
+            Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
+            localCacheMock
+                .Setup(c => c.TryGet(5, out localCacheEntry))
+                .Returns(true);
+            localCacheMock.Setup(c => c.Remove(5));
+
+            CacheEntry<int>? remoteCacheEntry = new(99, DateTime.UtcNow.AddHours(-5));
+            Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
+            distributedCacheMock
+                .Setup(c => c.GetAsync(5))
+                .ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry));
+
+            Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
+            dataSourceMock
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
+                .Returns(CreateDataSourceResults());
+
+            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Timer, Random);
+            Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
+            localCacheMock.Verify(c => c.Remove(5), Times.Once);
+        }
+
+        [Test]
         public async Task ShouldReturnStaleRemoteEntryIfDataSourceUnavailable()
         {
             CacheEntry<int>? localCacheEntry = null;

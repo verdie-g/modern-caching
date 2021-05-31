@@ -23,5 +23,11 @@ namespace ModernCaching.DistributedCaching
         /// <param name="value">The value of the element to set.</param>
         /// <param name="timeToLive">Duration after which the element is considered stale.</param>
         Task SetAsync(string key, byte[] value, TimeSpan timeToLive);
+
+        /// <summary>
+        /// Removes the value with the specified key.
+        /// </summary>
+        /// <param name="key">The key of the value to remove.</param>
+        Task Remove(string key);
     }
 }
