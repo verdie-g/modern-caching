@@ -20,8 +20,11 @@ namespace ModernCaching.Benchmarks
     {
         public static void Main(string[] args)
         {
-            // BenchmarkRunner.Run<LocalGetBenchmark>();
+#if DEBUG
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(Array.Empty<string>(), new DebugInProcessConfig());
+#else
+            BenchmarkRunner.Run<LocalGetBenchmark>();
+#endif
         }
     }
 

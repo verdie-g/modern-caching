@@ -109,12 +109,12 @@ bool found = cache.TryPeek(externalId, out int? internalId); // Only check local
 Benchmark of the very hot path of different caching libraries, that is,
 getting locally cached data.
 
-|        Method |     Mean |    Error |  StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|-------------- |---------:|---------:|--------:|-------:|------:|------:|----------:|
-| ModernCaching | 104.7 ns |  0.82 ns | 0.69 ns |      - |     - |     - |         - |
-|    CacheTower | 125.5 ns |  2.41 ns | 2.48 ns | 0.0202 |     - |     - |      32 B |
-|   FusionCache | 384.5 ns |  7.63 ns | 9.36 ns | 0.0355 |     - |     - |      56 B |
-|   EasyCaching | 526.4 ns | 10.24 ns | 9.07 ns | 0.1274 |     - |     - |     200 B |
+|        Method |     Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------- |---------:|---------:|---------:|-------:|------:|------:|----------:|
+| ModernCaching | 115.7 ns |  2.32 ns |  5.99 ns |      - |     - |     - |         - |
+|    CacheTower | 132.0 ns |  2.59 ns |  3.27 ns | 0.0202 |     - |     - |      32 B |
+|   FusionCache | 407.8 ns |  8.09 ns | 20.14 ns | 0.0351 |     - |     - |      56 B |
+|   EasyCaching | 545.7 ns | 10.67 ns | 19.52 ns | 0.1274 |     - |     - |     200 B |
 
 Since this library has a generic interface, getting a value doesn't involve any
 allocation.
