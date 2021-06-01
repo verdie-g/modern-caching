@@ -1,6 +1,6 @@
 # ModernCaching
 
-A 2-layer, performant and predicable caching solution for modern .NET.
+A 2-layer, performant and predictable caching solution for modern .NET.
 
 A typical cache provided by this library consists of:
 - a synchronous local cache that implements [`ICache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/ICache.cs)
@@ -110,8 +110,11 @@ bool found = cache.TryPeek(externalId, out int? internalId); // Only check local
 
 ## Benchmarks
 
-Benchmark of the very hot path of different caching libraries, that is,
-getting locally cached data.
+Benchmark of the very hot path of different caching libraries
+([CacheTower](https://github.com/TurnerSoftware/CacheTower),
+[FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache),
+[EasyCaching](https://github.com/dotnetcore/EasyCaching)),
+that is, getting locally cached data.
 
 |        Method |     Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |-------------- |---------:|---------:|---------:|-------:|------:|------:|----------:|
