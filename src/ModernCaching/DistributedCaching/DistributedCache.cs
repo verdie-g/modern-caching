@@ -6,7 +6,7 @@ using ModernCaching.LocalCaching;
 
 namespace ModernCaching.DistributedCaching
 {
-    internal interface IDistributedCache<in TKey, TValue> where TKey : IEquatable<TKey>
+    internal interface IDistributedCache<in TKey, TValue>
     {
         /// <summary>Gets the entry associated with the specified key from the distributed cache.</summary>
         Task<(AsyncCacheStatus status, CacheEntry<TValue?>? entry)> GetAsync(TKey key);
@@ -19,7 +19,7 @@ namespace ModernCaching.DistributedCaching
     /// Internal class that wraps a generic <see cref="IAsyncCache"/> with a <see cref="IKeyValueSerializer{TKey,TValue}"/>
     /// for a specific <see cref="ReadOnlyCache{TKey,TValue}"/>.
     /// </summary>
-    internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : IEquatable<TKey>
+    internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue>
     {
         /// <summary>
         /// Name of cache. Used in the distributed cache key.
