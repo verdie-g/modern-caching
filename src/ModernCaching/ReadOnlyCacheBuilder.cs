@@ -17,6 +17,8 @@ namespace ModernCaching
     {
         internal static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
         internal static readonly IRandom Random = new ThreadSafeRandom();
+
+        protected ReadOnlyCacheBuilder() { } // Make default constructor protected because it shouldn't be instantiated.
     }
 
     /// <summary>
