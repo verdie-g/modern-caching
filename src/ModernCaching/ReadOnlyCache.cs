@@ -176,8 +176,7 @@ namespace ModernCaching
                     continue;
                 }
 
-                DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(dataSourceResult.TimeToLive);
-                CacheEntry<TValue?> cacheEntry = new(dataSourceResult.Value, expirationTime);
+                CacheEntry<TValue?> cacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
@@ -333,14 +332,20 @@ namespace ModernCaching
                 }
 
                 _metrics.IncrementDataSourceLoadHits();
-                var result = results.Current;
-                DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(result.TimeToLive);
-                return (true, new CacheEntry<TValue?>(result.Value, expirationTime));
+                return (true, CacheEntryFromDataSourceResult(results.Current));
             }
             catch
             {
                 return (false, null);
             }
+        }
+
+        private CacheEntry<TValue?> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue?> result)
+        {
+            DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(result.TimeToLive);
+            // Entries are kept in cache twice longer than the expiration time.
+            DateTime graceTime = new DateTime(expirationTime.Ticks * 2, DateTimeKind.Utc);
+            return new CacheEntry<TValue?>(result.Value, expirationTime, graceTime);
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)

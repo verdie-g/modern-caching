@@ -99,7 +99,7 @@ namespace ModernCaching.DistributedCaching
             }
 
             string keyStr = BuildDistributedCacheKey(key);
-            TimeSpan timeToLive = entry.ExpirationTime - DateTime.UtcNow;
+            TimeSpan timeToLive = entry.GraceTime - DateTime.UtcNow;
             return _cache.SetAsync(keyStr, valueBytes, timeToLive);
         }
 
@@ -126,6 +126,9 @@ namespace ModernCaching.DistributedCaching
                 long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
                 writer.Write(unixExpirationTime);
 
+                long unixGraceTime = new DateTimeOffset(entry.GraceTime).ToUnixTimeMilliseconds();
+                writer.Write(unixGraceTime);
+
                 _keyValueSerializer!.SerializeValue(entry.Value, writer);
             }
 
@@ -134,16 +137,25 @@ namespace ModernCaching.DistributedCaching
 
         private CacheEntry<TValue?> DeserializeDistributedCacheValue(byte[] bytes)
         {
+            int offset = 0;
+
             byte version = bytes[0];
+            offset += sizeof(byte);
 
-            var options = (AsyncCacheEntryOptions)BitConverter.ToInt32(bytes.AsSpan(sizeof(byte), sizeof(int)));
+            var options = (AsyncCacheEntryOptions)BitConverter.ToInt32(bytes.AsSpan(offset, sizeof(int)));
+            offset += sizeof(int);
 
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(sizeof(byte) + sizeof(int), sizeof(long)));
+            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(offset, sizeof(long)));
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
+            offset += sizeof(long);
 
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(sizeof(byte) + sizeof(int) + sizeof(long)));
+            long unixGraceTime = BitConverter.ToInt64(bytes.AsSpan(offset, sizeof(long)));
+            DateTime graceTime = DateTimeOffset.FromUnixTimeMilliseconds(unixGraceTime).UtcDateTime;
+            offset += sizeof(long);
 
-            return new CacheEntry<TValue?>(value, expirationTime);
+            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(offset));
+
+            return new CacheEntry<TValue?>(value, expirationTime, graceTime);
         }
     }
 }

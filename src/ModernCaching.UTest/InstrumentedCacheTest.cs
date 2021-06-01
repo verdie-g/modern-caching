@@ -11,7 +11,7 @@ namespace ModernCaching.UTest
         [Test]
         public void TryGetShouldEmitMetricOnHit()
         {
-            CacheEntry<int>? entry = new(0, DateTime.UtcNow);
+            CacheEntry<int>? entry = new(0, DateTime.UtcNow, DateTime.MaxValue);
             Mock<ICache<int, int>> cacheMock = new();
             cacheMock.Setup(c => c.TryGet(0, out entry)).Returns(true);
 
@@ -45,7 +45,7 @@ namespace ModernCaching.UTest
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object);
-            instrumentedCache.Set(0, new CacheEntry<int>(1, DateTime.UtcNow));
+            instrumentedCache.Set(0, new CacheEntry<int>(1, DateTime.UtcNow, DateTime.MaxValue));
             metricsMock.Verify(m => m.IncrementLocalCacheSet(), Times.Once);
         }
 

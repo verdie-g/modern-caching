@@ -37,15 +37,15 @@ namespace ModernCaching.UTest
             distributedCacheMock.Setup(c => c.GetAsync(3)).ReturnsAsync((AsyncCacheStatus.Miss, remoteCacheEntry3));
 
             // 4: distributed cache hit
-            CacheEntry<int> remoteCacheEntry4 = new(44, DateTime.UtcNow.AddHours(5));
+            CacheEntry<int> remoteCacheEntry4 = new(44, DateTime.UtcNow.AddHours(5), DateTime.MaxValue);
             distributedCacheMock.Setup(c => c.GetAsync(4)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry4));
 
             // 5: distributed cache hit stale and data source hit
-            CacheEntry<int> remoteCacheEntry5 = new(55, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int> remoteCacheEntry5 = new(55, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             distributedCacheMock.Setup(c => c.GetAsync(5)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry5));
 
             // 5: distributed cache hit stale and data source miss
-            CacheEntry<int> remoteCacheEntry6 = new(66, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int> remoteCacheEntry6 = new(66, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             distributedCacheMock.Setup(c => c.GetAsync(6)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry6));
 
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);

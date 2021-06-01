@@ -29,7 +29,7 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnLocalEntryIfExists()
         {
-            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(5));
+            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(5), DateTime.MaxValue);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -47,7 +47,7 @@ namespace ModernCaching.UTest
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
-                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5))));
+                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5), DateTime.MaxValue)));
 
             ReadOnlyCache<int, int> cache = new(null, distributedCacheMock.Object, null!, Metrics, Timer, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
@@ -67,7 +67,7 @@ namespace ModernCaching.UTest
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
-                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5))));
+                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5), DateTime.MaxValue)));
 
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Metrics, Timer, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
@@ -76,7 +76,7 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnRemoteEntryIfLocalEntryIsStale()
         {
-            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -87,7 +87,7 @@ namespace ModernCaching.UTest
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
-                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5))));
+                .ReturnsAsync((AsyncCacheStatus.Hit, new(10, DateTime.Now.AddHours(5), DateTime.MaxValue)));
 
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Metrics, Timer, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
@@ -107,7 +107,7 @@ namespace ModernCaching.UTest
             Mock<IDistributedCache<int, string?>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
-                .ReturnsAsync((AsyncCacheStatus.Hit, new(null, DateTime.Now.AddHours(5))));
+                .ReturnsAsync((AsyncCacheStatus.Hit, new(null, DateTime.Now.AddHours(5), DateTime.MaxValue)));
 
             ReadOnlyCache<int, string?> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Metrics, Timer, Random);
             Assert.AreEqual((true, null as string), await cache.TryGetAsync(5));
@@ -116,7 +116,7 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnStaleLocalEntryIfDistributedCacheUnavailable()
         {
-            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int>? localCacheEntry = new(10, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -150,7 +150,7 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldReturnDataFromSourceIfNotAvailableInLocalOrRemote(bool localStale, bool remoteStale)
         {
-            CacheEntry<int>? localCacheEntry = localStale ? new(99, DateTime.UtcNow.AddHours(-5)) : null;
+            CacheEntry<int>? localCacheEntry = localStale ? new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue) : null;
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -158,7 +158,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int>? remoteCacheEntry = remoteStale ? new(99, DateTime.UtcNow.AddHours(-5)) : null;
+            CacheEntry<int>? remoteCacheEntry = remoteStale ? new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue) : null;
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -207,14 +207,14 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnFalseIfDataWasRemovedFromSource()
         {
-            CacheEntry<int>? localCacheEntry = new(99, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int>? localCacheEntry = new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(true);
             localCacheMock.Setup(c => c.Remove(5));
 
-            CacheEntry<int>? remoteCacheEntry = new(99, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int>? remoteCacheEntry = new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -239,7 +239,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(false);
 
-            CacheEntry<int>? remoteCacheEntry = new(10, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int>? remoteCacheEntry = new(10, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -266,7 +266,7 @@ namespace ModernCaching.UTest
                 .Returns(false);
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int> remoteCacheEntry = new(10, DateTime.UtcNow.AddHours(-5));
+            CacheEntry<int> remoteCacheEntry = new(10, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -292,7 +292,7 @@ namespace ModernCaching.UTest
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 20)));
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
-                .ReturnsAsync((AsyncCacheStatus.Hit, new CacheEntry<int>(20, DateTime.UtcNow.AddHours(5))));
+                .ReturnsAsync((AsyncCacheStatus.Hit, new CacheEntry<int>(20, DateTime.UtcNow.AddHours(5), DateTime.MaxValue)));
             Assert.AreEqual((true, 20), await cache.TryGetAsync(5));
         }
 

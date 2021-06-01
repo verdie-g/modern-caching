@@ -11,7 +11,7 @@ namespace ModernCaching.UTest
         {
             InMemoryCache<int, int> cache = new();
             Assert.IsFalse(cache.TryGet(5, out _));
-            CacheEntry<int> entry1 = new(10, DateTime.Now);
+            CacheEntry<int> entry1 = new(10, DateTime.Now, DateTime.MaxValue);
             cache.Set(5, entry1);
             Assert.IsTrue(cache.TryGet(5, out var entry2));
             Assert.AreEqual(entry1, entry2);
