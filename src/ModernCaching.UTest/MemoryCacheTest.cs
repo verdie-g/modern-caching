@@ -4,12 +4,12 @@ using NUnit.Framework;
 
 namespace ModernCaching.UTest
 {
-    public class InMemoryCacheTest
+    public class MemoryCacheTest
     {
         [Test]
         public void BasicTests()
         {
-            InMemoryCache<int, int> cache = new();
+            MemoryCache<int, int> cache = new();
             Assert.IsFalse(cache.TryGet(5, out _));
             CacheEntry<int> entry1 = new(10, DateTime.Now, DateTime.MaxValue);
             cache.Set(5, entry1);

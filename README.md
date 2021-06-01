@@ -21,7 +21,7 @@ or [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/Mode
 because they are usually tied to the business. Only a single implementation of
 [`ICache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/ICache.cs)
 is built-in: 
-[`InMemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/InMemoryCache.cs).
+[`MemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/MemoryCache.cs).
 
 ## Features
 
@@ -54,7 +54,7 @@ here it's an SQL Server.
 
 ```csharp
 var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_cache", new ExternalToInternalIdDataSource())
-    .WithLocalCache(new InMemoryCache<int, int?>())
+    .WithLocalCache(new MemoryCache<int, int?>())
     .WithDistributedCache(new MemcacheAsyncCache(), new ExternalToInternalIdKeyValueSerializer())
     .WithPreload(_ => Task.FromResult<IEnumerable<int>>(new[] { 1, 2, 3 }), null)
     .BuildAsync();

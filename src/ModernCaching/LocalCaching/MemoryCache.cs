@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using ModernCaching.Utils;
 
@@ -11,11 +10,11 @@ namespace ModernCaching.LocalCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys.</typeparam>
     /// <typeparam name="TValue">The type of the values.</typeparam>
-    public class InMemoryCache<TKey, TValue> : ICache<TKey, TValue>
+    public class MemoryCache<TKey, TValue> : ICache<TKey, TValue>
     {
         private readonly ConcurrentDictionary<TKey, CacheEntry<TValue?>> _dictionary;
 
-        public InMemoryCache() => _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue?>>();
+        public MemoryCache() => _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue?>>();
         public bool TryGet(TKey key, out CacheEntry<TValue?> entry) => _dictionary.TryGetValue(key, out entry);
         public void Set(TKey key, CacheEntry<TValue?> entry) => _dictionary[key] = entry;
         public void Remove(TKey key) => _dictionary.Remove(key, out _);

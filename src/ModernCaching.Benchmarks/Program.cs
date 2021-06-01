@@ -106,7 +106,7 @@ namespace ModernCaching.Benchmarks
         private IReadOnlyCache<int, int> CreateModernCache()
         {
             return new ReadOnlyCacheBuilder<int, int>("benchmark_cache", new ModernCacheDataSource())
-                .WithLocalCache(new InMemoryCache<int, int>())
+                .WithLocalCache(new MemoryCache<int, int>())
                 .WithPreload(_ => Task.FromResult(Data.Select(d => d.Key)), null)
                 .BuildAsync().GetAwaiter().GetResult();
         }
