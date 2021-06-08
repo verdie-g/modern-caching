@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using ModernCaching.Instrumentation;
@@ -20,13 +21,15 @@ namespace ModernCaching.DataSource
             _logger = logger;
         }
 
-        public IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken)
+        public async IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            IAsyncEnumerator<DataSourceResult<TKey, TValue?>> results;
             try
             {
-                var results = _dataSource.LoadAsync(keys, cancellationToken);
+                results = _dataSource.LoadAsync(keys, cancellationToken)?.GetAsyncEnumerator(cancellationToken)
+                          ?? throw new NullReferenceException($"{nameof(IDataSource<TKey, TValue>.LoadAsync)} returned null");
                 _metrics.IncrementDataSourceLoadOk();
-                return results;
             }
             catch (Exception e)
             {
@@ -34,6 +37,32 @@ namespace ModernCaching.DataSource
                 _logger?.LogError(e, "An error occured loading keys from source");
                 throw;
             }
+
+            int errors = 0;
+            while (true)
+            {
+                DataSourceResult<TKey, TValue?> dataSourceResult;
+                try
+                {
+                    if (!await results.MoveNextAsync())
+                    {
+                        break;
+                    }
+
+                    dataSourceResult = results.Current;
+                }
+                catch (Exception e)
+                {
+                    errors += 1;
+                    _logger?.LogError(e, $"An error occured while iterating on {nameof(IDataSource<TKey, TValue>.LoadAsync)} result");
+                    continue;
+                }
+
+                yield return dataSourceResult;
+            }
+
+            await results.DisposeAsync();
+            _metrics.IncrementDataSourceKeyLoadErrors(errors);
         }
     }
 }

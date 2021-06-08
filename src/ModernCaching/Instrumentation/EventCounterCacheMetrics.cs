@@ -20,8 +20,9 @@ namespace ModernCaching.Instrumentation
         private IncrementingPollingCounter? _distributedCacheRemoveCounter;
         private IncrementingPollingCounter? _dataSourceLoadOkCounter;
         private IncrementingPollingCounter? _dataSourceLoadErrorCounter;
-        private IncrementingPollingCounter? _dataSourceLoadHitsCounter;
-        private IncrementingPollingCounter? _dataSourceLoadMissesCounter;
+        private IncrementingPollingCounter? _dataSourceKeyLoadHitsCounter;
+        private IncrementingPollingCounter? _dataSourceKeyLoadMissesCounter;
+        private IncrementingPollingCounter? _dataSourceKeyLoadErrorsCounter;
 
         private long _localCacheGetHits;
         private long _localCacheGetMisses;
@@ -34,8 +35,9 @@ namespace ModernCaching.Instrumentation
         private long _distributedCacheRemove;
         private long _dataSourceLoadOk;
         private long _dataSourceLoadError;
-        private long _dataSourceLoadHits;
-        private long _dataSourceLoadMisses;
+        private long _dataSourceKeyLoadHits;
+        private long _dataSourceKeyLoadMisses;
+        private long _dataSourceKeyLoadErrors;
 
         public EventCounterCacheMetrics(string cacheName) => _cacheName = cacheName;
 
@@ -50,8 +52,9 @@ namespace ModernCaching.Instrumentation
         public void IncrementDistributedCacheRemove() => Interlocked.Increment(ref _distributedCacheRemove);
         public void IncrementDataSourceLoadOk() => Interlocked.Increment(ref _dataSourceLoadOk);
         public void IncrementDataSourceLoadError() => Interlocked.Increment(ref _dataSourceLoadError);
-        public void IncrementDataSourceLoadHits(long value) => Interlocked.Add(ref _dataSourceLoadHits, value);
-        public void IncrementDataSourceLoadMisses(long value) => Interlocked.Add(ref _dataSourceLoadMisses, value);
+        public void IncrementDataSourceKeyLoadHits(long value) => Interlocked.Add(ref _dataSourceKeyLoadHits, value);
+        public void IncrementDataSourceKeyLoadMisses(long value) => Interlocked.Add(ref _dataSourceKeyLoadMisses, value);
+        public void IncrementDataSourceKeyLoadErrors(long value) => Interlocked.Add(ref _dataSourceKeyLoadErrors, value);
 
         protected override void OnEventCommand(EventCommandEventArgs args)
         {
@@ -128,16 +131,22 @@ namespace ModernCaching.Instrumentation
                 DisplayName = "Data Source Failed Load Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
-            _dataSourceLoadHitsCounter ??= new IncrementingPollingCounter("data-source-load-hits-rate", this,
-                () => Volatile.Read(ref _dataSourceLoadHits))
+            _dataSourceKeyLoadHitsCounter ??= new IncrementingPollingCounter("data-source-key-load-hits-rate", this,
+                () => Volatile.Read(ref _dataSourceKeyLoadHits))
             {
-                DisplayName = "Data Source Load Hits Rate",
+                DisplayName = "Data Source Key Load Hits Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
-            _dataSourceLoadMissesCounter ??= new IncrementingPollingCounter("data-source-load-misses-rate", this,
-                () => Volatile.Read(ref _dataSourceLoadMisses))
+            _dataSourceKeyLoadMissesCounter ??= new IncrementingPollingCounter("data-source-key-load-misses-rate", this,
+                () => Volatile.Read(ref _dataSourceKeyLoadMisses))
             {
-                DisplayName = "Data Source Load Misses Rate",
+                DisplayName = "Data Source Key Load Misses Rate",
+                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
+            };
+            _dataSourceKeyLoadErrorsCounter ??= new IncrementingPollingCounter("data-source-key-load-errors-rate", this,
+                () => Volatile.Read(ref _dataSourceKeyLoadErrors))
+            {
+                DisplayName = "Data Source Key Load Errors Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
 
@@ -154,8 +163,9 @@ namespace ModernCaching.Instrumentation
                 _distributedCacheRemoveCounter,
                 _dataSourceLoadOkCounter,
                 _dataSourceLoadErrorCounter,
-                _dataSourceLoadHitsCounter,
-                _dataSourceLoadMissesCounter,
+                _dataSourceKeyLoadHitsCounter,
+                _dataSourceKeyLoadMissesCounter,
+                _dataSourceKeyLoadErrorsCounter,
             };
             foreach (var counter in counters)
             {

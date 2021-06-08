@@ -15,7 +15,8 @@
 
         void IncrementDataSourceLoadOk();
         void IncrementDataSourceLoadError();
-        void IncrementDataSourceLoadHits(long value = 1);
-        void IncrementDataSourceLoadMisses(long value = 1);
+        void IncrementDataSourceKeyLoadHits(long value = 1);
+        void IncrementDataSourceKeyLoadMisses(long value = 1);
+        void IncrementDataSourceKeyLoadErrors(long value = 1);
     }
 }

@@ -144,7 +144,7 @@ namespace ModernCaching.UTest
 
             ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, metricsMock.Object, Timer, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
-            metricsMock.Verify(m => m.IncrementDataSourceLoadHits(1), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadHits(1), Times.Once);
         }
 
         [Theory]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using ModernCaching.DataSource;
 using ModernCaching.Instrumentation;
 using Moq;
@@ -11,7 +12,7 @@ namespace ModernCaching.UTest
     public class InstrumentedDataSourceTest
     {
         [Test]
-        public void LoadAsyncShouldEmitMetricIfItDoesntThrow()
+        public async Task LoadAsyncShouldEmitMetricIfItDoesntThrow()
         {
             Mock<IDataSource<int, int>> dataSourceMock = new();
             dataSourceMock
@@ -21,7 +22,10 @@ namespace ModernCaching.UTest
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
-            instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None);
+            await foreach (var _ in instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None))
+            {
+            }
+
             metricsMock.Verify(m => m.IncrementDataSourceLoadOk(), Times.Once);
         }
 
@@ -36,14 +40,30 @@ namespace ModernCaching.UTest
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
-            try
-            {
-                instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None);
-            }
-            catch
-            {
-                // ignored
-            }
+            Assert.ThrowsAsync<Exception>(() =>
+                instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None)
+                    .GetAsyncEnumerator()
+                    .MoveNextAsync().AsTask());
+
+            metricsMock.Verify(m => m.IncrementDataSourceLoadError(), Times.Once);
+        }
+
+        [Test]
+        public void LoadAsyncShouldEmitMetricIfItReturnsNull()
+        {
+            Mock<IDataSource<int, int>> dataSourceMock = new();
+            dataSourceMock
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+                .Returns((IAsyncEnumerable<DataSourceResult<int, int>>)null!);
+
+            Mock<ICacheMetrics> metricsMock = new();
+
+
+            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
+            Assert.ThrowsAsync<NullReferenceException>(() =>
+                instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None)
+                    .GetAsyncEnumerator()
+                    .MoveNextAsync().AsTask());
 
             metricsMock.Verify(m => m.IncrementDataSourceLoadError(), Times.Once);
         }

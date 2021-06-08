@@ -155,36 +155,16 @@ namespace ModernCaching
             var keysNotFoundInSource = keysToLoadFromSource.ToHashSet();
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            var results = _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken)
-                .GetAsyncEnumerator(cancellationToken);
-
-            while (true)
+            await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken))
             {
-                DataSourceResult<TKey, TValue?> dataSourceResult;
-                try
-                {
-                    if (!await results.MoveNextAsync())
-                    {
-                        break;
-                    }
-
-                    dataSourceResult = results.Current;
-                    keysNotFoundInSource.Remove(dataSourceResult.Key);
-                }
-                catch
-                {
-                    continue;
-                }
-
+                keysNotFoundInSource.Remove(dataSourceResult.Key);
                 CacheEntry<TValue?> cacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
 
-            await results.DisposeAsync();
-
-            _metrics.IncrementDataSourceLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
-            _metrics.IncrementDataSourceLoadMisses(keysNotFoundInSource.Count);
+            _metrics.IncrementDataSourceKeyLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
+            _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
 
             // If the key was not found in the data source, it means that maybe it never existed or that it was
             // removed recently. For that second case, we should remove the potential cached value.
@@ -327,11 +307,11 @@ namespace ModernCaching
                     .GetAsyncEnumerator(cancellationToken);
                 if (!await results.MoveNextAsync())
                 {
-                    _metrics.IncrementDataSourceLoadMisses();
+                    _metrics.IncrementDataSourceKeyLoadMisses();
                     return (true, null);
                 }
 
-                _metrics.IncrementDataSourceLoadHits();
+                _metrics.IncrementDataSourceKeyLoadHits();
                 return (true, CacheEntryFromDataSourceResult(results.Current));
             }
             catch

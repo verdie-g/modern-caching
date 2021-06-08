@@ -71,8 +71,8 @@ namespace ModernCaching.UTest
             localCacheMock.Verify(c => c.Set(6, It.IsAny<CacheEntry<int>>()), Times.Never);
             localCacheMock.Verify(c => c.Remove(6));
 
-            metricsMock.Verify(m => m.IncrementDataSourceLoadHits(2), Times.Once);
-            metricsMock.Verify(m => m.IncrementDataSourceLoadMisses(2), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadHits(2), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadMisses(2), Times.Once);
 
             Assert.That(
                 () => distributedCacheMock.Invocations.Count(i => i.Method.Name == nameof(IAsyncCache.SetAsync)) == 2,
