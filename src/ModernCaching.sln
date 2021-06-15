@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching.UTest", "Mode
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching.Benchmarks", "ModernCaching.Benchmarks\ModernCaching.Benchmarks.csproj", "{D3F1769A-971B-4F32-92A0-7165B260F4A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernCaching.ITest", "ModernCaching.ITest\ModernCaching.ITest.csproj", "{72A9C809-5D03-4B5F-BEBA-26E85ED4598C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{D3F1769A-971B-4F32-92A0-7165B260F4A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3F1769A-971B-4F32-92A0-7165B260F4A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3F1769A-971B-4F32-92A0-7165B260F4A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72A9C809-5D03-4B5F-BEBA-26E85ED4598C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A9C809-5D03-4B5F-BEBA-26E85ED4598C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72A9C809-5D03-4B5F-BEBA-26E85ED4598C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72A9C809-5D03-4B5F-BEBA-26E85ED4598C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

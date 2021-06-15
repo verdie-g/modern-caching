@@ -46,67 +46,23 @@ is built-in:
 
 ## Example
 
-This example caches a mapping of "external id" to "internal id". The first
-layer is implemented with an in-memory cache, the second one is a memcache
-where we specify how to create the key and how to serialize the value using the
-interface `IKeyValueSerializer`. Behind these two layers stands the `IDataSource`,
-here it's an SQL Server.
+This example caches the user information. The first layer is implemented with an
+in-memory cache, the second one is a redis where we specify how to create the
+key and how to serialize the value using the interface `IKeyValueSerializer`.
+Behind these two layers stands the `IDataSource`.
 
 ```csharp
-var cache = await new ReadOnlyCacheBuilder<int, int?>("external_to_internal_id_cache", new ExternalToInternalIdDataSource())
-    .WithLocalCache(new MemoryCache<int, int?>())
-    .WithDistributedCache(new MemcacheAsyncCache(), new ExternalToInternalIdKeyValueSerializer())
-    .WithPreload(_ => Task.FromResult<IEnumerable<int>>(new[] { 1, 2, 3 }), null)
+var cache = await new ReadOnlyCacheBuilder<Guid, User>("user-cache", new UserDataSource("Host=localhost;User ID=postgres"))
+    .WithLocalCache(new MemoryCache<Guid, User>())
+    .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
     .BuildAsync();
 
-int externalId = 5;
-bool found = cache.TryPeek(externalId, out int? internalId); // Only check local cache.
-(bool found, int? internalId) res = await cache.TryGetAsync(externalId); // Check all layers.
+Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
+bool found = cache.TryPeek(userId, out User? user); // Only check local cache with background reload.
+(bool found, User? user) = await cache.TryGetAsync(userId); // Check all layers for a fresh value.
 ```
 
-<details>
-  <summary>See definitions of each layer</summary>
-
-  ```csharp
-  class ExternalToInternalIdDataSource : IDataSource<int, int?>
-  {
-      public async IAsyncEnumerable<DataSourceResult<int, int?>> LoadAsync(IEnumerable<int> keys,
-          [EnumeratorCancellation] CancellationToken cancellationToken)
-      {
-          await using SqlConnection connection = new("Data Source=(local)");
-          string keysStr = "(" + string.Join("),(", keys) + ")";
-          SqlCommand command = new(@$"
-              SELECT u.external_id, u.internal_id
-              FROM (VALUES {keysStr}) as input(external_id)
-              LEFT JOIN users u ON input.external_id = u.external_id",
-              connection);
-          await connection.OpenAsync(cancellationToken);
-          SqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-          while (await reader.ReadAsync(cancellationToken))
-          {
-              int externalId = reader.GetInt32(0);
-              int? internalId = reader[1] as int?;
-              yield return new DataSourceResult<int, int?>(externalId, internalId, TimeSpan.FromHours(1));
-          }
-          await reader.CloseAsync();
-      }
-  }
-
-  class ExternalToInternalIdKeyValueSerializer : IKeyValueSerializer<int, int?>
-  {
-      public int Version => 0; // Bump after making breaking change in the serialization.
-      public string StringifyKey(int key) => key.ToString();
-      public void SerializeValue(int? value, BinaryWriter writer)
-      {
-          if (value.HasValue) writer.Write(value.Value);
-      }
-      public int? DeserializeValue(ReadOnlySpan<byte> valueBytes)
-      {
-          return valueBytes.IsEmpty ? null : BitConverter.ToInt32(valueBytes);
-      }
-  }
-  ```
-</details>
+[See full example](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching.ITest/RedisPostgreSql.cs).
 
 ## Benchmarks
 
