@@ -48,6 +48,11 @@ namespace ModernCaching
         private readonly ITimer _backgroundLoadTimer;
 
         /// <summary>
+        /// DateTime abstract to be able to mock time.
+        /// </summary>
+        private readonly IDateTime _dateTime;
+
+        /// <summary>
         /// Random number generator to randomize time-to-lives.
         /// </summary>
         private readonly IRandom _random;
@@ -58,7 +63,8 @@ namespace ModernCaching
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics, ITimer loadingTimer, IRandom random)
+            IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics, ITimer loadingTimer, IDateTime dateTime,
+            IRandom random)
         {
             _localCache = localCache;
             _distributedCache = distributedCache;
@@ -67,6 +73,7 @@ namespace ModernCaching
             _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, bool>();
             _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
+            _dateTime = dateTime;
             _random = random;
 
             _backgroundLoadTimer.Elapsed += BackgroundLoad;
@@ -274,7 +281,7 @@ namespace ModernCaching
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
         private bool IsCacheEntryStale(CacheEntry<TValue?> entry)
         {
-            return entry.ExpirationTime < DateTime.UtcNow;
+            return entry.ExpirationTime < _dateTime.UtcNow;
         }
 
         private Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)
@@ -322,9 +329,11 @@ namespace ModernCaching
 
         private CacheEntry<TValue?> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue?> result)
         {
-            DateTime expirationTime = DateTime.UtcNow + RandomizeTimeSpan(result.TimeToLive);
-            // Entries are kept in cache twice longer than the expiration time.
-            DateTime graceTime = new DateTime(expirationTime.Ticks * 2, DateTimeKind.Utc);
+            TimeSpan ttl = RandomizeTimeSpan(result.TimeToLive);
+            DateTime utcNow = _dateTime.UtcNow;
+
+            DateTime expirationTime = utcNow + ttl;
+            DateTime graceTime = utcNow + ttl * 2; // Entries are kept in cache twice longer than the expiration time.
             return new CacheEntry<TValue?>(result.Value, expirationTime, graceTime);
         }
 

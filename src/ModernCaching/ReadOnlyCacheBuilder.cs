@@ -16,6 +16,7 @@ namespace ModernCaching
     public class ReadOnlyCacheBuilder
     {
         internal static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
+        internal static readonly IDateTime DateTime = new MachineDateTime();
         internal static readonly IRandom Random = new ThreadSafeRandom();
 
         protected ReadOnlyCacheBuilder() { } // Make default constructor protected because it shouldn't be instantiated.
@@ -124,7 +125,7 @@ namespace ModernCaching
                 ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, logger)
                 : null;
             var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
-                LoadingTimer, Random);
+                LoadingTimer, DateTime, Random);
 
             if (_getKeys == null)
             {
