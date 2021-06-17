@@ -30,9 +30,9 @@ namespace ModernCaching.LocalCaching
         void Set(TKey key, CacheEntry<TValue?> entry);
 
         /// <summary>
-        /// Removes the entry with the specified key.
+        /// Deletes the entry with the specified key.
         /// </summary>
-        /// <param name="key">The key of the entry to remove.</param>
-        void Remove(TKey key);
+        /// <param name="key">The key of the entry to delete.</param>
+        void Delete(TKey key);
     }
 }

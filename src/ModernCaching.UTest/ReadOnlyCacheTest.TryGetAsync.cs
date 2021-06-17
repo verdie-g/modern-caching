@@ -233,14 +233,14 @@ namespace ModernCaching.UTest
         }
 
         [Test]
-        public async Task ShouldReturnFalseIfDataWasRemovedFromSource()
+        public async Task ShouldReturnFalseIfDataWasDeletedFromSource()
         {
             CacheEntry<int>? localCacheEntry = new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(true);
-            localCacheMock.Setup(c => c.Remove(5));
+            localCacheMock.Setup(c => c.Delete(5));
 
             CacheEntry<int>? remoteCacheEntry = new(99, DateTime.UtcNow.AddHours(-5), DateTime.MaxValue);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
@@ -255,8 +255,8 @@ namespace ModernCaching.UTest
 
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Metrics, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
-            localCacheMock.Verify(c => c.Remove(5), Times.Once);
-            Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.RemoveAsync)),
+            localCacheMock.Verify(c => c.Delete(5), Times.Once);
+            Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.DeleteAsync)),
                 Is.True.After(5000, 100));
         }
 
@@ -318,7 +318,7 @@ namespace ModernCaching.UTest
             localCacheMock.Verify(c => c.TryGet(5, out localCacheEntry), Times.Exactly(2));
             distributedCacheMock.Verify(c => c.GetAsync(5), Times.Once);
 
-            // Now check that the cached task for key '5' was removed.
+            // Now check that the cached task for key '5' was deleted.
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 20)));
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))

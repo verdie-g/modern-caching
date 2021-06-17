@@ -174,12 +174,12 @@ namespace ModernCaching
             _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
 
             // If the key was not found in the data source, it means that maybe it never existed or that it was
-            // removed recently. For that second case, we should remove the potential cached value.
+            // deleted recently. For that second case, we should delete the potential cached value.
             // TODO: add an option to set to null instead of removing the entry?
             foreach (var key in keysNotFoundInSource)
             {
-                _ = Task.Run(() => RemoveRemotelyAsync(key));
-                RemoveLocally(key);
+                _ = Task.Run(() => DeleteRemotelyAsync(key));
+                DeleteLocally(key);
             }
         }
 
@@ -212,14 +212,14 @@ namespace ModernCaching
         }
 
         /// <summary>Sets the specified key and entry to the local cache.</summary>
-        private void RemoveLocally(TKey key)
+        private void DeleteLocally(TKey key)
         {
             if (_localCache == null)
             {
                 return;
             }
 
-            _localCache.Remove(key);
+            _localCache.Delete(key);
         }
 
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
@@ -265,10 +265,10 @@ namespace ModernCaching
             {
                 if (localCacheEntry != null)
                 {
-                    // The entry was recently removed from the data source so it should also be removed from the
+                    // The entry was recently deleted from the data source so it should also be deleted from the
                     // local and distributed cache.
-                    _ = Task.Run(() => RemoveRemotelyAsync(key));
-                    RemoveLocally(key);
+                    _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    DeleteLocally(key);
                 }
 
                 return (false, default)!;
@@ -306,14 +306,14 @@ namespace ModernCaching
             return _distributedCache.SetAsync(key, entry);
         }
 
-        private Task RemoveRemotelyAsync(TKey key)
+        private Task DeleteRemotelyAsync(TKey key)
         {
             if (_distributedCache == null)
             {
                 return Task.CompletedTask;
             }
 
-            return _distributedCache.RemoveAsync(key);
+            return _distributedCache.DeleteAsync(key);
         }
 
         private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)

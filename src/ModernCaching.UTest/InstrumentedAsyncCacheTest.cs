@@ -52,16 +52,16 @@ namespace ModernCaching.UTest
         }
 
         [Test]
-        public void RemoveAsyncShouldEmitMetric()
+        public void DeleteAsyncShouldEmitMetric()
         {
             Mock<IAsyncCache> cacheMock = new();
-            cacheMock.Setup(c => c.RemoveAsync("0"));
+            cacheMock.Setup(c => c.DeleteAsync("0"));
 
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedAsyncCache instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
-            instrumentedCache.RemoveAsync("0");
-            metricsMock.Verify(m => m.IncrementDistributedCacheRemove(), Times.Once);
+            instrumentedCache.DeleteAsync("0");
+            metricsMock.Verify(m => m.IncrementDistributedCacheDelete(), Times.Once);
         }
     }
 }

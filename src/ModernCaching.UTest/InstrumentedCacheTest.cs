@@ -50,16 +50,16 @@ namespace ModernCaching.UTest
         }
 
         [Test]
-        public void RemoveShouldEmitMetric()
+        public void DeleteShouldEmitMetric()
         {
             Mock<ICache<int, int>> cacheMock = new();
-            cacheMock.Setup(c => c.Remove(0));
+            cacheMock.Setup(c => c.Delete(0));
 
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
-            instrumentedCache.Remove(0);
-            metricsMock.Verify(m => m.IncrementLocalCacheRemove(), Times.Once);
+            instrumentedCache.Delete(0);
+            metricsMock.Verify(m => m.IncrementLocalCacheDelete(), Times.Once);
         }
     }
 }

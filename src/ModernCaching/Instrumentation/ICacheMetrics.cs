@@ -5,13 +5,13 @@
         void IncrementLocalCacheGetHits();
         void IncrementLocalCacheGetMisses();
         void IncrementLocalCacheSet();
-        void IncrementLocalCacheRemove();
+        void IncrementLocalCacheDelete();
 
         void IncrementDistributedCacheGetHits();
         void IncrementDistributedCacheGetMisses();
         void IncrementDistributedCacheGetErrors();
         void IncrementDistributedCacheSet();
-        void IncrementDistributedCacheRemove();
+        void IncrementDistributedCacheDelete();
 
         void IncrementDataSourceLoadOk();
         void IncrementDataSourceLoadError();

@@ -12,12 +12,12 @@ namespace ModernCaching.Instrumentation
         private IncrementingPollingCounter? _localCacheGetHitsCounter;
         private IncrementingPollingCounter? _localCacheGetMissesCounter;
         private IncrementingPollingCounter? _localCacheSetCounter;
-        private IncrementingPollingCounter? _localCacheRemoveCounter;
+        private IncrementingPollingCounter? _localCacheDeleteCounter;
         private IncrementingPollingCounter? _distributedCacheGetHitsCounter;
         private IncrementingPollingCounter? _distributedCacheGetMissesCounter;
         private IncrementingPollingCounter? _distributedCacheGetErrorsCounter;
         private IncrementingPollingCounter? _distributedCacheSetCounter;
-        private IncrementingPollingCounter? _distributedCacheRemoveCounter;
+        private IncrementingPollingCounter? _distributedCacheDeleteCounter;
         private IncrementingPollingCounter? _dataSourceLoadOkCounter;
         private IncrementingPollingCounter? _dataSourceLoadErrorCounter;
         private IncrementingPollingCounter? _dataSourceKeyLoadHitsCounter;
@@ -27,12 +27,12 @@ namespace ModernCaching.Instrumentation
         private long _localCacheGetHits;
         private long _localCacheGetMisses;
         private long _localCacheSet;
-        private long _localCacheRemove;
+        private long _localCacheDelete;
         private long _distributedCacheGetHits;
         private long _distributedCacheGetMisses;
         private long _distributedCacheGetErrors;
         private long _distributedCacheSet;
-        private long _distributedCacheRemove;
+        private long _distributedCacheDelete;
         private long _dataSourceLoadOk;
         private long _dataSourceLoadError;
         private long _dataSourceKeyLoadHits;
@@ -44,12 +44,12 @@ namespace ModernCaching.Instrumentation
         public void IncrementLocalCacheGetHits() => Interlocked.Increment(ref _localCacheGetHits);
         public void IncrementLocalCacheGetMisses() => Interlocked.Increment(ref _localCacheGetMisses);
         public void IncrementLocalCacheSet() => Interlocked.Increment(ref _localCacheSet);
-        public void IncrementLocalCacheRemove() => Interlocked.Increment(ref _localCacheRemove);
+        public void IncrementLocalCacheDelete() => Interlocked.Increment(ref _localCacheDelete);
         public void IncrementDistributedCacheGetHits() => Interlocked.Increment(ref _distributedCacheGetHits);
         public void IncrementDistributedCacheGetMisses() => Interlocked.Increment(ref _distributedCacheGetMisses);
         public void IncrementDistributedCacheGetErrors() => Interlocked.Increment(ref _distributedCacheGetErrors);
         public void IncrementDistributedCacheSet() => Interlocked.Increment(ref _distributedCacheSet);
-        public void IncrementDistributedCacheRemove() => Interlocked.Increment(ref _distributedCacheRemove);
+        public void IncrementDistributedCacheDelete() => Interlocked.Increment(ref _distributedCacheDelete);
         public void IncrementDataSourceLoadOk() => Interlocked.Increment(ref _dataSourceLoadOk);
         public void IncrementDataSourceLoadError() => Interlocked.Increment(ref _dataSourceLoadError);
         public void IncrementDataSourceKeyLoadHits(long value) => Interlocked.Add(ref _dataSourceKeyLoadHits, value);
@@ -81,10 +81,10 @@ namespace ModernCaching.Instrumentation
                 DisplayName = "Local Cache Set Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
-            _localCacheRemoveCounter ??= new IncrementingPollingCounter("local-cache-remove-rate", this,
-                () => Volatile.Read(ref _localCacheRemove))
+            _localCacheDeleteCounter ??= new IncrementingPollingCounter("local-cache-delete-rate", this,
+                () => Volatile.Read(ref _localCacheDelete))
             {
-                DisplayName = "Local Cache Remove Rate",
+                DisplayName = "Local Cache Delete Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
             _distributedCacheGetHitsCounter ??= new IncrementingPollingCounter("distributed-cache-get-hits-rate", this,
@@ -113,10 +113,10 @@ namespace ModernCaching.Instrumentation
                 DisplayName = "Distributed Cache Set Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
-            _distributedCacheRemoveCounter ??= new IncrementingPollingCounter("distributed-cache-remove-rate", this,
-                () => Volatile.Read(ref _distributedCacheRemove))
+            _distributedCacheDeleteCounter ??= new IncrementingPollingCounter("distributed-cache-delete-rate", this,
+                () => Volatile.Read(ref _distributedCacheDelete))
             {
-                DisplayName = "Distributed Cache Remove Rate",
+                DisplayName = "Distributed Cache Delete Rate",
                 DisplayRateTimeScale = TimeSpan.FromSeconds(1),
             };
             _dataSourceLoadOkCounter ??= new IncrementingPollingCounter("data-source-load-ok-rate", this,
@@ -155,12 +155,12 @@ namespace ModernCaching.Instrumentation
                 _localCacheGetHitsCounter,
                 _localCacheGetMissesCounter,
                 _localCacheSetCounter,
-                _localCacheRemoveCounter,
+                _localCacheDeleteCounter,
                 _distributedCacheGetHitsCounter,
                 _distributedCacheGetMissesCounter,
                 _distributedCacheGetErrorsCounter,
                 _distributedCacheSetCounter,
-                _distributedCacheRemoveCounter,
+                _distributedCacheDeleteCounter,
                 _dataSourceLoadOkCounter,
                 _dataSourceLoadErrorCounter,
                 _dataSourceKeyLoadHitsCounter,

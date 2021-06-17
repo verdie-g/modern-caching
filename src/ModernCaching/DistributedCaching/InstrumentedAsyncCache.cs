@@ -72,15 +72,15 @@ namespace ModernCaching.DistributedCaching
             return _cache.SetAsync(key, value, timeToLive);
         }
 
-        public Task RemoveAsync(string key)
+        public Task DeleteAsync(string key)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.Log(LogLevel.Trace, "IAsyncCache: DEL  {0}", key);
             }
 
-            _metrics.IncrementDistributedCacheRemove();
-            return _cache.RemoveAsync(key);
+            _metrics.IncrementDistributedCacheDelete();
+            return _cache.DeleteAsync(key);
         }
     }
 }

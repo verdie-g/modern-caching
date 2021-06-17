@@ -15,7 +15,7 @@ namespace ModernCaching.UTest
             cache.Set(5, entry1);
             Assert.IsTrue(cache.TryGet(5, out var entry2));
             Assert.AreEqual(entry1, entry2);
-            cache.Remove(5);
+            cache.Delete(5);
             Assert.IsFalse(cache.TryGet(5, out _));
         }
     }

@@ -182,7 +182,7 @@ INSERT INTO users VALUES
                 return _database.StringSetAsync(key, value, timeToLive);
             }
 
-            public Task RemoveAsync(string key)
+            public Task DeleteAsync(string key)
             {
                 return _database.KeyDeleteAsync(key);
             }

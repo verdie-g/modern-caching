@@ -58,15 +58,15 @@ namespace ModernCaching.LocalCaching
             _cache.Set(key, entry);
         }
 
-        public void Remove(TKey key)
+        public void Delete(TKey key)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.Log(LogLevel.Trace, "ICache     : DEL  {0}", key);
             }
 
-            _metrics.IncrementLocalCacheRemove();
-            _cache.Remove(key);
+            _metrics.IncrementLocalCacheDelete();
+            _cache.Delete(key);
         }
     }
 }

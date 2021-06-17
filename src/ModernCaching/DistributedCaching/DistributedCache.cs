@@ -14,8 +14,8 @@ namespace ModernCaching.DistributedCaching
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
         Task SetAsync(TKey key, CacheEntry<TValue?> entry);
 
-        /// <summary>Removes the value with the given key from the distributed cache.</summary>
-        Task RemoveAsync(TKey key);
+        /// <summary>Deletes the value with the given key from the distributed cache.</summary>
+        Task DeleteAsync(TKey key);
     }
 
     /// <summary>
@@ -107,10 +107,10 @@ namespace ModernCaching.DistributedCaching
         }
 
         /// <inheritdoc />
-        public Task RemoveAsync(TKey key)
+        public Task DeleteAsync(TKey key)
         {
             string keyStr = BuildDistributedCacheKey(key);
-            return _cache.RemoveAsync(keyStr);
+            return _cache.DeleteAsync(keyStr);
         }
 
         /// <summary>{prefix}|{cacheName}|{version}|{key}</summary>

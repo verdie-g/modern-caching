@@ -17,6 +17,6 @@ namespace ModernCaching.LocalCaching
         public MemoryCache() => _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue?>>();
         public bool TryGet(TKey key, out CacheEntry<TValue?> entry) => _dictionary.TryGetValue(key, out entry);
         public void Set(TKey key, CacheEntry<TValue?> entry) => _dictionary[key] = entry;
-        public void Remove(TKey key) => _dictionary.Remove(key, out _);
+        public void Delete(TKey key) => _dictionary.Remove(key, out _);
     }
 }

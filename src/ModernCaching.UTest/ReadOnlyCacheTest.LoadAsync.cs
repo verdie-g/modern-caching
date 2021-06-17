@@ -70,7 +70,7 @@ namespace ModernCaching.UTest
             localCacheMock.Verify(c => c.Set(4, It.Is<CacheEntry<int>>(e => e.Value == 44)));
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
             localCacheMock.Verify(c => c.Set(6, It.IsAny<CacheEntry<int>>()), Times.Never);
-            localCacheMock.Verify(c => c.Remove(6));
+            localCacheMock.Verify(c => c.Delete(6));
 
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadHits(2), Times.Once);
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadMisses(2), Times.Once);
