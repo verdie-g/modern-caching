@@ -188,11 +188,11 @@ INSERT INTO users VALUES
             }
         }
 
-        private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue>
+        private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue> where TKey : notnull
         {
             public int Version => 0;
-            public string StringifyKey(TKey key) => key!.ToString()!;
-            public void SerializeValue(TValue? value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
+            public string StringifyKey(TKey key) => key.ToString()!;
+            public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
             public TValue DeserializeValue(ReadOnlySpan<byte> valueBytes) => Serializer.Deserialize<TValue>(valueBytes);
         }
 
@@ -202,7 +202,7 @@ INSERT INTO users VALUES
 
             public UserDataSource(string connectionString) => _connectionString = connectionString;
 
-            public async IAsyncEnumerable<DataSourceResult<Guid, User?>> LoadAsync(IEnumerable<Guid> ids,
+            public async IAsyncEnumerable<DataSourceResult<Guid, User>> LoadAsync(IEnumerable<Guid> ids,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 await using var conn = new NpgsqlConnection(_connectionString);
@@ -216,7 +216,7 @@ INSERT INTO users VALUES
                     Guid id = reader.GetGuid(0);
                     string name = reader.GetString(1);
                     User user = new() { Id = id, Name = name };
-                    yield return new DataSourceResult<Guid, User?>(id, user, TimeSpan.FromHours(1));
+                    yield return new DataSourceResult<Guid, User>(id, user, TimeSpan.FromHours(1));
                 }
             }
         }

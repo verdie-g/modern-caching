@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ModernCaching.LocalCaching
 {
@@ -8,7 +9,7 @@ namespace ModernCaching.LocalCaching
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache entries.</typeparam>
     /// <remarks>If the cache is evicting, <see cref="CacheEntry{TValue}.GraceTime"/> should be used for the eviction time.</remarks>
-    public interface ICache<in TKey, TValue>
+    public interface ICache<in TKey, TValue> where TKey : IEquatable<TKey>
     {
         /// <summary>
         /// Gets the value associated with the specified key.
@@ -19,7 +20,7 @@ namespace ModernCaching.LocalCaching
         /// <see cref="CacheEntry{TValue}.Value"/> can be null if the data source returns null.</param>
         /// <returns>True if the cache contains an entry with the specified key; otherwise, false.</returns>
         /// <remarks>This method should never throw.</remarks>
-        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> entry);
+        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry);
 
         /// <summary>
         /// Sets the entry associated with the specified key.
@@ -27,7 +28,7 @@ namespace ModernCaching.LocalCaching
         /// <param name="key">The key of the element to set.</param>
         /// <param name="entry">The entry associated with the specified key.</param>
         /// <remarks>This method should never throw.</remarks>
-        void Set(TKey key, CacheEntry<TValue?> entry);
+        void Set(TKey key, CacheEntry<TValue> entry);
 
         /// <summary>
         /// Deletes the entry with the specified key.

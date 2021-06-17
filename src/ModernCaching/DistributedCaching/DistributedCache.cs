@@ -6,13 +6,13 @@ using ModernCaching.LocalCaching;
 
 namespace ModernCaching.DistributedCaching
 {
-    internal interface IDistributedCache<in TKey, TValue>
+    internal interface IDistributedCache<in TKey, TValue> where TKey : notnull
     {
         /// <summary>Gets the entry associated with the specified key from the distributed cache.</summary>
-        Task<(AsyncCacheStatus status, CacheEntry<TValue?>? entry)> GetAsync(TKey key);
+        Task<(AsyncCacheStatus status, CacheEntry<TValue>? entry)> GetAsync(TKey key);
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
-        Task SetAsync(TKey key, CacheEntry<TValue?> entry);
+        Task SetAsync(TKey key, CacheEntry<TValue> entry);
 
         /// <summary>Deletes the value with the given key from the distributed cache.</summary>
         Task DeleteAsync(TKey key);
@@ -22,7 +22,7 @@ namespace ModernCaching.DistributedCaching
     /// Internal class that wraps a generic <see cref="IAsyncCache"/> with a <see cref="IKeyValueSerializer{TKey,TValue}"/>
     /// for a specific <see cref="ReadOnlyCache{TKey,TValue}"/>.
     /// </summary>
-    internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue>
+    internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// Name of cache. Used in the distributed cache key.
@@ -57,7 +57,7 @@ namespace ModernCaching.DistributedCaching
         }
 
         /// <inheritdoc />
-        public async Task<(AsyncCacheStatus status, CacheEntry<TValue?>? entry)> GetAsync(TKey key)
+        public async Task<(AsyncCacheStatus status, CacheEntry<TValue>? entry)> GetAsync(TKey key)
         {
             string keyStr = BuildDistributedCacheKey(key);
             AsyncCacheStatus status;
@@ -88,7 +88,7 @@ namespace ModernCaching.DistributedCaching
         }
 
         /// <inheritdoc />
-        public Task SetAsync(TKey key, CacheEntry<TValue?> entry)
+        public Task SetAsync(TKey key, CacheEntry<TValue> entry)
         {
             byte[] valueBytes;
             try
@@ -124,7 +124,7 @@ namespace ModernCaching.DistributedCaching
                           + '|' + _keyValueSerializer!.StringifyKey(key);
         }
 
-        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue?> entry)
+        private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
         {
             using MemoryStream memoryStream = new();
             using (BinaryWriter writer = new(memoryStream))
@@ -145,7 +145,7 @@ namespace ModernCaching.DistributedCaching
             return memoryStream.ToArray();
         }
 
-        private CacheEntry<TValue?> DeserializeDistributedCacheValue(byte[] bytes)
+        private CacheEntry<TValue> DeserializeDistributedCacheValue(byte[] bytes)
         {
             int offset = 0;
 
@@ -163,9 +163,9 @@ namespace ModernCaching.DistributedCaching
             DateTime graceTime = DateTimeOffset.FromUnixTimeMilliseconds(unixGraceTime).UtcDateTime;
             offset += sizeof(long);
 
-            TValue? value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(offset));
+            TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(offset));
 
-            return new CacheEntry<TValue?>(value, expirationTime, graceTime);
+            return new CacheEntry<TValue>(value, expirationTime, graceTime);
         }
     }
 }

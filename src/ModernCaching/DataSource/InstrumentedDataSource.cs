@@ -21,7 +21,7 @@ namespace ModernCaching.DataSource
             _logger = logger;
         }
 
-        public async IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys,
+        public async IAsyncEnumerable<DataSourceResult<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
@@ -30,7 +30,7 @@ namespace ModernCaching.DataSource
                 _logger.Log(LogLevel.Trace, "IDataSource: LOAD [{0}]", keysStr);
             }
 
-            IAsyncEnumerator<DataSourceResult<TKey, TValue?>> results;
+            IAsyncEnumerator<DataSourceResult<TKey, TValue>> results;
             try
             {
                 results = _dataSource.LoadAsync(keys, cancellationToken)?.GetAsyncEnumerator(cancellationToken)
@@ -47,7 +47,7 @@ namespace ModernCaching.DataSource
             int errors = 0;
             while (true)
             {
-                DataSourceResult<TKey, TValue?> dataSourceResult;
+                DataSourceResult<TKey, TValue> dataSourceResult;
                 try
                 {
                     if (!await results.MoveNextAsync())

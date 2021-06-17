@@ -165,7 +165,7 @@ namespace ModernCaching
             await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken))
             {
                 keysNotFoundInSource.Remove(dataSourceResult.Key);
-                CacheEntry<TValue?> cacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
+                CacheEntry<TValue> cacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
                 SetLocally(dataSourceResult.Key, cacheEntry);
             }
@@ -189,7 +189,7 @@ namespace ModernCaching
         }
 
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
-        private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> cacheEntry)
+        private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> cacheEntry)
         {
             if (_localCache == null)
             {
@@ -201,7 +201,7 @@ namespace ModernCaching
         }
 
         /// <summary>Sets the specified key and entry to the local cache.</summary>
-        private void SetLocally(TKey key, CacheEntry<TValue?> cacheEntry)
+        private void SetLocally(TKey key, CacheEntry<TValue> cacheEntry)
         {
             if (_localCache == null)
             {
@@ -233,7 +233,7 @@ namespace ModernCaching
         /// Reloads a key from the distributed cache or data source. Can return a stale value if of these two layers
         /// are unavailable.
         /// </summary>
-        private async Task<(bool found, TValue? value)> ReloadAsync(TKey key, CacheEntry<TValue?>? localCacheEntry)
+        private async Task<(bool found, TValue? value)> ReloadAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
         {
             var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
             if (status == AsyncCacheStatus.Error)
@@ -280,23 +280,23 @@ namespace ModernCaching
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
-        private bool IsCacheEntryStale(CacheEntry<TValue?> entry)
+        private bool IsCacheEntryStale(CacheEntry<TValue> entry)
         {
             return entry.ExpirationTime < _dateTime.UtcNow;
         }
 
-        private Task<(AsyncCacheStatus status, CacheEntry<TValue?>? cacheEntry)> TryGetRemotelyAsync(TKey key)
+        private Task<(AsyncCacheStatus status, CacheEntry<TValue>? cacheEntry)> TryGetRemotelyAsync(TKey key)
         {
             if (_distributedCache == null)
             {
                 // If there is no L2, consider it as a miss.
-                return Task.FromResult((AsyncCacheStatus.Miss, null as CacheEntry<TValue?>));
+                return Task.FromResult((AsyncCacheStatus.Miss, null as CacheEntry<TValue>));
             }
 
             return _distributedCache.GetAsync(key);
         }
 
-        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue?> entry)
+        private Task SetRemotelyAsync(TKey key, CacheEntry<TValue> entry)
         {
             if (_distributedCache == null)
             {
@@ -316,7 +316,7 @@ namespace ModernCaching
             return _distributedCache.DeleteAsync(key);
         }
 
-        private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
+        private async Task<(bool success, CacheEntry<TValue>? cacheEntry)> LoadFromDataSourceAsync(TKey key)
         {
             try
             {
@@ -338,14 +338,14 @@ namespace ModernCaching
             }
         }
 
-        private CacheEntry<TValue?> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue?> result)
+        private CacheEntry<TValue> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue> result)
         {
             TimeSpan ttl = RandomizeTimeSpan(result.TimeToLive);
             DateTime utcNow = _dateTime.UtcNow;
 
             DateTime expirationTime = utcNow + ttl;
             DateTime graceTime = utcNow + ttl * 2; // Entries are kept in cache twice longer than the expiration time.
-            return new CacheEntry<TValue?>(result.Value, expirationTime, graceTime);
+            return new CacheEntry<TValue>(result.Value, expirationTime, graceTime);
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)

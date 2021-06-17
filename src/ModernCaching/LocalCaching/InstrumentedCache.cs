@@ -1,11 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using ModernCaching.Instrumentation;
 
 namespace ModernCaching.LocalCaching
 {
     /// <summary>Wraps an <see cref="ICache{TKey,TValue}"/> with metrics.</summary>
-    internal class InstrumentedCache<TKey, TValue> : ICache<TKey, TValue>
+    internal class InstrumentedCache<TKey, TValue> : ICache<TKey, TValue> where TKey : IEquatable<TKey>
     {
         private readonly ICache<TKey, TValue> _cache;
         private readonly ICacheMetrics _metrics;
@@ -18,7 +19,7 @@ namespace ModernCaching.LocalCaching
             _logger = logger;
         }
 
-        public bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue?> entry)
+        public bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry)
         {
             bool found;
             if (_cache.TryGet(key, out entry))
@@ -47,7 +48,7 @@ namespace ModernCaching.LocalCaching
             return found;
         }
 
-        public void Set(TKey key, CacheEntry<TValue?> entry)
+        public void Set(TKey key, CacheEntry<TValue> entry)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
