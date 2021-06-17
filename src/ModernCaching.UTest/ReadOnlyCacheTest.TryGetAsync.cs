@@ -256,6 +256,8 @@ namespace ModernCaching.UTest
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Metrics, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Remove(5), Times.Once);
+            Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.RemoveAsync)),
+                Is.True.After(5000, 100));
         }
 
         [Test]

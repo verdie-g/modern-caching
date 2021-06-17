@@ -178,6 +178,7 @@ namespace ModernCaching
             // TODO: add an option to set to null instead of removing the entry?
             foreach (var key in keysNotFoundInSource)
             {
+                _ = Task.Run(() => RemoveRemotelyAsync(key));
                 RemoveLocally(key);
             }
         }
@@ -265,8 +266,8 @@ namespace ModernCaching
                 if (localCacheEntry != null)
                 {
                     // The entry was recently removed from the data source so it should also be removed from the
-                    // local cache. The entry in the distributed cache is not removed as it is supposed to be
-                    // stale so it won't be used by this library and should get evicted soon.
+                    // local and distributed cache.
+                    _ = Task.Run(() => RemoveRemotelyAsync(key));
                     RemoveLocally(key);
                 }
 
@@ -303,6 +304,16 @@ namespace ModernCaching
             }
 
             return _distributedCache.SetAsync(key, entry);
+        }
+
+        private Task RemoveRemotelyAsync(TKey key)
+        {
+            if (_distributedCache == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return _distributedCache.RemoveAsync(key);
         }
 
         private async Task<(bool success, CacheEntry<TValue?>? cacheEntry)> LoadFromDataSourceAsync(TKey key)

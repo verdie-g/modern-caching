@@ -13,6 +13,9 @@ namespace ModernCaching.DistributedCaching
 
         /// <summary>Sets the specified key and entry to the distributed cache.</summary>
         Task SetAsync(TKey key, CacheEntry<TValue?> entry);
+
+        /// <summary>Removes the value with the given key from the distributed cache.</summary>
+        Task RemoveAsync(TKey key);
     }
 
     /// <summary>
@@ -101,6 +104,13 @@ namespace ModernCaching.DistributedCaching
             string keyStr = BuildDistributedCacheKey(key);
             TimeSpan timeToLive = entry.GraceTime - DateTime.UtcNow;
             return _cache.SetAsync(keyStr, valueBytes, timeToLive);
+        }
+
+        /// <inheritdoc />
+        public Task RemoveAsync(TKey key)
+        {
+            string keyStr = BuildDistributedCacheKey(key);
+            return _cache.RemoveAsync(keyStr);
         }
 
         /// <summary>{prefix}|{cacheName}|{version}|{key}</summary>
