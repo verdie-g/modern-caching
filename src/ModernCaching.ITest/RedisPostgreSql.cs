@@ -40,6 +40,7 @@ namespace ModernCaching.ITest
             _cache = await new ReadOnlyCacheBuilder<Guid, User>("test", new UserDataSource(postgreSqlConnectionString))
                 .WithLocalCache(new MemoryCache<Guid, User>())
                 .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
+                .WithLoggerFactory(new ConsoleLoggerFactory())
                 .BuildAsync();
         }
 
@@ -165,7 +166,7 @@ INSERT INTO users VALUES
             {
                 try
                 {
-                    var res = await _database.StringGetAsync(new RedisKey(key));
+                    var res = await _database.StringGetAsync(key);
                     return res.HasValue
                         ? new AsyncCacheResult(AsyncCacheStatus.Hit, (byte[])res)
                         : new AsyncCacheResult(AsyncCacheStatus.Miss, null);
@@ -176,11 +177,15 @@ INSERT INTO users VALUES
                 }
             }
 
-            public Task SetAsync(string key, byte[] value, TimeSpan timeToLive) =>
-                _database.StringSetAsync(new RedisKey(key), (RedisValue)value, timeToLive);
+            public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
+            {
+                return _database.StringSetAsync(key, value, timeToLive);
+            }
 
-            public Task RemoveAsync(string key) =>
-                _database.KeyDeleteAsync(new RedisKey(key));
+            public Task RemoveAsync(string key)
+            {
+                return _database.KeyDeleteAsync(key);
+            }
         }
 
         private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue>

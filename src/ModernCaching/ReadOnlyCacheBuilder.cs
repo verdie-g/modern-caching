@@ -116,14 +116,21 @@ namespace ModernCaching
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
             EventCounterCacheMetrics metrics = new(_name);
-            ILogger? logger = _loggerFactory?.CreateLogger<ReadOnlyCache<TKey, TValue>>();
-            var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics) : null;
-            var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics, logger) : null;
-            var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics, logger);
 
+            ILogger? localCacheLogger = _loggerFactory?.CreateLogger<ICache<TKey, TValue>>();
+            var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics, localCacheLogger) : null;
+
+            ILogger? distributedCacheLogger = _loggerFactory?.CreateLogger<IAsyncCache>();
+            var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics, distributedCacheLogger) : null;
+
+            ILogger? dataSourceLogger = _loggerFactory?.CreateLogger<IDataSource<TKey, TValue>>();
+            var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics, dataSourceLogger);
+
+            ILogger? distributedCacheWrapperLogger = _loggerFactory?.CreateLogger<IDistributedCache<TKey, TValue>>();
             IDistributedCache<TKey, TValue>? distributedCacheWrapper = distributedCache != null
-                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, logger)
+                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, distributedCacheWrapperLogger)
                 : null;
+
             var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
                 LoadingTimer, DateTime, Random);
 

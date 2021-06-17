@@ -32,16 +32,29 @@ namespace ModernCaching.DistributedCaching
                 throw;
             }
 
+            bool shouldLog = _logger != null && _logger.IsEnabled(LogLevel.Trace);
             switch (res.Status)
             {
                 case AsyncCacheStatus.Hit:
                     _metrics.IncrementDistributedCacheGetHits();
+                    if (shouldLog)
+                    {
+                        _logger.Log(LogLevel.Trace, "IAsyncCache: GET {0} -> HIT {1}B", key, res.Value!.Length);
+                    }
                     break;
                 case AsyncCacheStatus.Miss:
                     _metrics.IncrementDistributedCacheGetMisses();
+                    if (shouldLog)
+                    {
+                        _logger.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> MISS", key);
+                    }
                     break;
                 case AsyncCacheStatus.Error:
                     _metrics.IncrementDistributedCacheGetErrors();
+                    if (shouldLog)
+                    {
+                        _logger.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> ERROR", key);
+                    }
                     break;
             }
 
@@ -50,12 +63,22 @@ namespace ModernCaching.DistributedCaching
 
         public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
         {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.Log(LogLevel.Trace, "IAsyncCache: SET  {0} {1}B {2}", key, value.Length, timeToLive);
+            }
+
             _metrics.IncrementDistributedCacheSet();
             return _cache.SetAsync(key, value, timeToLive);
         }
 
         public Task RemoveAsync(string key)
         {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.Log(LogLevel.Trace, "IAsyncCache: DEL  {0}", key);
+            }
+
             _metrics.IncrementDistributedCacheRemove();
             return _cache.RemoveAsync(key);
         }

@@ -17,7 +17,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object);
+            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.TryGet(0, out _);
             metricsMock.Verify(m => m.IncrementLocalCacheGetHits(), Times.Once);
         }
@@ -31,7 +31,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object);
+            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.TryGet(0, out _);
             metricsMock.Verify(m => m.IncrementLocalCacheGetMisses(), Times.Once);
         }
@@ -44,7 +44,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object);
+            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.Set(0, new CacheEntry<int>(1, DateTime.UtcNow, DateTime.MaxValue));
             metricsMock.Verify(m => m.IncrementLocalCacheSet(), Times.Once);
         }
@@ -57,7 +57,7 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object);
+            InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.Remove(0);
             metricsMock.Verify(m => m.IncrementLocalCacheRemove(), Times.Once);
         }

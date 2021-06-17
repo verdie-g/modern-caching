@@ -24,6 +24,12 @@ namespace ModernCaching.DataSource
         public async IAsyncEnumerable<DataSourceResult<TKey, TValue?>> LoadAsync(IEnumerable<TKey> keys,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                string keysStr = string.Join(", ", keys);
+                _logger.Log(LogLevel.Trace, "IDataSource: LOAD [{0}]", keysStr);
+            }
+
             IAsyncEnumerator<DataSourceResult<TKey, TValue?>> results;
             try
             {
