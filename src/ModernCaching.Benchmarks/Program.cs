@@ -32,16 +32,16 @@ namespace ModernCaching.Benchmarks
     public class LocalGetBenchmark
     {
         private const int DataCount = 5;
-        private static readonly KeyValuePair<int, int>[] Data =
+        private static readonly KeyValuePair<Guid, int>[] Data =
         {
-            new (12, 999),
-            new (34, 888),
-            new (56, 777),
-            new (78, 666),
-            new (90, 555),
+            new (new Guid("99999999-9999-9999-9999-999999999999"), 999),
+            new (new Guid("88888888-8888-8888-8888-888888888888"), 888),
+            new (new Guid("77777777-7777-7777-7777-777777777777"), 777),
+            new (new Guid("66666666-6666-6666-6666-666666666666"), 666),
+            new (new Guid("55555555-5555-5555-5555-555555555555"), 555),
         };
 
-        private readonly IReadOnlyCache<int, int> _modernCache;
+        private readonly IReadOnlyCache<Guid, int> _modernCache;
         private readonly ICacheStack _cacheTower;
         private readonly IFusionCache _fusionCache;
         private readonly IEasyCachingProvider _easyCache;
@@ -103,10 +103,10 @@ namespace ModernCaching.Benchmarks
             return sum;
         }
 
-        private IReadOnlyCache<int, int> CreateModernCache()
+        private IReadOnlyCache<Guid, int> CreateModernCache()
         {
-            return new ReadOnlyCacheBuilder<int, int>("benchmark_cache", new ModernCacheDataSource())
-                .WithLocalCache(new MemoryCache<int, int>())
+            return new ReadOnlyCacheBuilder<Guid, int>("benchmark_cache", new ModernCacheDataSource())
+                .WithLocalCache(new MemoryCache<Guid, int>())
                 .WithPreload(_ => Task.FromResult(Data.Select(d => d.Key)), null)
                 .BuildAsync().GetAwaiter().GetResult();
         }
@@ -117,7 +117,7 @@ namespace ModernCaching.Benchmarks
             {
                 new MemoryCacheLayer(),
             }, Array.Empty<ICacheExtension>());
-            foreach ((int key, int value) in Data)
+            foreach ((Guid key, int value) in Data)
             {
                 cache.SetAsync(key.ToString(), value, TimeSpan.FromHours(1));
             }
@@ -128,7 +128,7 @@ namespace ModernCaching.Benchmarks
         private IFusionCache CreateFusionCache()
         {
             FusionCache cache = new(new FusionCacheOptions());
-            foreach ((int key, int value) in Data)
+            foreach ((Guid key, int value) in Data)
             {
                 cache.Set(key.ToString(), value, TimeSpan.FromHours(1));
             }
@@ -146,7 +146,7 @@ namespace ModernCaching.Benchmarks
                 }, new InMemoryOptions())
             }, Array.Empty<IRedisCachingProvider>());
             var cache = easyCacheProviderFactory.GetCachingProvider("easycache");
-            foreach ((int key, int value) in Data)
+            foreach ((Guid key, int value) in Data)
             {
                 cache.Set(key.ToString(), value, TimeSpan.FromHours(1));
             }
@@ -154,13 +154,13 @@ namespace ModernCaching.Benchmarks
             return cache;
         }
 
-        class ModernCacheDataSource : IDataSource<int, int>
+        class ModernCacheDataSource : IDataSource<Guid, int>
         {
-            public async IAsyncEnumerable<DataSourceResult<int, int>> LoadAsync(IEnumerable<int> keys, CancellationToken cancellationToken)
+            public async IAsyncEnumerable<DataSourceResult<Guid, int>> LoadAsync(IEnumerable<Guid> keys, CancellationToken cancellationToken)
             {
-                foreach ((int key, int value) in Data)
+                foreach ((Guid key, int value) in Data)
                 {
-                    yield return new DataSourceResult<int, int>(key, value, TimeSpan.FromHours(1));
+                    yield return new DataSourceResult<Guid, int>(key, value, TimeSpan.FromHours(1));
                 }
             }
         }

@@ -74,12 +74,12 @@ Benchmark of the very hot path of different caching libraries
 [EasyCaching](https://github.com/dotnetcore/EasyCaching)),
 that is, getting locally cached data.
 
-|        Method |     Mean |    Error |   StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|-------------- |---------:|---------:|---------:|-------:|------:|------:|----------:|
-| ModernCaching | 115.7 ns |  2.32 ns |  5.99 ns |      - |     - |     - |         - |
-|    CacheTower | 132.0 ns |  2.59 ns |  3.27 ns | 0.0202 |     - |     - |      32 B |
-|   FusionCache | 407.8 ns |  8.09 ns | 20.14 ns | 0.0351 |     - |     - |      56 B |
-|   EasyCaching | 545.7 ns | 10.67 ns | 19.52 ns | 0.1274 |     - |     - |     200 B |
+|        Method |     Mean |   Error |  StdDev |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------- |---------:|--------:|--------:|-------:|------:|------:|----------:|
+| ModernCaching | 126.2 ns | 0.47 ns | 0.39 ns |      - |     - |     - |         - |
+|    CacheTower | 193.7 ns | 1.33 ns | 1.04 ns | 0.0610 |     - |     - |      96 B |
+|   FusionCache | 429.3 ns | 2.48 ns | 2.20 ns | 0.0763 |     - |     - |     120 B |
+|   EasyCaching | 553.2 ns | 3.80 ns | 3.37 ns | 0.1678 |     - |     - |     264 B |
 
 Since this library has a generic interface, getting a value doesn't involve any
 allocation.
