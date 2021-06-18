@@ -15,6 +15,8 @@ The 2 cache layers are populated from the
 with a backfilling mechanism when getting a value or by preloading some data
 when building the cache.
 
+![schema](https://user-images.githubusercontent.com/9092290/122583694-d5a59f00-d059-11eb-826b-6fd8011df3b0.png)
+
 ModernCaching doesn't provide implementations of
 [`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs)
 or [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs)
