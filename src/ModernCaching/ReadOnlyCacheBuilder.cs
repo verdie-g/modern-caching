@@ -11,23 +11,11 @@ using ModernCaching.Utils;
 namespace ModernCaching
 {
     /// <summary>
-    /// A non-generic class to share static fields between <see cref="ReadOnlyCacheBuilder"/>s.
-    /// </summary>
-    public class ReadOnlyCacheBuilder
-    {
-        internal static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
-        internal static readonly IDateTime DateTime = new MachineDateTime();
-        internal static readonly IRandom Random = new ThreadSafeRandom();
-
-        protected ReadOnlyCacheBuilder() { } // Make default constructor protected because it shouldn't be instantiated.
-    }
-
-    /// <summary>
     /// Builder for <see cref="IReadOnlyCache{TKey,TValue}"/>.
     /// </summary>
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
-    public class ReadOnlyCacheBuilder<TKey, TValue> : ReadOnlyCacheBuilder where TKey : IEquatable<TKey>
+    public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : IEquatable<TKey>
     {
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;
@@ -132,7 +120,7 @@ namespace ModernCaching
                 : null;
 
             var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
-                LoadingTimer, DateTime, Random);
+                UtilsCache.LoadingTimer, UtilsCache.DateTime, UtilsCache.Random);
 
             if (_getKeys == null)
             {
