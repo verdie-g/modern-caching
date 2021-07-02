@@ -240,7 +240,7 @@ namespace ModernCaching
             {
                 // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
                 // local entry or not found.
-                return (localCacheEntry != null ? (true, localCacheEntry.Value) : (false, default))!;
+                return localCacheEntry != null ? (true, localCacheEntry.Value) : (false, default);
             }
 
             if (status == AsyncCacheStatus.Hit)
@@ -258,7 +258,7 @@ namespace ModernCaching
                 // If the data source is unavailable return the stale value of the distributed cache or the stale
                 // value of the local cache or not found.
                 var availableCacheEntry = distributedCacheEntry ?? localCacheEntry;
-                return (availableCacheEntry != null ? (true, availableCacheEntry.Value) : (false, default))!;
+                return availableCacheEntry != null ? (true, availableCacheEntry.Value) : (false, default);
             }
 
             if (dataSourceEntry == null) // If no results were returned from the data source.
@@ -271,7 +271,7 @@ namespace ModernCaching
                     DeleteLocally(key);
                 }
 
-                return (false, default)!;
+                return (false, default);
             }
 
             _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));

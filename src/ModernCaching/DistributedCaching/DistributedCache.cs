@@ -120,8 +120,8 @@ namespace ModernCaching.DistributedCaching
                 ? _keyPrefix + '|'
                 : string.Empty;
             return prefix + _name
-                          + '|' + _keyValueSerializer!.Version.ToString()
-                          + '|' + _keyValueSerializer!.StringifyKey(key);
+                          + '|' + _keyValueSerializer.Version.ToString()
+                          + '|' + _keyValueSerializer.StringifyKey(key);
         }
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
@@ -139,7 +139,7 @@ namespace ModernCaching.DistributedCaching
                 long unixGraceTime = new DateTimeOffset(entry.GraceTime).ToUnixTimeMilliseconds();
                 writer.Write(unixGraceTime);
 
-                _keyValueSerializer!.SerializeValue(entry.Value, writer);
+                _keyValueSerializer.SerializeValue(entry.Value, writer);
             }
 
             return memoryStream.ToArray();
@@ -163,7 +163,7 @@ namespace ModernCaching.DistributedCaching
             DateTime graceTime = DateTimeOffset.FromUnixTimeMilliseconds(unixGraceTime).UtcDateTime;
             offset += sizeof(long);
 
-            TValue value = _keyValueSerializer!.DeserializeValue(bytes.AsSpan(offset));
+            TValue value = _keyValueSerializer.DeserializeValue(bytes.AsSpan(offset));
 
             return new CacheEntry<TValue>(value, expirationTime, graceTime);
         }
