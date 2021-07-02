@@ -126,44 +126,40 @@ namespace ModernCaching.DistributedCaching
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
         {
-            using MemoryStream memoryStream = new();
-            using (BinaryWriter writer = new(memoryStream))
-            {
-                writer.Write((byte)0); // Version, to add extra fields later.
+            MemoryStream memoryStream = new();
+            BinaryWriter writer = new(memoryStream);
 
-                writer.Write((int)AsyncCacheEntryOptions.None);
+            writer.Write((byte)0); // Version, to add extra fields later.
 
-                long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
-                writer.Write(unixExpirationTime);
+            writer.Write((int)AsyncCacheEntryOptions.None);
 
-                long unixGraceTime = new DateTimeOffset(entry.GraceTime).ToUnixTimeMilliseconds();
-                writer.Write(unixGraceTime);
+            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
+            writer.Write(unixExpirationTime);
 
-                _keyValueSerializer.SerializeValue(entry.Value, writer);
-            }
+            long unixGraceTime = new DateTimeOffset(entry.GraceTime).ToUnixTimeMilliseconds();
+            writer.Write(unixGraceTime);
+
+            _keyValueSerializer.SerializeValue(entry.Value, writer);
 
             return memoryStream.ToArray();
         }
 
         private CacheEntry<TValue> DeserializeDistributedCacheValue(byte[] bytes)
         {
-            int offset = 0;
+            MemoryStream memoryStream = new(bytes, writable: false);
+            BinaryReader reader = new(memoryStream);
 
-            byte version = bytes[0];
-            offset += sizeof(byte);
+            byte version = reader.ReadByte();
 
-            var options = (AsyncCacheEntryOptions)BitConverter.ToInt32(bytes.AsSpan(offset, sizeof(int)));
-            offset += sizeof(int);
+            var options = (AsyncCacheEntryOptions)reader.ReadInt32();
 
-            long unixExpirationTime = BitConverter.ToInt64(bytes.AsSpan(offset, sizeof(long)));
+            long unixExpirationTime = reader.ReadInt64();
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
-            offset += sizeof(long);
 
-            long unixGraceTime = BitConverter.ToInt64(bytes.AsSpan(offset, sizeof(long)));
+            long unixGraceTime = reader.ReadInt64();
             DateTime graceTime = DateTimeOffset.FromUnixTimeMilliseconds(unixGraceTime).UtcDateTime;
-            offset += sizeof(long);
 
-            TValue value = _keyValueSerializer.DeserializeValue(bytes.AsSpan(offset));
+            TValue value = _keyValueSerializer.DeserializeValue(reader);
 
             return new CacheEntry<TValue>(value, expirationTime, graceTime);
         }

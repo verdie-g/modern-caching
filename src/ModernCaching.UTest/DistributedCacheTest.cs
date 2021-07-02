@@ -79,9 +79,11 @@ namespace ModernCaching.UTest
                 }
             }
 
-            public int? DeserializeValue(ReadOnlySpan<byte> valueBytes)
+            public int? DeserializeValue(BinaryReader reader)
             {
-                return valueBytes.IsEmpty ? null : BitConverter.ToInt32(valueBytes);
+                return reader.BaseStream.Position < reader.BaseStream.Length
+                    ? reader.ReadInt32()
+                    : null;
             }
         }
 

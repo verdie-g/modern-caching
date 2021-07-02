@@ -193,7 +193,7 @@ INSERT INTO users VALUES
             public int Version => 0;
             public string StringifyKey(TKey key) => key.ToString()!;
             public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
-            public TValue DeserializeValue(ReadOnlySpan<byte> valueBytes) => Serializer.Deserialize<TValue>(valueBytes);
+            public TValue DeserializeValue(BinaryReader reader) => Serializer.Deserialize<TValue>(reader.BaseStream);
         }
 
         private class UserDataSource : IDataSource<Guid, User>

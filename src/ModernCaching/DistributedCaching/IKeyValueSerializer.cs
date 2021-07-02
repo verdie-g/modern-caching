@@ -35,8 +35,8 @@ namespace ModernCaching.DistributedCaching
         /// <summary>
         /// Reads a value from its bytes representation.
         /// </summary>
-        /// <param name="valueBytes">The bytes of the value.</param>
-        /// <returns>A <typeparamref name="TValue"/>. Null can be returned if <see cref="valueBytes"/> represents null.</returns>
-        TValue DeserializeValue(ReadOnlySpan<byte> valueBytes);
+        /// <param name="reader">The reader to read from.</param>
+        /// <returns>A <typeparamref name="TValue"/>. Null can be returned if what is read represents null.</returns>
+        TValue DeserializeValue(BinaryReader reader);
     }
 }
