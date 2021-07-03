@@ -344,8 +344,8 @@ namespace ModernCaching
             DateTime utcNow = _dateTime.UtcNow;
 
             DateTime expirationTime = utcNow + ttl;
-            DateTime graceTime = utcNow + ttl * 2; // Entries are kept in cache twice longer than the expiration time.
-            return new CacheEntry<TValue>(result.Value, expirationTime, graceTime);
+            DateTime evictionTime = utcNow + ttl * 2; // Entries are kept in cache twice longer than the expiration time.
+            return new CacheEntry<TValue>(result.Value, expirationTime, evictionTime);
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)

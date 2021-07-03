@@ -102,7 +102,7 @@ namespace ModernCaching.DistributedCaching
             }
 
             string keyStr = BuildDistributedCacheKey(key);
-            TimeSpan timeToLive = entry.GraceTime - DateTime.UtcNow;
+            TimeSpan timeToLive = entry.EvictionTime - DateTime.UtcNow;
             return _cache.SetAsync(keyStr, valueBytes, timeToLive);
         }
 
@@ -136,8 +136,8 @@ namespace ModernCaching.DistributedCaching
             long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
             writer.Write(unixExpirationTime);
 
-            long unixGraceTime = new DateTimeOffset(entry.GraceTime).ToUnixTimeMilliseconds();
-            writer.Write(unixGraceTime);
+            long unixEvictionTime = new DateTimeOffset(entry.EvictionTime).ToUnixTimeMilliseconds();
+            writer.Write(unixEvictionTime);
 
             _keyValueSerializer.SerializeValue(entry.Value, writer);
 
@@ -156,12 +156,12 @@ namespace ModernCaching.DistributedCaching
             long unixExpirationTime = reader.ReadInt64();
             DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
 
-            long unixGraceTime = reader.ReadInt64();
-            DateTime graceTime = DateTimeOffset.FromUnixTimeMilliseconds(unixGraceTime).UtcDateTime;
+            long unixEvictionTime = reader.ReadInt64();
+            DateTime evictionTime = DateTimeOffset.FromUnixTimeMilliseconds(unixEvictionTime).UtcDateTime;
 
             TValue value = _keyValueSerializer.DeserializeValue(reader);
 
-            return new CacheEntry<TValue>(value, expirationTime, graceTime);
+            return new CacheEntry<TValue>(value, expirationTime, evictionTime);
         }
     }
 }

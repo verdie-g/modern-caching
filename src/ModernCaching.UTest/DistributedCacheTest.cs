@@ -62,8 +62,8 @@ namespace ModernCaching.UTest
             Assert.AreEqual(entry.Value, res.entry!.Value);
             Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromMilliseconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.ExpirationTime.Kind);
-            Assert.AreEqual(entry.GraceTime.Ticks, res.entry.GraceTime.Ticks, TimeSpan.FromMilliseconds(1).Ticks);
-            Assert.AreEqual(DateTimeKind.Utc, entry.GraceTime.Kind);
+            Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromMilliseconds(1).Ticks);
+            Assert.AreEqual(DateTimeKind.Utc, entry.EvictionTime.Kind);
         }
 
         private class IntToIntKeyValueSerializer : IKeyValueSerializer<int, int?>

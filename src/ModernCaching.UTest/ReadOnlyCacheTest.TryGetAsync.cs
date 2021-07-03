@@ -172,7 +172,7 @@ namespace ModernCaching.UTest
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e =>
                 e.Value == 10
                 && e.ExpirationTime == new DateTime(2000, 1, 1, 0, 1, 30)
-                && e.GraceTime == new DateTime(2000, 1, 1, 0, 3, 0))));
+                && e.EvictionTime == new DateTime(2000, 1, 1, 0, 3, 0))));
         }
 
         [Theory]
