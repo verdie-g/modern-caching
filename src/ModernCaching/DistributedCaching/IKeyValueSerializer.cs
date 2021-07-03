@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 
 namespace ModernCaching.DistributedCaching
 {
@@ -29,13 +28,13 @@ namespace ModernCaching.DistributedCaching
         /// </summary>
         /// <remarks>The method should handle null values if the data source can return null values.</remarks>
         /// <param name="value">The value to write. Can be null if the data source returned null.</param>
-        /// <param name="writer">The writer to write to.</param>
+        /// <param name="writer">The writer to write to. The underlying stream can be accessed with <see cref="BinaryReader.BaseStream"/>.</param>
         void SerializeValue(TValue value, BinaryWriter writer);
 
         /// <summary>
         /// Reads a value from its bytes representation.
         /// </summary>
-        /// <param name="reader">The reader to read from.</param>
+        /// <param name="reader">The reader to read from. The underlying stream can be accessed with <see cref="BinaryReader.BaseStream"/>.</param>
         /// <returns>A <typeparamref name="TValue"/>. Null can be returned if what is read represents null.</returns>
         TValue DeserializeValue(BinaryReader reader);
     }
