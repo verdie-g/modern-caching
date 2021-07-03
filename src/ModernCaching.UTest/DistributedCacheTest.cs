@@ -54,7 +54,7 @@ namespace ModernCaching.UTest
 
             DistributedCache<int, int?> distributedCache = new("c", asyncCache, serializer, "ab", null);
 
-            CacheEntry<int?> entry = new(value, DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
+            CacheEntry<int?> entry = new(value) { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) };
             await distributedCache.SetAsync(10, entry);
 
             var res = await distributedCache.GetAsync(10);

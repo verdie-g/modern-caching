@@ -6,7 +6,12 @@ namespace ModernCaching.LocalCaching
     /// Entry of an <see cref="ICache{TKey,TValue}"/>.
     /// </summary>
     /// <param name="Value">The value of the entry.</param>
-    /// <param name="ExpirationTime">The UTC time after which the value is considered stale.</param>
-    /// <param name="EvictionTime">The UTC time after which the entry should get evicted (if the cache is evicting).</param>
-    public record CacheEntry<TValue>(TValue Value, DateTime ExpirationTime, DateTime EvictionTime);
+    public record CacheEntry<TValue>(TValue Value)
+    {
+        /// <summary>The UTC time after which the value is considered stale.</summary>
+        public DateTime ExpirationTime { get; internal set; }
+
+        /// <summary>The UTC time after which the entry should get evicted (if the cache is evicting).</summary>
+        public DateTime EvictionTime { get; internal set; }
+    }
 }

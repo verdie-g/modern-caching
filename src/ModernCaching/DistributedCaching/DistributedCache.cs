@@ -161,7 +161,11 @@ namespace ModernCaching.DistributedCaching
 
             TValue value = _keyValueSerializer.DeserializeValue(reader);
 
-            return new CacheEntry<TValue>(value, expirationTime, evictionTime);
+            return new CacheEntry<TValue>(value)
+            {
+                ExpirationTime = expirationTime,
+                EvictionTime = evictionTime,
+            };
         }
     }
 }

@@ -38,9 +38,9 @@ namespace ModernCaching
         private readonly ICacheMetrics _metrics;
 
         /// <summary>
-        /// Batch of keys to load in the background. The boolean value is not used.
+        /// Batch of keys to load in the background.
         /// </summary>
-        private ConcurrentDictionary<TKey, bool> _keysToLoad;
+        private ConcurrentDictionary<TKey, CacheEntry<TValue>?> _keysToLoad;
 
         /// <summary>
         /// Timer to load the keys from <see cref="_keysToLoad"/>.
@@ -70,7 +70,7 @@ namespace ModernCaching
             _distributedCache = distributedCache;
             _dataSource = dataSource;
             _metrics = metrics;
-            _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, bool>();
+            _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
             _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
             _dateTime = dateTime;
@@ -95,7 +95,7 @@ namespace ModernCaching
             }
 
             // Not found or stale.
-            _keysToLoad[key] = true;
+            _keysToLoad[key] = cacheEntry;
             value = found ? cacheEntry!.Value : default;
             return found;
         }
@@ -128,59 +128,9 @@ namespace ModernCaching
             return reloadResult;
         }
 
-        public async Task LoadAsync(IEnumerable<TKey> keys)
+        public Task LoadAsync(IEnumerable<TKey> keys)
         {
-            // TODO: could also set tasks in _loadingTasks.
-
-            var distributedCacheResults = await Task.WhenAll(keys.Select(async key =>
-            {
-                var (status, cacheEntry) = await TryGetRemotelyAsync(key);
-                return (status, key, cacheEntry);
-            }));
-
-            var keysToLoadFromSource = new List<TKey>();
-            foreach (var (status, key, cacheEntry) in distributedCacheResults)
-            {
-                // Filter out errors. If the distributed cache is not available, no reload is performed.
-                if (status == AsyncCacheStatus.Error)
-                {
-                    continue;
-                }
-
-                if (status == AsyncCacheStatus.Hit)
-                {
-                    if (!IsCacheEntryStale(cacheEntry!))
-                    {
-                        SetLocally(key, cacheEntry!); // TODO: extend cacheEntry if != null.
-                        continue;
-                    }
-                }
-
-                keysToLoadFromSource.Add(key);
-            }
-
-            var keysNotFoundInSource = keysToLoadFromSource.ToHashSet();
-
-            var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource, cancellationToken))
-            {
-                keysNotFoundInSource.Remove(dataSourceResult.Key);
-                CacheEntry<TValue> cacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
-                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, cacheEntry));
-                SetLocally(dataSourceResult.Key, cacheEntry);
-            }
-
-            _metrics.IncrementDataSourceKeyLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
-            _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
-
-            // If the key was not found in the data source, it means that maybe it never existed or that it was
-            // deleted recently. For that second case, we should delete the potential cached value.
-            // TODO: add an option to set to null instead of removing the entry?
-            foreach (var key in keysNotFoundInSource)
-            {
-                _ = Task.Run(() => DeleteRemotelyAsync(key));
-                DeleteLocally(key);
-            }
+            return InnerLoadAsync(keys.Select(k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
         }
 
         public void Dispose()
@@ -200,15 +150,25 @@ namespace ModernCaching
             return _localCache.TryGet(key, out cacheEntry);
         }
 
-        /// <summary>Sets the specified key and entry to the local cache.</summary>
-        private void SetLocally(TKey key, CacheEntry<TValue> cacheEntry)
+        /// <summary>Sets the specified key and entry to the local cache or extends the lifetime of an existing entry.</summary>
+        private void SetOrExtendLocally(TKey key, CacheEntry<TValue> newCacheEntry, CacheEntry<TValue>? oldCacheEntry)
         {
             if (_localCache == null)
             {
                 return;
             }
 
-            _localCache.Set(key, cacheEntry);
+            // If an entry already exists for the key, extends its lifetime instead of replacing it to avoid replacing
+            // a gen 2 object by gen 0 one.
+            if (oldCacheEntry != null)
+            {
+                oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
+                oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
+            }
+            else
+            {
+                _localCache.Set(key, newCacheEntry);
+            }
         }
 
         /// <summary>Sets the specified key and entry to the local cache.</summary>
@@ -225,8 +185,72 @@ namespace ModernCaching
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
         private void BackgroundLoad(object _, ElapsedEventArgs __)
         {
-            ICollection<TKey> keys = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, bool>()).Keys;
-            Task.Run(() => LoadAsync(keys));
+            var keysToLoad = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, CacheEntry<TValue>?>());
+            Task.Run(() => InnerLoadAsync(keysToLoad));
+        }
+
+        private async Task InnerLoadAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
+        {
+            // TODO: could also set tasks in _loadingTasks.
+
+            var distributedCacheResults = await Task.WhenAll(keyEntryPairs.Select(async keyEntryPair =>
+            {
+                var (status, distributedCacheEntry) = await TryGetRemotelyAsync(keyEntryPair.Key);
+                return (status, keyEntryPair, distributedCacheEntry);
+            }));
+
+            var keysToLoadFromSource = new List<KeyValuePair<TKey, CacheEntry<TValue>?>>();
+            foreach (var (status, keyEntryPair, distributedCacheEntry) in distributedCacheResults)
+            {
+                // Filter out errors. If the distributed cache is not available, no reload is performed.
+                if (status == AsyncCacheStatus.Error)
+                {
+                    continue;
+                }
+
+                if (status == AsyncCacheStatus.Hit)
+                {
+                    if (!IsCacheEntryStale(distributedCacheEntry!))
+                    {
+                        SetOrExtendLocally(keyEntryPair.Key, distributedCacheEntry!, keyEntryPair.Value);
+                        continue;
+                    }
+                }
+
+                keysToLoadFromSource.Add(keyEntryPair);
+            }
+
+            var keysNotFoundInSource = keysToLoadFromSource.ToDictionary(k => k.Key, k => k.Value);
+
+            int errors = 0;
+            var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
+            await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource.Select(k => k.Key), cancellationToken))
+            {
+                if (!keysNotFoundInSource.TryGetValue(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry))
+                {
+                    // The data source returned a key that was not requested.
+                    errors += 1;
+                    continue;
+                }
+
+                CacheEntry<TValue> dataSourceCacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
+                _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
+                SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry, localCacheEntry);
+                keysNotFoundInSource.Remove(dataSourceResult.Key);
+            }
+
+            _metrics.IncrementDataSourceKeyLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
+            _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
+            _metrics.IncrementDataSourceKeyLoadErrors(errors);
+
+            // If the key was not found in the data source, it means that maybe it never existed or that it was
+            // deleted recently. For that second case, we should delete the potential cached value.
+            // TODO: add an option to set to null instead of removing the entry?
+            foreach (var keyEntryPair in keysNotFoundInSource)
+            {
+                _ = Task.Run(() => DeleteRemotelyAsync(keyEntryPair.Key));
+                DeleteLocally(keyEntryPair.Key);
+            }
         }
 
         /// <summary>
@@ -247,7 +271,7 @@ namespace ModernCaching
             {
                 if (!IsCacheEntryStale(distributedCacheEntry!))
                 {
-                    SetLocally(key, distributedCacheEntry!); // TODO: extend cacheEntry if != null.
+                    SetOrExtendLocally(key, distributedCacheEntry!, localCacheEntry);
                     return (true, distributedCacheEntry!.Value);
                 }
             }
@@ -275,7 +299,7 @@ namespace ModernCaching
             }
 
             _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
-            SetLocally(key, dataSourceEntry);
+            SetOrExtendLocally(key, dataSourceEntry, localCacheEntry);
             return (true, dataSourceEntry.Value);
         }
 
@@ -340,12 +364,17 @@ namespace ModernCaching
 
         private CacheEntry<TValue> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue> result)
         {
-            TimeSpan ttl = RandomizeTimeSpan(result.TimeToLive);
+            TimeSpan timeToLive = RandomizeTimeSpan(result.TimeToLive);
             DateTime utcNow = _dateTime.UtcNow;
 
-            DateTime expirationTime = utcNow + ttl;
-            DateTime evictionTime = utcNow + ttl * 2; // Entries are kept in cache twice longer than the expiration time.
-            return new CacheEntry<TValue>(result.Value, expirationTime, evictionTime);
+            DateTime expirationTime = utcNow + timeToLive;
+            DateTime evictionTime = utcNow + timeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
+
+            return new CacheEntry<TValue>(result.Value)
+            {
+                ExpirationTime = expirationTime,
+                EvictionTime = evictionTime,
+            };
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)
