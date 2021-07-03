@@ -58,7 +58,6 @@ namespace ModernCaching.UTest
 
             Mock<ICacheMetrics> metricsMock = new();
 
-
             InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
             Assert.ThrowsAsync<NullReferenceException>(() =>
                 instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None)
@@ -66,6 +65,42 @@ namespace ModernCaching.UTest
                     .MoveNextAsync().AsTask());
 
             metricsMock.Verify(m => m.IncrementDataSourceLoadError(), Times.Once);
+        }
+
+        [Test]
+        public void LoadAsyncShouldEmitMetricIfAResultIsNull()
+        {
+            Mock<IDataSource<int, int>> dataSourceMock = new();
+            dataSourceMock
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+                .Returns(CreateDataSourceResults((DataSourceResult<int, int>?)null!));
+
+            Mock<ICacheMetrics> metricsMock = new();
+
+            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
+            instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None)
+                .GetAsyncEnumerator()
+                .MoveNextAsync();
+
+            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(1), Times.Once);
+        }
+
+        [Test]
+        public void LoadAsyncShouldEmitMetricIfAResultHasANegativeTimeToLive()
+        {
+            Mock<IDataSource<int, int>> dataSourceMock = new();
+            dataSourceMock
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+                .Returns(CreateDataSourceResults(new DataSourceResult<int, int>(1, 2, TimeSpan.FromMilliseconds(-1))));
+
+            Mock<ICacheMetrics> metricsMock = new();
+
+            InstrumentedDataSource<int, int> instrumentedDataSource = new(dataSourceMock.Object, metricsMock.Object, null);
+            instrumentedDataSource.LoadAsync(Array.Empty<int>(), CancellationToken.None)
+                .GetAsyncEnumerator()
+                .MoveNextAsync();
+
+            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(1), Times.Once);
         }
 
         private async IAsyncEnumerable<DataSourceResult<int, int>> CreateDataSourceResults(params DataSourceResult<int, int>[] results)

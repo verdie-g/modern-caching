@@ -56,6 +56,20 @@ namespace ModernCaching.DataSource
                     }
 
                     dataSourceResult = results.Current;
+
+                    if (dataSourceResult == null)
+                    {
+                        throw new NullReferenceException($"A null {nameof(DataSourceResult<TKey, TValue>)} was returned"
+                                                         + $" by {nameof(IDataSource<TKey, TValue>.LoadAsync)}");
+                    }
+
+                    if (dataSourceResult.TimeToLive < TimeSpan.Zero)
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(dataSourceResult.TimeToLive),
+                            dataSourceResult.TimeToLive,
+                            "The time-to-live value must be positive.");
+                    }
                 }
                 catch (Exception e)
                 {
