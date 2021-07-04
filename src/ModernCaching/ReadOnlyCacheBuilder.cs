@@ -86,7 +86,7 @@ namespace ModernCaching
 
         /// <summary>
         /// Sets the <see cref="ILoggerFactory"/> that will be used to create <see cref="ILogger"/> instances for
-        /// logging done by this cache..
+        /// logging done by this cache.
         /// </summary>
         /// <param name="loggerFactory">The logger factory to be used.</param>
         /// <returns>A reference to this instance.</returns>

@@ -18,7 +18,12 @@ using StackExchange.Redis;
 
 namespace ModernCaching.ITest
 {
-    public class RedisPostgreSql
+    /// <summary>
+    /// - local cache: builtin MemoryCache
+    /// - distributed cache: Redis with Protobuf serialization
+    /// - data source: PostgreSQL
+    /// </summary>
+    public class RedisProtobufPostgreSql
     {
         private DockerClient? _docker;
         private string[] _containerIds = Array.Empty<string>();
@@ -33,7 +38,8 @@ namespace ModernCaching.ITest
                 RunContainerAsync(_docker, "postgres", 5432, new[] { "POSTGRES_HOST_AUTH_METHOD=trust" })
             );
 
-            var redis = await ConnectionMultiplexer.ConnectAsync("localhost");
+            var redis = await ConnectionMultiplexer.ConnectAsync("localhost,allowAdmin=true");
+
             string postgreSqlConnectionString = "Host=localhost;User ID=postgres";
             await InitializePostgreSql(postgreSqlConnectionString);
 
@@ -41,6 +47,7 @@ namespace ModernCaching.ITest
                 .WithLocalCache(new MemoryCache<Guid, User>())
                 .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
                 .WithLoggerFactory(new ConsoleLoggerFactory())
+                .WithPreload(_ => Task.FromResult<IEnumerable<Guid>>(new Guid[] { new("c11f0067-ec91-4355-8c7e-1caf4c940136")}), null)
                 .BuildAsync();
         }
 
@@ -48,6 +55,14 @@ namespace ModernCaching.ITest
         public async Task OneTimeTearDown()
         {
             await Task.WhenAll(_containerIds.Select(id => KillContainerAsync(_docker!, id)));
+        }
+
+        [Test]
+        public void PreloadedKeyShouldPresentInCache()
+        {
+            Guid userId = new("c11f0067-ec91-4355-8c7e-1caf4c940136");
+            Assert.IsTrue(_cache.TryPeek(userId, out User? user));
+            Assert.AreEqual("Raphaël", user!.Name);
         }
 
         [Test]
@@ -190,6 +205,7 @@ INSERT INTO users VALUES
 
         private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue> where TKey : notnull
         {
+            // Protobuf is forward/backward-compatible so bumping the version shouldn't be needed.
             public int Version => 0;
             public string StringifyKey(TKey key) => key.ToString()!;
             public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
@@ -208,6 +224,7 @@ INSERT INTO users VALUES
                 await using var conn = new NpgsqlConnection(_connectionString);
                 await conn.OpenAsync(cancellationToken);
 
+                // If there is a lot of keys there may be better alternatives than IN operator.
                 string idsStr = '\'' + string.Join("', '", ids) + '\'';
                 await using var cmd = new NpgsqlCommand($"SELECT * FROM users WHERE id IN ({idsStr});", conn);
                 await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
