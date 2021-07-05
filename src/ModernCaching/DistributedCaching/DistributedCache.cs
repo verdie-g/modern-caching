@@ -133,10 +133,10 @@ namespace ModernCaching.DistributedCaching
 
             writer.Write((int)AsyncCacheEntryOptions.None);
 
-            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeMilliseconds();
+            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeSeconds();
             writer.Write(unixExpirationTime);
 
-            long unixEvictionTime = new DateTimeOffset(entry.EvictionTime).ToUnixTimeMilliseconds();
+            long unixEvictionTime = new DateTimeOffset(entry.EvictionTime).ToUnixTimeSeconds();
             writer.Write(unixEvictionTime);
 
             _keyValueSerializer.SerializeValue(entry.Value, writer);
@@ -154,10 +154,10 @@ namespace ModernCaching.DistributedCaching
             var options = (AsyncCacheEntryOptions)reader.ReadInt32();
 
             long unixExpirationTime = reader.ReadInt64();
-            DateTime expirationTime = DateTimeOffset.FromUnixTimeMilliseconds(unixExpirationTime).UtcDateTime;
+            DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(unixExpirationTime).UtcDateTime;
 
             long unixEvictionTime = reader.ReadInt64();
-            DateTime evictionTime = DateTimeOffset.FromUnixTimeMilliseconds(unixEvictionTime).UtcDateTime;
+            DateTime evictionTime = DateTimeOffset.FromUnixTimeSeconds(unixEvictionTime).UtcDateTime;
 
             TValue value = _keyValueSerializer.DeserializeValue(reader);
 

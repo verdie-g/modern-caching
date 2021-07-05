@@ -60,9 +60,9 @@ namespace ModernCaching.UTest
             var res = await distributedCache.GetAsync(10);
             Assert.AreEqual(AsyncCacheStatus.Hit, res.status);
             Assert.AreEqual(entry.Value, res.entry!.Value);
-            Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromMilliseconds(1).Ticks);
+            Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.ExpirationTime.Kind);
-            Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromMilliseconds(1).Ticks);
+            Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.EvictionTime.Kind);
         }
 
