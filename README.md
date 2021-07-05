@@ -1,6 +1,6 @@
 # ModernCaching
 
-A 2-layer, performant and predictable caching solution for modern .NET.
+A 2-layer, performant and resilient caching solution for modern .NET.
 
 A typical cache provided by this library consists of:
 - a synchronous local cache that implements [`ICache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/ICache.cs)
@@ -38,10 +38,9 @@ is built-in:
   way, getting a value from the local cache doesn't require any allocation for
   simple type keys such as `int` or more complex user-defined objects. See the
   [benchmarks](https://github.com/verdie-g/modern-caching#benchmarks).
-- **Predictability**. Since the number of layers is fixed, it's easy to define
-  what should be done when one of these layers is down. For instance, the
-  data source is skipped if the distributed cache is unavailable to avoid
-  DDOSing it.
+- **Resilience**. With its fixed number of layers, each behavior is clearly
+  defined when one of these layers is down. For instance, the data source is
+  skipped if the distributed cache is unavailable to avoid DDOSing it.
 - **Instrumentation**. Metrics are exposed through
   [EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
   Errors from user-code are logged if a logger is specified.
