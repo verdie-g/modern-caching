@@ -6,9 +6,14 @@ namespace ModernCaching
     /// <summary>
     /// A 2-layer caching solution in front of a data source.
     /// </summary>
-    /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
-    /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
-    public interface IReadOnlyCache<in TKey, TValue> : IDisposable where TKey : IEquatable<TKey>
+    /// <typeparam name="TKey">
+    /// The type of the keys in the cache.
+    /// </typeparam>
+    /// <typeparam name="TValue">
+    /// The type of the values in the cache. This type can optionally implement <see cref="IEquatable{TValue}"/> to
+    /// avoid setting the local cache when the value didn't change. That reduces the gen 2 fragmentation.
+    /// </typeparam>
+    public interface IReadOnlyCache<in TKey, TValue> : IDisposable
     {
         /// <summary>
         /// Gets the value associated with the specified key from the local cache and the local cache only. Reloads the

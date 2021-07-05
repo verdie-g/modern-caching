@@ -17,6 +17,10 @@ namespace ModernCaching
     /// <inheritdoc />
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : IEquatable<TKey>
     {
+        private static readonly IEqualityComparer<TValue>? ValueComparer = typeof(IEquatable<TValue>).IsAssignableFrom(typeof(TValue))
+            ? EqualityComparer<TValue>.Default
+            : null;
+
         /// <summary>
         /// First caching layer, local to the program. If null, this layer is always skipped.
         /// </summary>
@@ -158,9 +162,9 @@ namespace ModernCaching
                 return;
             }
 
-            // If an entry already exists for the key, extends its lifetime instead of replacing it to avoid replacing
-            // a gen 2 object by gen 0 one.
-            if (oldCacheEntry != null)
+            // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
+            // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
+            if (ValueComparer != null && oldCacheEntry != null && ValueComparer.Equals(oldCacheEntry.Value, newCacheEntry.Value))
             {
                 oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
                 oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;

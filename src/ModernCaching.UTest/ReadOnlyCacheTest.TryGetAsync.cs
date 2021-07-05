@@ -205,15 +205,7 @@ namespace ModernCaching.UTest
 
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Metrics, Timer, MachineDateTime, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
-            if (localStale) // If a local entry already exist, ICache.Set is not called.
-            {
-                Assert.AreEqual(DateTime.UtcNow.AddHours(5).Ticks, localCacheEntry!.ExpirationTime.Ticks, delta: TimeSpan.FromHours(1).Ticks);
-            }
-            else
-            {
-                localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<int>>()));
-            }
-
+            localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<int>>()));
             Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.SetAsync)),
                 Is.True.After(5000, 100));
         }
@@ -337,6 +329,39 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
             Assert.AreEqual((true, 20), await cache.TryGetAsync(5));
+        }
+
+        [TestCase("A", "A", false)]
+        [TestCase("A", "B", true)]
+        [TestCase("A", null, true)]
+        [TestCase(null, "A", true)]
+        [Description("Replace expired local cache entry by the one distributed cache one and check if the local entry was replaced or extended")]
+        public async Task SetOrExtendTest(string? oldValue, string? newValue, bool shouldSet)
+        {
+            CacheEntry<string?>? localCacheEntry = new(oldValue) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            Mock<ICache<int, string?>> localCacheMock = new();
+            localCacheMock
+                .Setup(c => c.TryGet(5, out localCacheEntry))
+                .Returns(true);
+
+            CacheEntry<string?> distributedCacheEntry = new(newValue) { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
+            Mock<IDistributedCache<int, string?>> distributedCacheMock = new(MockBehavior.Strict);
+            distributedCacheMock
+                .Setup(c => c.GetAsync(5))
+                .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
+
+            ReadOnlyCache<int, string?> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!,
+                Metrics, Timer, MachineDateTime, Random);
+            await cache.TryGetAsync(5);
+
+            if (shouldSet) // If a local entry already exist, ICache.Set is not called.
+            {
+                localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<string?>>()));
+            }
+            else
+            {
+                Assert.AreEqual(DateTime.UtcNow.AddHours(5).Ticks, localCacheEntry!.ExpirationTime.Ticks, delta: TimeSpan.FromHours(1).Ticks);
+            }
         }
 
         private async IAsyncEnumerable<DataSourceResult<int, int>> CreateDataSourceResults(params DataSourceResult<int, int>[] results)
