@@ -37,11 +37,6 @@ namespace ModernCaching
         private readonly IDataSource<TKey, TValue> _dataSource;
 
         /// <summary>
-        /// Library metrics.
-        /// </summary>
-        private readonly ICacheMetrics _metrics;
-
-        /// <summary>
         /// Batch of keys to load in the background.
         /// </summary>
         private ConcurrentDictionary<TKey, CacheEntry<TValue>?> _keysToLoad;
@@ -67,13 +62,11 @@ namespace ModernCaching
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ICacheMetrics metrics, ITimer loadingTimer, IDateTime dateTime,
-            IRandom random)
+            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer, IDateTime dateTime, IRandom random)
         {
             _localCache = localCache;
             _distributedCache = distributedCache;
             _dataSource = dataSource;
-            _metrics = metrics;
             _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
             _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
@@ -224,33 +217,23 @@ namespace ModernCaching
                 keysToLoadFromSource.Add(keyEntryPair);
             }
 
-            var keysNotFoundInSource = keysToLoadFromSource.ToDictionary(k => k.Key, k => k.Value);
+            var localCacheEntriesByKey = keysToLoadFromSource.ToDictionary(k => k.Key, k => k.Value);
 
-            int errors = 0;
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
             await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource.Select(k => k.Key), cancellationToken))
             {
-                if (!keysNotFoundInSource.TryGetValue(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry))
-                {
-                    // The data source returned a key that was not requested.
-                    errors += 1;
-                    continue;
-                }
+                CacheEntry<TValue>? localCacheEntry = localCacheEntriesByKey[dataSourceResult.Key];
+                localCacheEntriesByKey.Remove(dataSourceResult.Key);
 
                 CacheEntry<TValue> dataSourceCacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
                 SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry, localCacheEntry);
-                keysNotFoundInSource.Remove(dataSourceResult.Key);
             }
-
-            _metrics.IncrementDataSourceKeyLoadHits(keysToLoadFromSource.Count - keysNotFoundInSource.Count);
-            _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
-            _metrics.IncrementDataSourceKeyLoadErrors(errors);
 
             // If the key was not found in the data source, it means that maybe it never existed or that it was
             // deleted recently. For that second case, we should delete the potential cached value.
             // TODO: add an option to set to null instead of removing the entry?
-            foreach (var keyEntryPair in keysNotFoundInSource)
+            foreach (var keyEntryPair in localCacheEntriesByKey)
             {
                 _ = Task.Run(() => DeleteRemotelyAsync(keyEntryPair.Key));
                 DeleteLocally(keyEntryPair.Key);
@@ -353,11 +336,9 @@ namespace ModernCaching
                     .GetAsyncEnumerator(cancellationToken);
                 if (!await results.MoveNextAsync())
                 {
-                    _metrics.IncrementDataSourceKeyLoadMisses();
                     return (true, null);
                 }
 
-                _metrics.IncrementDataSourceKeyLoadHits();
                 return (true, CacheEntryFromDataSourceResult(results.Current));
             }
             catch

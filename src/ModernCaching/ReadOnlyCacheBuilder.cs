@@ -119,7 +119,7 @@ namespace ModernCaching
                 ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, distributedCacheWrapperLogger)
                 : null;
 
-            var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, metrics,
+            var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource,
                 UtilsCache.LoadingTimer, UtilsCache.DateTime, UtilsCache.Random);
 
             if (_getKeys == null)

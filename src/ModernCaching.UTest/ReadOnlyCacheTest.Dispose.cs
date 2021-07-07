@@ -10,7 +10,7 @@ namespace ModernCaching.UTest
         [Test]
         public void DisposeShouldNotThrow()
         {
-            ReadOnlyCache<int, int> cache = new(null, null, null!, Mock.Of<ICacheMetrics>(), Mock.Of<ITimer>(),
+            ReadOnlyCache<int, int> cache = new(null, null, null!, Mock.Of<ITimer>(),
                 Mock.Of<IDateTime>(), Mock.Of<IRandom>());
             Assert.DoesNotThrow(() => cache.Dispose());
         }

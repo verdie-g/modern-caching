@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using ModernCaching.Instrumentation;
 
 namespace ModernCaching.DataSource
 {
-    /// <summary>Wraps an <see cref="IDataSource{TKey,TValue}"/> with metrics.</summary>
+    /// <summary>Wraps an <see cref="IDataSource{TKey,TValue}"/> with metrics and sanitizes what's return by user code.</summary>
     internal class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, TValue>
     {
         private readonly IDataSource<TKey, TValue> _dataSource;
@@ -24,16 +25,18 @@ namespace ModernCaching.DataSource
         public async IAsyncEnumerable<DataSourceResult<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            HashSet<TKey> keysNotFoundInSource = keys.ToHashSet();
+
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                string keysStr = string.Join(", ", keys);
+                string keysStr = string.Join(", ", keysNotFoundInSource);
                 _logger.Log(LogLevel.Trace, "IDataSource: LOAD [{0}]", keysStr);
             }
 
             IAsyncEnumerator<DataSourceResult<TKey, TValue>> results;
             try
             {
-                results = _dataSource.LoadAsync(keys, cancellationToken)?.GetAsyncEnumerator(cancellationToken)
+                results = _dataSource.LoadAsync(keysNotFoundInSource, cancellationToken).GetAsyncEnumerator(cancellationToken)
                           ?? throw new NullReferenceException($"{nameof(IDataSource<TKey, TValue>.LoadAsync)} returned null");
                 _metrics.IncrementDataSourceLoadOk();
             }
@@ -44,6 +47,7 @@ namespace ModernCaching.DataSource
                 throw;
             }
 
+            int hits = 0;
             int errors = 0;
             while (true)
             {
@@ -63,6 +67,19 @@ namespace ModernCaching.DataSource
                                                          + $" by {nameof(IDataSource<TKey, TValue>.LoadAsync)}");
                     }
 
+                    if (dataSourceResult.Key == null)
+                    {
+                        throw new ArgumentNullException(nameof(dataSourceResult.Key));
+                    }
+
+                    if (!keysNotFoundInSource.Contains(dataSourceResult.Key))
+                    {
+                        throw new ArgumentException(nameof(dataSourceResult.TimeToLive),
+                            $"The key '{dataSourceResult.Key}' was returned but not requested");
+                    }
+
+                    keysNotFoundInSource.Remove(dataSourceResult.Key);
+
                     if (dataSourceResult.TimeToLive < TimeSpan.Zero)
                     {
                         throw new ArgumentOutOfRangeException(
@@ -78,10 +95,14 @@ namespace ModernCaching.DataSource
                     continue;
                 }
 
+                hits += 1;
                 yield return dataSourceResult;
             }
 
             await results.DisposeAsync();
+
+            _metrics.IncrementDataSourceKeyLoadHits(hits);
+            _metrics.IncrementDataSourceKeyLoadMisses(keysNotFoundInSource.Count);
             _metrics.IncrementDataSourceKeyLoadErrors(errors);
         }
     }

@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
-using ModernCaching.Instrumentation;
 using ModernCaching.LocalCaching;
 using ModernCaching.Utils;
 using Moq;
@@ -58,10 +57,8 @@ namespace ModernCaching.UTest
                     new DataSourceResult<int, int>(5, 555, TimeSpan.FromHours(5)),
                 }));
 
-            Mock<ICacheMetrics> metricsMock = new();
-
             ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object,
-                dataSourceMock.Object, metricsMock.Object, Timer, MachineDateTime, Random);
+                dataSourceMock.Object, Timer, MachineDateTime, Random);
             await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
             localCacheMock.Verify(c => c.Set(1, It.IsAny<CacheEntry<int>>()), Times.Never);
@@ -71,9 +68,6 @@ namespace ModernCaching.UTest
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
             localCacheMock.Verify(c => c.Set(6, It.IsAny<CacheEntry<int>>()), Times.Never);
             localCacheMock.Verify(c => c.Delete(6));
-
-            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadHits(2), Times.Once);
-            metricsMock.Verify(m => m.IncrementDataSourceKeyLoadMisses(2), Times.Once);
 
             Assert.That(
                 () => distributedCacheMock.Invocations.Count(i => i.Method.Name == nameof(IAsyncCache.SetAsync)) == 2,
@@ -88,7 +82,7 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Throws<Exception>();
 
-            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Mock.Of<ICacheMetrics>(), Timer,
+            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Timer,
                 MachineDateTime, Random);
             Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(Array.Empty<int>()));
         }
