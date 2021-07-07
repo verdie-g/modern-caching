@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ModernCaching.LocalCaching;
+using ModernCaching.Utils;
 
 namespace ModernCaching.DistributedCaching
 {
@@ -126,7 +127,7 @@ namespace ModernCaching.DistributedCaching
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
         {
-            MemoryStream memoryStream = new();
+            MemoryStream memoryStream = UtilsCache.MemoryStreamPool.Get();
             BinaryWriter writer = new(memoryStream);
 
             writer.Write((byte)0); // Version, to add extra fields later.
@@ -141,7 +142,9 @@ namespace ModernCaching.DistributedCaching
 
             _keyValueSerializer.SerializeValue(entry.Value, writer);
 
-            return memoryStream.ToArray();
+            byte[] bytes = memoryStream.ToArray();
+            UtilsCache.MemoryStreamPool.Return(memoryStream);
+            return bytes;
         }
 
         private CacheEntry<TValue> DeserializeDistributedCacheValue(byte[] bytes)
