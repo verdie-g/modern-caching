@@ -9,6 +9,7 @@ namespace ModernCaching.Instrumentation
     {
         private readonly string _cacheName;
 
+        // ReSharper disable NotAccessedField.Local
         private IncrementingPollingCounter? _localCacheGetHitsCounter;
         private IncrementingPollingCounter? _localCacheGetMissesCounter;
         private IncrementingPollingCounter? _localCacheSetCounter;
@@ -23,6 +24,7 @@ namespace ModernCaching.Instrumentation
         private IncrementingPollingCounter? _dataSourceKeyLoadHitsCounter;
         private IncrementingPollingCounter? _dataSourceKeyLoadMissesCounter;
         private IncrementingPollingCounter? _dataSourceKeyLoadErrorsCounter;
+        // ReSharper restore NotAccessedField.Local
 
         private long _localCacheGetHits;
         private long _localCacheGetMisses;
@@ -63,114 +65,90 @@ namespace ModernCaching.Instrumentation
                 return;
             }
 
-            _localCacheGetHitsCounter ??= new IncrementingPollingCounter("local-cache-get-hits-rate", this,
-                () => Volatile.Read(ref _localCacheGetHits))
-            {
-                DisplayName = "Local Cache Get Hits Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _localCacheGetMissesCounter ??= new IncrementingPollingCounter("local-cache-get-misses-rate", this,
-                () => Volatile.Read(ref _localCacheGetMisses))
-            {
-                DisplayName = "Local Cache Get Misses Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _localCacheSetCounter ??= new IncrementingPollingCounter("local-cache-set-rate", this,
-                () => Volatile.Read(ref _localCacheSet))
-            {
-                DisplayName = "Local Cache Set Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _localCacheDeleteCounter ??= new IncrementingPollingCounter("local-cache-delete-rate", this,
-                () => Volatile.Read(ref _localCacheDelete))
-            {
-                DisplayName = "Local Cache Delete Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _distributedCacheGetHitsCounter ??= new IncrementingPollingCounter("distributed-cache-get-hits-rate", this,
-                () => Volatile.Read(ref _distributedCacheGetHits))
-            {
-                DisplayName = "Distributed Cache Get Hits Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _distributedCacheGetMissesCounter ??= new IncrementingPollingCounter("distributed-cache-get-misses-rate",
-                this,
-                () => Volatile.Read(ref _distributedCacheGetMisses))
-            {
-                DisplayName = "Distributed Cache Get Misses Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _distributedCacheGetErrorsCounter ??= new IncrementingPollingCounter("distributed-cache-get-errors-rate",
-                this,
-                () => Volatile.Read(ref _distributedCacheGetErrors))
-            {
-                DisplayName = "Distributed Cache Get Errors Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _distributedCacheSetCounter ??= new IncrementingPollingCounter("distributed-cache-set-rate", this,
-                () => Volatile.Read(ref _distributedCacheSet))
-            {
-                DisplayName = "Distributed Cache Set Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _distributedCacheDeleteCounter ??= new IncrementingPollingCounter("distributed-cache-delete-rate", this,
-                () => Volatile.Read(ref _distributedCacheDelete))
-            {
-                DisplayName = "Distributed Cache Delete Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _dataSourceLoadOkCounter ??= new IncrementingPollingCounter("data-source-load-ok-rate", this,
-                () => Volatile.Read(ref _dataSourceLoadOk))
-            {
-                DisplayName = "Data Source Successful Load Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _dataSourceLoadErrorCounter ??= new IncrementingPollingCounter("data-source-load-error-rate", this,
-                () => Volatile.Read(ref _dataSourceLoadError))
-            {
-                DisplayName = "Data Source Failed Load Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _dataSourceKeyLoadHitsCounter ??= new IncrementingPollingCounter("data-source-key-load-hits-rate", this,
-                () => Volatile.Read(ref _dataSourceKeyLoadHits))
-            {
-                DisplayName = "Data Source Key Load Hits Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _dataSourceKeyLoadMissesCounter ??= new IncrementingPollingCounter("data-source-key-load-misses-rate", this,
-                () => Volatile.Read(ref _dataSourceKeyLoadMisses))
-            {
-                DisplayName = "Data Source Key Load Misses Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
-            _dataSourceKeyLoadErrorsCounter ??= new IncrementingPollingCounter("data-source-key-load-errors-rate", this,
-                () => Volatile.Read(ref _dataSourceKeyLoadErrors))
-            {
-                DisplayName = "Data Source Key Load Errors Rate",
-                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
-            };
 
-            var counters = new[]
+            IncrementingPollingCounter CreateLocalCacheCounter(string operation, string? status,
+                Func<double> totalValueProvider)
             {
-                _localCacheGetHitsCounter,
-                _localCacheGetMissesCounter,
-                _localCacheSetCounter,
-                _localCacheDeleteCounter,
-                _distributedCacheGetHitsCounter,
-                _distributedCacheGetMissesCounter,
-                _distributedCacheGetErrorsCounter,
-                _distributedCacheSetCounter,
-                _distributedCacheDeleteCounter,
-                _dataSourceLoadOkCounter,
-                _dataSourceLoadErrorCounter,
-                _dataSourceKeyLoadHitsCounter,
-                _dataSourceKeyLoadMissesCounter,
-                _dataSourceKeyLoadErrorsCounter,
-            };
-            foreach (var counter in counters)
-            {
-                counter.AddMetadata("cache-name", _cacheName);
+                var counter = CreateCounter("local-cache-requests-rate", "Local Cache Requests Rate",
+                    totalValueProvider);
+                counter.AddMetadata("operation", operation);
+                if (status != null)
+                {
+                    counter.AddMetadata("status", status);
+                }
+
+                return counter;
             }
+
+            _localCacheGetHitsCounter ??= CreateLocalCacheCounter("get", "hit",
+                () => Volatile.Read(ref _localCacheGetHits));
+            _localCacheGetMissesCounter ??= CreateLocalCacheCounter("get", "miss",
+                () => Volatile.Read(ref _localCacheGetMisses));
+            _localCacheSetCounter ??= CreateLocalCacheCounter("set", null,
+                () => Volatile.Read(ref _localCacheSet));
+            _localCacheDeleteCounter ??= CreateLocalCacheCounter("del", null,
+                () => Volatile.Read(ref _localCacheDelete));
+
+            IncrementingPollingCounter CreateDistributedCacheCounter(string operation, string? status,
+                Func<double> totalValueProvider)
+            {
+                var counter = CreateCounter("distributed-cache-requests-rate", "Distributed Cache Requests Rate",
+                    totalValueProvider);
+                counter.AddMetadata("operation", operation);
+                if (status != null)
+                {
+                    counter.AddMetadata("status", status);
+                }
+
+                return counter;
+            }
+
+            _distributedCacheGetHitsCounter ??= CreateDistributedCacheCounter("get", "hit",
+                () => Volatile.Read(ref _distributedCacheGetHits));
+            _distributedCacheGetMissesCounter ??= CreateDistributedCacheCounter("get", "miss",
+                () => Volatile.Read(ref _distributedCacheGetMisses));
+            _distributedCacheGetErrorsCounter ??= CreateDistributedCacheCounter("get", "error",
+                () => Volatile.Read(ref _distributedCacheGetErrors));
+            _distributedCacheSetCounter ??= CreateDistributedCacheCounter("set", null,
+                () => Volatile.Read(ref _distributedCacheSet));
+            _distributedCacheDeleteCounter ??= CreateDistributedCacheCounter("del", null,
+                () => Volatile.Read(ref _distributedCacheDelete));
+
+            IncrementingPollingCounter CreateLoadCounter(string status, Func<double> totalValueProvider)
+            {
+                var counter = CreateCounter("data-source-load-rate", "Data Source Load Rate", totalValueProvider);
+                counter.AddMetadata("status", status);
+                return counter;
+            }
+
+            _dataSourceLoadOkCounter ??= CreateLoadCounter("ok", () => Volatile.Read(ref _dataSourceLoadOk));
+            _dataSourceLoadErrorCounter ??= CreateLoadCounter("error", () => Volatile.Read(ref _dataSourceLoadError));
+
+            IncrementingPollingCounter CreateKeyLoadCounter(string status, Func<double> totalValueProvider)
+            {
+                var counter = CreateCounter("data-source-key-load-rate", "Data Source Key Load Rate",
+                    totalValueProvider);
+                counter.AddMetadata("status", status);
+                return counter;
+            }
+
+            _dataSourceKeyLoadHitsCounter ??= CreateKeyLoadCounter("hit",
+                () => Volatile.Read(ref _dataSourceKeyLoadHits));
+            _dataSourceKeyLoadMissesCounter ??= CreateKeyLoadCounter("miss",
+                () => Volatile.Read(ref _dataSourceKeyLoadMisses));
+            _dataSourceKeyLoadErrorsCounter ??= CreateKeyLoadCounter("error",
+                () => Volatile.Read(ref _dataSourceKeyLoadErrors));
+        }
+
+        private IncrementingPollingCounter CreateCounter(string name, string displayName, Func<double> totalValueProvider)
+        {
+            IncrementingPollingCounter counter = new(name, this, totalValueProvider)
+            {
+                DisplayName = displayName,
+                DisplayRateTimeScale = TimeSpan.FromSeconds(1),
+            };
+            counter.AddMetadata("name", _cacheName);
+            return counter;
         }
     }
 }
