@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using System.Timers;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
-using ModernCaching.Instrumentation;
 using ModernCaching.LocalCaching;
 using ModernCaching.Utils;
 
@@ -17,10 +16,6 @@ namespace ModernCaching
     /// <inheritdoc />
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : IEquatable<TKey>
     {
-        private static readonly IEqualityComparer<TValue>? ValueComparer = typeof(IEquatable<TValue>).IsAssignableFrom(typeof(TValue))
-            ? EqualityComparer<TValue>.Default
-            : null;
-
         /// <summary>
         /// First caching layer, local to the program. If null, this layer is always skipped.
         /// </summary>
@@ -156,8 +151,9 @@ namespace ModernCaching
             }
 
             // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
-            // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
-            if (ValueComparer != null && oldCacheEntry != null && ValueComparer.Equals(oldCacheEntry.Value, newCacheEntry.Value))
+            // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation. Note that Equals
+            // will involve boxing for structs that don't implement IEquatable.
+            if (oldCacheEntry != null && EqualityComparer<TValue>.Default.Equals(oldCacheEntry.Value, newCacheEntry.Value))
             {
                 oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
                 oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
