@@ -192,7 +192,7 @@ namespace ModernCaching
                 return (status, keyEntryPair, distributedCacheEntry);
             }));
 
-            var keysToLoadFromSource = new List<KeyValuePair<TKey, CacheEntry<TValue>?>>();
+            var keysToLoadFromSource = new List<KeyValuePair<TKey, CacheEntry<TValue>?>>(distributedCacheResults.Length);
             foreach (var (status, keyEntryPair, distributedCacheEntry) in distributedCacheResults)
             {
                 // Filter out errors. If the distributed cache is not available, no reload is performed.
