@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -14,6 +15,7 @@ using ModernCaching.Utils;
 namespace ModernCaching
 {
     /// <inheritdoc />
+    [DebuggerDisplay("Count = {_localCache.Count}")]
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : IEquatable<TKey>
     {
         /// <summary>
