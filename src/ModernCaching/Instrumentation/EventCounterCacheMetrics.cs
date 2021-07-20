@@ -92,12 +92,13 @@ namespace ModernCaching.Instrumentation
             _localCacheDeleteCounter ??= CreateLocalCacheCounter("del", null,
                 () => Volatile.Read(ref _localCacheDelete));
 
-            if (_localCacheCountCounter != null)
+            if (_localCacheCountPoller != null)
             {
                 _localCacheCountCounter ??= new PollingCounter("local-cache-count", this, _localCacheCountPoller)
                 {
                     DisplayName = "Local Cache Count",
                 };
+                _localCacheCountCounter.AddMetadata("name", _cacheName);
             }
 
             IncrementingPollingCounter CreateDistributedCacheCounter(string operation, string? status,
