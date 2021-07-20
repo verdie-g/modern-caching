@@ -12,7 +12,15 @@ namespace ModernCaching.LocalCaching
     public interface ICache<in TKey, TValue> where TKey : IEquatable<TKey>
     {
         /// <summary>
-        /// Gets the value associated with the specified key.
+        /// Gets the number of entries contained in the cache.
+        /// </summary>
+        /// <remarks>
+        /// It is preferred that the implementation returns an approximate value rather than locking the entire cache.
+        /// </remarks>
+        int Count { get; }
+
+        /// <summary>
+        /// Gets the entry associated with the specified key.
         /// </summary>
         /// <param name="key">The key of the element to get.</param>
         /// <param name="entry">Entry associated with the specified key, if the key is found; otherwise, the value is

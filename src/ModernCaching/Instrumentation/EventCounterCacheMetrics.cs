@@ -14,6 +14,7 @@ namespace ModernCaching.Instrumentation
         private IncrementingPollingCounter? _localCacheGetMissesCounter;
         private IncrementingPollingCounter? _localCacheSetCounter;
         private IncrementingPollingCounter? _localCacheDeleteCounter;
+        private PollingCounter? _localCacheCountCounter;
         private IncrementingPollingCounter? _distributedCacheGetHitsCounter;
         private IncrementingPollingCounter? _distributedCacheGetMissesCounter;
         private IncrementingPollingCounter? _distributedCacheGetErrorsCounter;
@@ -30,6 +31,7 @@ namespace ModernCaching.Instrumentation
         private long _localCacheGetMisses;
         private long _localCacheSet;
         private long _localCacheDelete;
+        private Func<double>? _localCacheCountPoller;
         private long _distributedCacheGetHits;
         private long _distributedCacheGetMisses;
         private long _distributedCacheGetErrors;
@@ -47,6 +49,8 @@ namespace ModernCaching.Instrumentation
         public void IncrementLocalCacheGetMisses() => Interlocked.Increment(ref _localCacheGetMisses);
         public void IncrementLocalCacheSet() => Interlocked.Increment(ref _localCacheSet);
         public void IncrementLocalCacheDelete() => Interlocked.Increment(ref _localCacheDelete);
+        // Ugly. Is there a better way?
+        public void SetLocalCacheCountPoller(Func<double> poller) => _localCacheCountPoller = poller;
         public void IncrementDistributedCacheGetHits() => Interlocked.Increment(ref _distributedCacheGetHits);
         public void IncrementDistributedCacheGetMisses() => Interlocked.Increment(ref _distributedCacheGetMisses);
         public void IncrementDistributedCacheGetErrors() => Interlocked.Increment(ref _distributedCacheGetErrors);
@@ -64,7 +68,6 @@ namespace ModernCaching.Instrumentation
             {
                 return;
             }
-
 
             IncrementingPollingCounter CreateLocalCacheCounter(string operation, string? status,
                 Func<double> totalValueProvider)
@@ -88,6 +91,14 @@ namespace ModernCaching.Instrumentation
                 () => Volatile.Read(ref _localCacheSet));
             _localCacheDeleteCounter ??= CreateLocalCacheCounter("del", null,
                 () => Volatile.Read(ref _localCacheDelete));
+
+            if (_localCacheCountCounter != null)
+            {
+                _localCacheCountCounter ??= new PollingCounter("local-cache-count", this, _localCacheCountPoller)
+                {
+                    DisplayName = "Local Cache Count",
+                };
+            }
 
             IncrementingPollingCounter CreateDistributedCacheCounter(string operation, string? status,
                 Func<double> totalValueProvider)

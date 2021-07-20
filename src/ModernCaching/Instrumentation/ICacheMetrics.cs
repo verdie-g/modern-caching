@@ -1,4 +1,6 @@
-﻿namespace ModernCaching.Instrumentation
+﻿using System;
+
+namespace ModernCaching.Instrumentation
 {
     internal interface ICacheMetrics
     {
@@ -6,6 +8,7 @@
         void IncrementLocalCacheGetMisses();
         void IncrementLocalCacheSet();
         void IncrementLocalCacheDelete();
+        void SetLocalCacheCountPoller(Func<double> poller);
 
         void IncrementDistributedCacheGetHits();
         void IncrementDistributedCacheGetMisses();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using ModernCaching.Utils;
 
 namespace ModernCaching.LocalCaching
@@ -15,9 +16,48 @@ namespace ModernCaching.LocalCaching
     {
         private readonly ConcurrentDictionary<TKey, CacheEntry<TValue>> _dictionary;
 
-        public MemoryCache() => _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>>();
-        public bool TryGet(TKey key, out CacheEntry<TValue> entry) => _dictionary.TryGetValue(key, out entry);
-        public void Set(TKey key, CacheEntry<TValue> entry) => _dictionary[key] = entry;
-        public void Delete(TKey key) => _dictionary.Remove(key, out _);
+        /// <summary>
+        /// Eventually consistent count of <see cref="_dictionary"/>. This count is increment/decremented using
+        /// <see cref="Interlocked.Increment"/> to avoid using <see cref="ConcurrentDictionary{TKey,TValue}.Count"/>
+        /// that locks the entire dictionary.</summary>
+        private int _count;
+
+        public MemoryCache()
+        {
+            _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>>();
+            _count = 0;
+        }
+
+        /// <inheritdoc />
+        public int Count => _count;
+
+        /// <inheritdoc />
+        public bool TryGet(TKey key, out CacheEntry<TValue> entry)
+        {
+            return _dictionary.TryGetValue(key, out entry);
+        }
+
+        /// <inheritdoc />
+        public void Set(TKey key, CacheEntry<TValue> entry)
+        {
+            if (_dictionary.TryGetValue(key, out CacheEntry<TValue> existingEntry))
+            {
+                _dictionary.TryUpdate(key, entry, existingEntry);
+            }
+            else
+            {
+                _dictionary.TryAdd(key, entry);
+                Interlocked.Increment(ref _count);
+            }
+        }
+
+        /// <inheritdoc />
+        public void Delete(TKey key)
+        {
+            if (_dictionary.Remove(key, out _))
+            {
+                Interlocked.Decrement(ref _count);
+            }
+        }
     }
 }

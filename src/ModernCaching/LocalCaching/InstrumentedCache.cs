@@ -17,8 +17,14 @@ namespace ModernCaching.LocalCaching
             _cache = cache;
             _metrics = metrics;
             _logger = logger;
+
+            metrics.SetLocalCacheCountPoller(() => Count);
         }
 
+        /// <inheritdoc />
+        public int Count => _cache.Count;
+
+        /// <inheritdoc />
         public bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry)
         {
             bool found;
@@ -48,6 +54,7 @@ namespace ModernCaching.LocalCaching
             return found;
         }
 
+        /// <inheritdoc />
         public void Set(TKey key, CacheEntry<TValue> entry)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
@@ -59,6 +66,7 @@ namespace ModernCaching.LocalCaching
             _cache.Set(key, entry);
         }
 
+        /// <inheritdoc />
         public void Delete(TKey key)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
