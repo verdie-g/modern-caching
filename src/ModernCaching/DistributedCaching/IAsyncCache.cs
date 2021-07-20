@@ -21,7 +21,7 @@ namespace ModernCaching.DistributedCaching
         /// </summary>
         /// <param name="key">The key of the element to set.</param>
         /// <param name="value">The value of the element to set.</param>
-        /// <param name="timeToLive">Duration after which the element is considered stale.</param>
+        /// <param name="timeToLive">Duration after which the element should get evicted.</param>
         Task SetAsync(string key, byte[] value, TimeSpan timeToLive);
 
         /// <summary>
