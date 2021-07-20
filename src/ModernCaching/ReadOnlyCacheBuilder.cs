@@ -59,7 +59,7 @@ namespace ModernCaching
         /// <param name="distributedCache">The distributed cache.</param>
         /// <param name="keyValueSerializer"><typeparamref name="TKey"/>/<typeparamref name="TValue"/> serializer.</param>
         /// <param name="keyPrefix">Prefix prepended to the distributed cache key.</param>
-        /// <exception cref="ArgumentNullException"><see cref="distributedCache"/> or <see cref="keyValueSerializer"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="distributedCache"/> or <paramref name="keyValueSerializer"/> is null.</exception>
         /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithDistributedCache(IAsyncCache distributedCache,
             IKeyValueSerializer<TKey, TValue> keyValueSerializer, string? keyPrefix = null)
@@ -75,6 +75,7 @@ namespace ModernCaching
         /// </summary>
         /// <param name="getKeys">A function to get the keys to preload.</param>
         /// <param name="state">An object containing information to be used by the <paramref name="getKeys"/> method, or null.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="getKeys"/> is null.</exception>
         /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithPreload(Func<object?, Task<IEnumerable<TKey>>> getKeys,
             object? state)
@@ -89,10 +90,11 @@ namespace ModernCaching
         /// logging done by this cache.
         /// </summary>
         /// <param name="loggerFactory">The logger factory to be used.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="loggerFactory"/> is null.</exception>
         /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithLoggerFactory(ILoggerFactory loggerFactory)
         {
-            _loggerFactory = loggerFactory;
+            _loggerFactory = loggerFactory ?? throw  new ArgumentNullException(nameof(loggerFactory));
             return this;
         }
 
