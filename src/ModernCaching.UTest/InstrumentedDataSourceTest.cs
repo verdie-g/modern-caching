@@ -94,7 +94,9 @@ namespace ModernCaching.UTest
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(4), Times.Once);
         }
 
+#pragma warning disable 1998
         private async IAsyncEnumerable<DataSourceResult<string, string>> CreateDataSourceResults(params DataSourceResult<string, string>[] results)
+#pragma warning restore 1998
         {
             foreach (var result in results)
             {

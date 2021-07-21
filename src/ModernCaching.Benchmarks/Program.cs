@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -156,7 +157,10 @@ namespace ModernCaching.Benchmarks
 
         class ModernCacheDataSource : IDataSource<Guid, int>
         {
-            public async IAsyncEnumerable<DataSourceResult<Guid, int>> LoadAsync(IEnumerable<Guid> keys, CancellationToken cancellationToken)
+#pragma warning disable 1998
+            public async IAsyncEnumerable<DataSourceResult<Guid, int>> LoadAsync(IEnumerable<Guid> keys,
+#pragma warning restore 1998
+                [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 foreach ((Guid key, int value) in Data)
                 {

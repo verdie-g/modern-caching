@@ -412,7 +412,9 @@ namespace ModernCaching.UTest
             }
         }
 
+#pragma warning disable 1998
         private async IAsyncEnumerable<DataSourceResult<int, int>> CreateDataSourceResults(params DataSourceResult<int, int>[] results)
+#pragma warning restore 1998
         {
             foreach (var result in results)
             {
