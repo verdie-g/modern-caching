@@ -34,6 +34,11 @@ namespace ModernCaching
         private readonly IDataSource<TKey, TValue> _dataSource;
 
         /// <summary>
+        /// Cache options.
+        /// </summary>
+        private readonly ReadOnlyCacheOptions _options;
+
+        /// <summary>
         /// Batch of keys to load in the background.
         /// </summary>
         private ConcurrentDictionary<TKey, CacheEntry<TValue>?> _keysToLoad;
@@ -59,11 +64,13 @@ namespace ModernCaching
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
         public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ITimer loadingTimer, IDateTime dateTime, IRandom random)
+            IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime,
+            IRandom random)
         {
             _localCache = localCache;
             _distributedCache = distributedCache;
             _dataSource = dataSource;
+            _options = options;
             _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
             _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
             _backgroundLoadTimer = loadingTimer;
@@ -84,13 +91,21 @@ namespace ModernCaching
             bool found = TryGetLocally(key, out var cacheEntry);
             if (found && !IsCacheEntryStale(cacheEntry!))
             {
-                value = cacheEntry!.Value;
-                return true;
+                if (cacheEntry!.HasValue)
+                {
+                    value = cacheEntry!.Value;
+                    return true;
+                }
+                else
+                {
+                    value = default;
+                    return false;
+                }
             }
 
             // Not found or stale.
             _keysToLoad[key] = cacheEntry;
-            value = found ? cacheEntry!.Value : default;
+            value = found && cacheEntry!.HasValue ? cacheEntry.Value : default;
             return found;
         }
 
@@ -104,7 +119,7 @@ namespace ModernCaching
 
             if (TryGetLocally(key, out var localCacheEntry) && !IsCacheEntryStale(localCacheEntry))
             {
-                return (true, localCacheEntry.Value);
+                return localCacheEntry.HasValue ? (true, localCacheEntry.Value) : (false, default);
             }
 
             // Multiplex concurrent reload of the same key into a single task.
@@ -153,9 +168,8 @@ namespace ModernCaching
             }
 
             // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
-            // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation. Note that Equals
-            // will involve boxing for structs that don't implement IEquatable.
-            if (oldCacheEntry != null && EqualityComparer<TValue>.Default.Equals(oldCacheEntry.Value, newCacheEntry.Value))
+            // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
+            if (oldCacheEntry != null && CacheEntryEquals(oldCacheEntry, newCacheEntry))
             {
                 oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
                 oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
@@ -228,13 +242,25 @@ namespace ModernCaching
                 SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry, localCacheEntry);
             }
 
-            // If the key was not found in the data source, it means that maybe it never existed or that it was
-            // deleted recently. For that second case, we should delete the potential cached value.
-            // TODO: add an option to set to null instead of removing the entry?
-            foreach (var keyEntryPair in localCacheEntriesByKey)
+            if (_options.CacheDataSourceMisses)
             {
-                _ = Task.Run(() => DeleteRemotelyAsync(keyEntryPair.Key));
-                DeleteLocally(keyEntryPair.Key);
+                TimeSpan ttl = _options.DefaultTimeToLive;
+                foreach (var (key, _) in localCacheEntriesByKey)
+                {
+                    CacheEntry<TValue> dataSourceCacheEntry = InitCacheEntryTimeToLive(new CacheEntry<TValue>(), ttl);
+                    _ = Task.Run(() => SetRemotelyAsync(key, dataSourceCacheEntry));
+                    SetOrExtendLocally(key, dataSourceCacheEntry, null);
+                }
+            }
+            else
+            {
+                // If the key was not found in the data source, it means that maybe it never existed or that it was
+                // deleted recently. For that second case, we should delete the potential cached value.
+                foreach (var (key, _) in localCacheEntriesByKey)
+                {
+                    _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    DeleteLocally(key);
+                }
             }
         }
 
@@ -249,7 +275,9 @@ namespace ModernCaching
             {
                 // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
                 // local entry or not found.
-                return localCacheEntry != null ? (true, localCacheEntry.Value) : (false, default);
+                return localCacheEntry != null && localCacheEntry.HasValue
+                    ? (true, localCacheEntry.Value)
+                    : (false, default);
             }
 
             if (status == AsyncCacheStatus.Hit)
@@ -257,7 +285,7 @@ namespace ModernCaching
                 if (!IsCacheEntryStale(distributedCacheEntry!))
                 {
                     SetOrExtendLocally(key, distributedCacheEntry!, localCacheEntry);
-                    return (true, distributedCacheEntry!.Value);
+                    return distributedCacheEntry!.HasValue ? (true, distributedCacheEntry.Value) : (false, default);
                 }
             }
 
@@ -267,7 +295,9 @@ namespace ModernCaching
                 // If the data source is unavailable return the stale value of the distributed cache or the stale
                 // value of the local cache or not found.
                 var availableCacheEntry = distributedCacheEntry ?? localCacheEntry;
-                return availableCacheEntry != null ? (true, availableCacheEntry.Value) : (false, default);
+                return availableCacheEntry != null && availableCacheEntry.HasValue
+                    ? (true, availableCacheEntry.Value)
+                    : (false, default);
             }
 
             if (dataSourceEntry == null) // If no results were returned from the data source.
@@ -285,7 +315,7 @@ namespace ModernCaching
 
             _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
             SetOrExtendLocally(key, dataSourceEntry, localCacheEntry);
-            return (true, dataSourceEntry.Value);
+            return dataSourceEntry.HasValue ? (true, dataSourceEntry.Value) : (false, default);
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
@@ -334,7 +364,9 @@ namespace ModernCaching
                     .GetAsyncEnumerator(cancellationToken);
                 if (!await results.MoveNextAsync())
                 {
-                    return (true, null);
+                    return _options.CacheDataSourceMisses
+                        ? (true, InitCacheEntryTimeToLive(new CacheEntry<TValue>(), _options.DefaultTimeToLive))
+                        : (true, null);
                 }
 
                 return (true, CacheEntryFromDataSourceResult(results.Current));
@@ -345,19 +377,32 @@ namespace ModernCaching
             }
         }
 
+        private bool CacheEntryEquals(CacheEntry<TValue> cacheEntry1, CacheEntry<TValue> cacheEntry2)
+        {
+            if (cacheEntry1.HasValue)
+            {
+                // Equals will involve boxing for structs that don't implement IEquatable.
+                return cacheEntry2.HasValue
+                       && EqualityComparer<TValue>.Default.Equals(cacheEntry1.Value, cacheEntry2.Value);
+            }
+
+            return !cacheEntry2.HasValue;
+        }
+
         private CacheEntry<TValue> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue> result)
         {
-            TimeSpan timeToLive = RandomizeTimeSpan(result.TimeToLive);
+            return InitCacheEntryTimeToLive(new CacheEntry<TValue>(result.Value), result.TimeToLive);
+        }
+
+        private CacheEntry<TValue> InitCacheEntryTimeToLive(CacheEntry<TValue> entry, TimeSpan timeToLive)
+        {
+            TimeSpan randomizedTimeToLive = RandomizeTimeSpan(timeToLive);
             DateTime utcNow = _dateTime.UtcNow;
 
-            DateTime expirationTime = utcNow + timeToLive;
-            DateTime evictionTime = utcNow + timeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
+            entry.ExpirationTime = utcNow + randomizedTimeToLive;
+            entry.EvictionTime = utcNow + randomizedTimeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
 
-            return new CacheEntry<TValue>(result.Value)
-            {
-                ExpirationTime = expirationTime,
-                EvictionTime = evictionTime,
-            };
+            return entry;
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)

@@ -43,7 +43,7 @@ namespace ModernCaching.LocalCaching
             {
                 if (found)
                 {
-                    _logger.Log(LogLevel.Trace, "ICache     : GET  {0} -> HIT {1}", key, entry!.Value);
+                    _logger.Log(LogLevel.Trace, "ICache     : GET  {0} -> HIT {1}", key, entry!.GetValueOrDefault());
                 }
                 else
                 {
@@ -59,7 +59,7 @@ namespace ModernCaching.LocalCaching
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.Log(LogLevel.Trace, "ICache     : SET  {0} {1}", key, entry.Value);
+                _logger.Log(LogLevel.Trace, "ICache     : SET  {0} {1}", key, entry.GetValueOrDefault());
             }
 
             _metrics.IncrementLocalCacheSet();

@@ -19,6 +19,7 @@ namespace ModernCaching
     {
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;
+        private readonly ReadOnlyCacheOptions _options;
 
         private ICache<TKey, TValue>? _localCache;
         private IAsyncCache? _distributedCache;
@@ -33,11 +34,12 @@ namespace ModernCaching
         /// </summary>
         /// <param name="name">Name of cache. Used in the distributed cache key, logging and metrics.</param>
         /// <param name="dataSource">Source of the data.</param>
-        /// <exception cref="ArgumentNullException"><see cref="name"/> or <see cref="dataSource"/> is null.</exception>
-        public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource)
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="dataSource"/> is null.</exception>
+        public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions? options = null)
         {
             _name = name ?? throw new ArgumentNullException(nameof(name));
             _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
+            _options = options ?? new ReadOnlyCacheOptions();
         }
 
         /// <summary>
@@ -121,7 +123,7 @@ namespace ModernCaching
                 ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, distributedCacheWrapperLogger)
                 : null;
 
-            var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource,
+            var cache = new ReadOnlyCache<TKey, TValue>(localCache, distributedCacheWrapper, dataSource, _options,
                 UtilsCache.LoadingTimer, UtilsCache.DateTime, UtilsCache.Random);
 
             if (_getKeys == null)

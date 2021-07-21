@@ -140,7 +140,10 @@ namespace ModernCaching.DistributedCaching
             long unixEvictionTime = new DateTimeOffset(entry.EvictionTime).ToUnixTimeSeconds();
             writer.Write(unixEvictionTime);
 
-            _keyValueSerializer.SerializeValue(entry.Value, writer);
+            if (entry.HasValue)
+            {
+                _keyValueSerializer.SerializeValue(entry.Value, writer);
+            }
 
             byte[] bytes = memoryStream.ToArray();
             UtilsCache.MemoryStreamPool.Return(memoryStream);
@@ -162,13 +165,24 @@ namespace ModernCaching.DistributedCaching
             long unixEvictionTime = reader.ReadInt64();
             DateTime evictionTime = DateTimeOffset.FromUnixTimeSeconds(unixEvictionTime).UtcDateTime;
 
-            TValue value = _keyValueSerializer.DeserializeValue(reader);
-
-            return new CacheEntry<TValue>(value)
+            // If the end of the stream was reached it means that the entry has no value.
+            if (reader.BaseStream.Position == reader.BaseStream.Length)
             {
-                ExpirationTime = expirationTime,
-                EvictionTime = evictionTime,
-            };
+                return new CacheEntry<TValue>()
+                {
+                    ExpirationTime = expirationTime,
+                    EvictionTime = evictionTime,
+                };
+            }
+            else
+            {
+                TValue value = _keyValueSerializer.DeserializeValue(reader);
+                return new CacheEntry<TValue>(value)
+                {
+                    ExpirationTime = expirationTime,
+                    EvictionTime = evictionTime,
+                };
+            }
         }
     }
 }

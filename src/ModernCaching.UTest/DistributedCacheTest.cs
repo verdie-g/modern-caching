@@ -45,21 +45,25 @@ namespace ModernCaching.UTest
             Assert.AreEqual((AsyncCacheStatus.Error, null as CacheEntry<int>), await distributedCache.GetAsync(10));
         }
 
-        [TestCase(22)]
-        [TestCase(null)]
-        public async Task GetAfterSetShouldGiveBackInitialValue(int? value)
+        [TestCase(true, 22)]
+        [TestCase(true, null)]
+        [TestCase(false, null)]
+        public async Task GetAfterSetShouldGiveBackInitialValue(bool entryHasValue, int? value)
         {
             DictionaryAsyncCache asyncCache = new();
             IntToIntKeyValueSerializer serializer = new();
 
             DistributedCache<int, int?> distributedCache = new("c", asyncCache, serializer, "ab", null);
 
-            CacheEntry<int?> entry = new(value) { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) };
+            var entry = entryHasValue
+                ? new CacheEntry<int?>(value) { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) }
+                : new CacheEntry<int?> { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) };
             await distributedCache.SetAsync(10, entry);
 
             var res = await distributedCache.GetAsync(10);
             Assert.AreEqual(AsyncCacheStatus.Hit, res.status);
-            Assert.AreEqual(entry.Value, res.entry!.Value);
+            Assert.AreEqual(entryHasValue, entry.HasValue);
+            Assert.AreEqual(entry.GetValueOrDefault(), res.entry!.GetValueOrDefault());
             Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.ExpirationTime.Kind);
             Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
