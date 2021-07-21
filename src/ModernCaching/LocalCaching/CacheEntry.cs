@@ -11,14 +11,14 @@ namespace ModernCaching.LocalCaching
         private readonly TValue _value;
 
         /// <summary>Instantiates a <see cref="CacheEntry{TValue}"/> with a value.</summary>
-        public CacheEntry(TValue value)
+        internal CacheEntry(TValue value)
         {
             _hasValue = true;
             _value = value;
         }
 
         /// <summary>Instantiates a <see cref="CacheEntry{TValue}"/> without a value.</summary>
-        public CacheEntry()
+        internal CacheEntry()
         {
             _hasValue = false;
             _value = default!;
