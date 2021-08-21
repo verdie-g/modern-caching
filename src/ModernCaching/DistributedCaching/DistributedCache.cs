@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -30,7 +29,7 @@ namespace ModernCaching.DistributedCaching
         /// Version of the header of a value in the distributed cache. It is included in the key so that it can be
         /// bumped after any backward incompatible changes.
         /// </summary>
-        private const int HeaderVersion = 0;
+        private const char HeaderVersion = '0';
 
         /// <summary>
         /// Name of cache. Used in the distributed cache key.
@@ -48,7 +47,7 @@ namespace ModernCaching.DistributedCaching
         private readonly IKeyValueSerializer<TKey, TValue> _keyValueSerializer;
 
         /// <summary>
-        /// Prefix added to the keys of the <see cref="_cache"/>.
+        /// Prefix added to the keys of the <see cref="_cache"/> ("{prefix}|{cacheName}|{headerVersion}/{cacheVersion}|").
         /// </summary>
         private readonly string? _keyPrefix;
 
@@ -60,7 +59,8 @@ namespace ModernCaching.DistributedCaching
             _name = name;
             _cache = cache;
             _keyValueSerializer = keyValueSerializer;
-            _keyPrefix = keyPrefix;
+            _keyPrefix = (string.IsNullOrEmpty(keyPrefix) ? _name : _keyPrefix + '|' + _name) + '|' + HeaderVersion
+                         + '/' + keyValueSerializer.Version + '|';
             _logger = logger;
         }
 
@@ -124,13 +124,7 @@ namespace ModernCaching.DistributedCaching
         /// <summary>{prefix}|{cacheName}|{headerVersion}/{cacheVersion}|{key}</summary>
         private string BuildDistributedCacheKey(TKey key)
         {
-            string prefix = !string.IsNullOrEmpty(_keyPrefix)
-                ? _keyPrefix + '|'
-                : string.Empty;
-            return prefix + _name
-                          + '|' + HeaderVersion.ToString(CultureInfo.InvariantCulture)
-                          + '/' + _keyValueSerializer.Version.ToString(CultureInfo.InvariantCulture)
-                          + '|' + _keyValueSerializer.StringifyKey(key);
+            return _keyPrefix + _keyValueSerializer.StringifyKey(key);
         }
 
         private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
