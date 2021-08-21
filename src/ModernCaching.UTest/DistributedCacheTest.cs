@@ -17,7 +17,7 @@ namespace ModernCaching.UTest
         {
             AsyncCacheResult asyncCacheResult = new(status, null);
             Mock<IAsyncCache> asyncCacheMock = new(MockBehavior.Strict);
-            asyncCacheMock.Setup(c => c.GetAsync("c|1|10")).ReturnsAsync(asyncCacheResult);
+            asyncCacheMock.Setup(c => c.GetAsync("c|0/1|10")).ReturnsAsync(asyncCacheResult);
 
             Mock<IKeyValueSerializer<int, int>> keyValueSerializerMock = new(MockBehavior.Strict);
             keyValueSerializerMock.Setup(s => s.Version).Returns(1);
@@ -33,7 +33,7 @@ namespace ModernCaching.UTest
         public async Task GetAsyncShouldReturnErrorIfAsyncCacheThrows()
         {
             Mock<IAsyncCache> asyncCacheMock = new(MockBehavior.Strict);
-            asyncCacheMock.Setup(c => c.GetAsync("c|1|10")).ThrowsAsync(new Exception());
+            asyncCacheMock.Setup(c => c.GetAsync("c|0/1|10")).ThrowsAsync(new Exception());
 
             Mock<IKeyValueSerializer<int, int>> keyValueSerializerMock = new(MockBehavior.Strict);
             keyValueSerializerMock.Setup(s => s.Version).Returns(1);

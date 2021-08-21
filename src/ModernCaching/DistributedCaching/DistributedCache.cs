@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,12 @@ namespace ModernCaching.DistributedCaching
     /// </summary>
     internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : notnull
     {
+        /// <summary>
+        /// Version of the header of a value in the distributed cache. It is included in the key so that it can be
+        /// bumped after any backward incompatible changes.
+        /// </summary>
+        private const int HeaderVersion = 0;
+
         /// <summary>
         /// Name of cache. Used in the distributed cache key.
         /// </summary>
@@ -114,14 +121,15 @@ namespace ModernCaching.DistributedCaching
             return _cache.DeleteAsync(keyStr);
         }
 
-        /// <summary>{prefix}|{cacheName}|{version}|{key}</summary>
+        /// <summary>{prefix}|{cacheName}|{headerVersion}/{cacheVersion}|{key}</summary>
         private string BuildDistributedCacheKey(TKey key)
         {
             string prefix = !string.IsNullOrEmpty(_keyPrefix)
                 ? _keyPrefix + '|'
                 : string.Empty;
             return prefix + _name
-                          + '|' + _keyValueSerializer.Version.ToString()
+                          + '|' + HeaderVersion.ToString(CultureInfo.InvariantCulture)
+                          + '/' + _keyValueSerializer.Version.ToString(CultureInfo.InvariantCulture)
                           + '|' + _keyValueSerializer.StringifyKey(key);
         }
 
@@ -129,8 +137,6 @@ namespace ModernCaching.DistributedCaching
         {
             MemoryStream memoryStream = UtilsCache.MemoryStreamPool.Get();
             BinaryWriter writer = new(memoryStream);
-
-            writer.Write((byte)0); // Version, to add extra fields later.
 
             writer.Write((int)AsyncCacheEntryOptions.None);
 
@@ -154,8 +160,6 @@ namespace ModernCaching.DistributedCaching
         {
             MemoryStream memoryStream = new(bytes, writable: false);
             BinaryReader reader = new(memoryStream);
-
-            byte version = reader.ReadByte();
 
             var options = (AsyncCacheEntryOptions)reader.ReadInt32();
 
