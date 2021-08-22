@@ -9,7 +9,7 @@ namespace ModernCaching.Utils
         // https://devblogs.microsoft.com/pfxteam/getting-random-numbers-in-a-thread-safe-way/
         private static readonly RNGCryptoServiceProvider StrongRng = new();
 
-        private readonly ThreadLocal<Random> _instance = new(() =>
+        private readonly ThreadLocal<Random> _instance = new(static () =>
         {
             byte[] buffer = new byte[4];
             StrongRng.GetBytes(buffer);

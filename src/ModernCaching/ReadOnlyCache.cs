@@ -139,7 +139,7 @@ namespace ModernCaching
 
         public Task LoadAsync(IEnumerable<TKey> keys)
         {
-            return InnerLoadAsync(keys.Select(k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
+            return InnerLoadAsync(keys.Select(static k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
         }
 
         public void Dispose()
