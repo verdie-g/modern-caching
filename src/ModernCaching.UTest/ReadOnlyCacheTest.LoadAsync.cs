@@ -16,7 +16,7 @@ namespace ModernCaching.UTest
     {
         private static readonly ReadOnlyCacheOptions Options = new();
         private static readonly ITimer Timer = Mock.Of<ITimer>();
-        private static readonly IDateTime MachineDateTime = new MachineDateTime();
+        private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
         private static readonly IRandom Random = new ThreadSafeRandom();
 
         [Theory]
