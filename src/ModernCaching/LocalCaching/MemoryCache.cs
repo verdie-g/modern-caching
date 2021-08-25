@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using ModernCaching.Utils;
@@ -12,7 +11,7 @@ namespace ModernCaching.LocalCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys.</typeparam>
     /// <typeparam name="TValue">The type of the values.</typeparam>
-    public class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey : IEquatable<TKey>
+    public class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey : notnull
     {
         private readonly ConcurrentDictionary<TKey, CacheEntry<TValue>> _dictionary;
 

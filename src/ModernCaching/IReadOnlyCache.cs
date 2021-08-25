@@ -7,7 +7,8 @@ namespace ModernCaching
     /// A 2-layer caching solution in front of a data source.
     /// </summary>
     /// <typeparam name="TKey">
-    /// The type of the keys in the cache.
+    /// The type of the keys in the cache. This type should implement <see cref="object.Equals(object)"/>,
+    /// <see cref="object.GetHashCode"/> and optionally <see cref="IEquatable{T}"/>.
     /// </typeparam>
     /// <typeparam name="TValue">
     /// The type of the values in the cache. This type can optionally implement <see cref="IEquatable{TValue}"/> to

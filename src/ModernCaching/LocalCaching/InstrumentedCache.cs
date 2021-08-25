@@ -6,7 +6,7 @@ using ModernCaching.Instrumentation;
 namespace ModernCaching.LocalCaching
 {
     /// <summary>Wraps an <see cref="ICache{TKey,TValue}"/> with metrics.</summary>
-    internal class InstrumentedCache<TKey, TValue> : ICache<TKey, TValue> where TKey : IEquatable<TKey>
+    internal class InstrumentedCache<TKey, TValue> : ICache<TKey, TValue> where TKey : notnull
     {
         private readonly ICache<TKey, TValue> _cache;
         private readonly ICacheMetrics _metrics;

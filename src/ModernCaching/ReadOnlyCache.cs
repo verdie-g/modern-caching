@@ -16,7 +16,7 @@ namespace ModernCaching
 {
     /// <inheritdoc />
     [DebuggerDisplay("Count = {_localCache.Count}")]
-    internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : IEquatable<TKey>
+    internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// First caching layer, local to the program. If null, this layer is always skipped.
@@ -93,7 +93,7 @@ namespace ModernCaching
             {
                 if (cacheEntry!.HasValue)
                 {
-                    value = cacheEntry!.Value;
+                    value = cacheEntry.Value;
                     return true;
                 }
                 else

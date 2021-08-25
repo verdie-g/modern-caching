@@ -15,7 +15,7 @@ namespace ModernCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
-    public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : IEquatable<TKey>
+    public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     {
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;

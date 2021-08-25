@@ -9,7 +9,7 @@ namespace ModernCaching.LocalCaching
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache entries.</typeparam>
     /// <remarks>If the cache is evicting, <see cref="CacheEntry{TValue}.EvictionTime"/> should be used for the eviction time.</remarks>
-    public interface ICache<in TKey, TValue> where TKey : IEquatable<TKey>
+    public interface ICache<in TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// Gets the number of entries contained in the cache.
