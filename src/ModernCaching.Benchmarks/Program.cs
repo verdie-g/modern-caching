@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -32,16 +33,12 @@ namespace ModernCaching.Benchmarks
     [MemoryDiagnoser(displayGenColumns: false)]
     public class LocalGetBenchmark
     {
-        private const int DataCount = 5;
-        private static readonly KeyValuePair<Guid, int>[] Data =
-        {
-            new (new Guid("99999999-9999-9999-9999-999999999999"), 999),
-            new (new Guid("88888888-8888-8888-8888-888888888888"), 888),
-            new (new Guid("77777777-7777-7777-7777-777777777777"), 777),
-            new (new Guid("66666666-6666-6666-6666-666666666666"), 666),
-            new (new Guid("55555555-5555-5555-5555-555555555555"), 555),
-        };
+        private const int DataCount = 1_000;
+        private static readonly KeyValuePair<Guid, int>[] Data = Enumerable.Range(0, DataCount)
+            .Select(i => KeyValuePair.Create(Guid.NewGuid(), i))
+            .ToArray();
 
+        private readonly ConcurrentDictionary<Guid, int> _concurrentDictionary;
         private readonly IReadOnlyCache<Guid, int> _modernCache;
         private readonly ICacheStack _cacheTower;
         private readonly IFusionCache _fusionCache;
@@ -49,10 +46,24 @@ namespace ModernCaching.Benchmarks
 
         public LocalGetBenchmark()
         {
+            _concurrentDictionary = CreateConcurrentDictionary();
             _modernCache = CreateModernCache();
             _cacheTower = CreateCacheTower();
             _fusionCache = CreateFusionCache();
             _easyCache = CreateEasyCache();
+        }
+
+        [Benchmark(OperationsPerInvoke = DataCount, Baseline = true)]
+        public int ConcurrentDictionary()
+        {
+             int sum = 0;
+             foreach (var d in Data)
+             {
+                 _concurrentDictionary.TryGetValue(d.Key, out int val);
+                 sum += val;
+             }
+
+             return sum;
         }
 
         [Benchmark(OperationsPerInvoke = DataCount)]
@@ -102,6 +113,11 @@ namespace ModernCaching.Benchmarks
             }
 
             return sum;
+        }
+
+        private ConcurrentDictionary<Guid, int> CreateConcurrentDictionary()
+        {
+            return new ConcurrentDictionary<Guid, int>(Data);
         }
 
         private IReadOnlyCache<Guid, int> CreateModernCache()

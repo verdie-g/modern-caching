@@ -71,18 +71,21 @@ Benchmark of the very hot path of different caching libraries
 ([CacheTower](https://github.com/TurnerSoftware/CacheTower),
 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache),
 [EasyCaching](https://github.com/dotnetcore/EasyCaching)),
-that is, getting locally cached data.
+that is, getting locally cached data. The .NET
+[ConcurrentDictionary](https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2)
+was also added as a baseline.
 
-|        Method |      Mean |    Error |   StdDev | Allocated |
-|-------------- |----------:|---------:|---------:|----------:|
-| ModernCaching |  81.79 ns | 0.095 ns | 0.089 ns |         - |
-|    CacheTower | 101.20 ns | 0.334 ns | 0.313 ns |      96 B |
-|   FusionCache | 287.99 ns | 1.549 ns | 1.449 ns |     184 B |
-|   EasyCaching | 312.08 ns | 0.264 ns | 0.220 ns |     264 B |
+|               Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Allocated |
+|--------------------- |-----------:|----------:|----------:|------:|--------:|----------:|
+| ConcurrentDictionary |   9.192 ns | 0.0760 ns | 0.0710 ns |  1.00 |    0.00 |         - |
+|        ModernCaching |  22.749 ns | 0.1254 ns | 0.1173 ns |  2.47 |    0.02 |         - |
+|           CacheTower | 117.624 ns | 0.4935 ns | 0.4375 ns | 12.80 |    0.11 |      96 B |
+|          FusionCache | 336.466 ns | 1.0357 ns | 0.9181 ns | 36.61 |    0.34 |     184 B |
+|          EasyCaching | 346.405 ns | 1.0457 ns | 0.9781 ns | 37.69 |    0.30 |     264 B |
 
-
-Since this library has a generic interface, getting a value doesn't involve any
-allocation.
+This library has similar performance as a raw ConcurrentDictionary since its hot
+path is a thin layer around it. It doesn't allocate anything, putting no pressure
+on the garbage collector.
 
 Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/modern-caching/tree/main/src/ModernCaching.Benchmarks).
 
