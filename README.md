@@ -7,7 +7,7 @@ A typical cache provided by this library consists of:
 - an asynchronous distributed cache that implements [`IAsyncCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DistributedCaching/IAsyncCache.cs)
   (e.g. memcache, redis)
 - a data source that implements [`IDataSource`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/DataSource/IDataSource.cs)
-  (e.g. relational database, Web API, ...)
+  (e.g. relational database, Web API, CPU intensive task...)
 
 These 3 components form an [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs).
 The 2 cache layers are populated from the
@@ -63,7 +63,7 @@ bool found = cache.TryPeek(userId, out User? user); // Only check local cache wi
 (bool found, User? user) = await cache.TryGetAsync(userId); // Check all layers for a fresh value.
 ```
 
-[See full example](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching.ITest/RedisPostgreSql.cs).
+[See full example](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching.ITest/RedisProtobufPostgreSql.cs).
 
 ## Benchmarks
 
