@@ -29,7 +29,7 @@ namespace ModernCaching.Benchmarks
         }
     }
 
-    [MemoryDiagnoser]
+    [MemoryDiagnoser(displayGenColumns: false)]
     public class LocalGetBenchmark
     {
         private const int DataCount = 5;
@@ -144,7 +144,7 @@ namespace ModernCaching.Benchmarks
                 new DefaultInMemoryCachingProvider("easycache", new[]
                 {
                     new InMemoryCaching("easycache", new InMemoryCachingOptions()),
-                }, new InMemoryOptions())
+                }, new InMemoryOptions(), null),
             }, Array.Empty<IRedisCachingProvider>());
             var cache = easyCacheProviderFactory.GetCachingProvider("easycache");
             foreach ((Guid key, int value) in Data)
