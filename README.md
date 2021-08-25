@@ -63,7 +63,8 @@ bool found = cache.TryPeek(userId, out User? user); // Only check local cache wi
 (bool found, User? user) = await cache.TryGetAsync(userId); // Check all layers for a fresh value.
 ```
 
-[See full example](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching.ITest/RedisProtobufPostgreSql.cs).
+The rest of the code as well as other examples can be found in
+[src/ModernCaching.ITest](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching.ITest).
 
 ## Benchmarks
 
