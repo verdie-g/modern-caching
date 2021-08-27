@@ -34,6 +34,7 @@ namespace ModernCaching
         /// </summary>
         /// <param name="name">Name of cache. Used in the distributed cache key, logging and metrics.</param>
         /// <param name="dataSource">Source of the data.</param>
+        /// <param name="options">Extra options to control the cache.</param>
         /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="dataSource"/> is null.</exception>
         public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions? options = null)
         {
