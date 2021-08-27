@@ -83,6 +83,19 @@ namespace ModernCaching.UTest
         }
 
         [Test]
+        public async Task ShouldNotCallLoaderIfNoKeys()
+        {
+            Mock<IDataSource<int, int>> dataSourceMock = new();
+
+            ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
+                Random);
+            await cache.LoadAsync(Array.Empty<int>());
+
+            dataSourceMock.Verify(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Test]
         public void ShouldThrowIfDataSourceThrows()
         {
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
@@ -92,7 +105,7 @@ namespace ModernCaching.UTest
 
             ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer,
                 MachineDateTime, Random);
-            Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(Array.Empty<int>()));
+            Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(new[] { 0 }));
         }
 
 #pragma warning disable 1998

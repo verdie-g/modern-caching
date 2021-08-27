@@ -251,6 +251,11 @@ namespace ModernCaching
                 keysToLoadFromSource.Add(keyEntryPair);
             }
 
+            if (keysToLoadFromSource.Count == 0)
+            {
+                return;
+            }
+
             var localCacheEntriesByKey = keysToLoadFromSource.ToDictionary(k => k.Key, k => k.Value);
 
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
