@@ -131,10 +131,21 @@ namespace ModernCaching
                 return await reloadTask;
             }
 
-            var reloadResult = await ReloadAsync(key, localCacheEntry);
-            reloadTaskCompletion.SetResult(reloadResult);
-            _loadingTasks.Remove(key, out _);
-            return reloadResult;
+            try
+            {
+                var reloadResult = await ReloadAsync(key, localCacheEntry);
+                reloadTaskCompletion.SetResult(reloadResult);
+                return reloadResult;
+            }
+            catch (Exception e) // ReloadAsync shouldn't throw but the consequence of not removing the loading task is terrible.
+            {
+                reloadTaskCompletion.SetException(e);
+                throw;
+            }
+            finally
+            {
+                _loadingTasks.Remove(key, out _);
+            }
         }
 
         public Task LoadAsync(IEnumerable<TKey> keys)
