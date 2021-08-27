@@ -8,6 +8,7 @@ namespace ModernCaching.UTest
 {
     public class ReadOnlyCacheTest_TryPeek
     {
+        private const string C = "cache_test";
         private static readonly ReadOnlyCacheOptions Options = new();
         private static readonly ITimer Timer = Mock.Of<ITimer>();
         private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
@@ -16,7 +17,7 @@ namespace ModernCaching.UTest
         [Test]
         public void GettingNullKeyShouldThrow()
         {
-            ReadOnlyCache<string, string> cache = new(null, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random);
             Assert.Throws<ArgumentNullException>(() => cache.TryPeek(null!, out _));
         }
 
@@ -32,7 +33,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+                Random);
             bool found = cache.TryPeek(5, out int val);
             if (entryHasValue)
             {
@@ -56,7 +58,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+                Random);
             Assert.IsTrue(cache.TryPeek(5, out int val));
             Assert.AreEqual(10, val);
         }
@@ -71,7 +74,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(false);
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+                Random);
             Assert.IsFalse(cache.TryPeek(5, out int val));
             Assert.Zero(val);
         }
@@ -86,7 +90,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out entry))
                 .Returns(true);
 
-            ReadOnlyCache<int, object?> cache = new(localCacheMock.Object, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, object?> cache = new(C, localCacheMock.Object, null, null!, Options, Timer,
+                MachineDateTime, Random);
             Assert.IsTrue(cache.TryPeek(5, out object? val));
             Assert.IsNull(val);
         }

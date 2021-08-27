@@ -14,6 +14,7 @@ namespace ModernCaching.UTest
 {
     public class ReadOnlyCacheTest_LoadAsync
     {
+        private const string C = "cache_test";
         private static readonly ReadOnlyCacheOptions Options = new();
         private static readonly ITimer Timer = Mock.Of<ITimer>();
         private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
@@ -60,7 +61,7 @@ namespace ModernCaching.UTest
 
             ReadOnlyCacheOptions options = new() { CacheDataSourceMisses = cacheDataSourceMisses };
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object,
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
                 dataSourceMock.Object, options, Timer, MachineDateTime, Random);
             await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
@@ -89,7 +90,7 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Throws<Exception>();
 
-            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Options, Timer,
+            ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer,
                 MachineDateTime, Random);
             Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(Array.Empty<int>()));
         }

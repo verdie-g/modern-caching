@@ -14,6 +14,7 @@ namespace ModernCaching.UTest
 {
     public class ReadOnlyCacheTest_TryGetAsync
     {
+        private const string C = "cache_test";
         private static readonly ReadOnlyCacheOptions Options = new();
         private static readonly ITimer Timer = Mock.Of<ITimer>();
         private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
@@ -22,7 +23,7 @@ namespace ModernCaching.UTest
         [Test]
         public void GettingNullKeyShouldThrow()
         {
-            ReadOnlyCache<string, string> cache = new(null, null, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random);
             Assert.ThrowsAsync<ArgumentNullException>(() => cache.TryGetAsync(null!).AsTask());
         }
 
@@ -39,7 +40,8 @@ namespace ModernCaching.UTest
 
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+                Timer, MachineDateTime, Random);
             var res = await cache.TryGetAsync(5);
             Assert.AreEqual(entryHasValue ? (true, 10) : (false, 0), res);
         }
@@ -55,7 +57,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
 
-            ReadOnlyCache<int, int> cache = new(null, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, null, distributedCacheMock.Object, null!, Options, Timer,
+                MachineDateTime, Random);
             var res = await cache.TryGetAsync(5);
             Assert.AreEqual(entryHasValue ? (true, 10) : (false, 0), res);
         }
@@ -77,7 +80,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+                Timer, MachineDateTime, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
         }
 
@@ -98,7 +102,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+                Timer, MachineDateTime, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
         }
 
@@ -119,7 +124,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
 
-            ReadOnlyCache<int, string?> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, string?> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!,
+                Options, Timer, MachineDateTime, Random);
             Assert.AreEqual((true, null as string), await cache.TryGetAsync(5));
         }
 
@@ -140,7 +146,8 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Error, remoteCacheEntry));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+                Timer, MachineDateTime, Random);
             var res = await cache.TryGetAsync(5);
             Assert.AreEqual(entryHasValue ? (true, 10) : (false, 0), res);
         }
@@ -153,7 +160,8 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Returns(CreateDataSourceResults(new DataSourceResult<int, int>(5, 10, TimeSpan.FromHours(5))));
 
-            ReadOnlyCache<int, int> cache = new(null, null, dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
+                Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
         }
 
@@ -175,7 +183,7 @@ namespace ModernCaching.UTest
             Mock<IRandom> randomMock = new(MockBehavior.Strict);
             randomMock.Setup(r => r.Next(0, 15)).Returns(10);
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, null, dataSourceMock.Object, Options, Timer,
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, dataSourceMock.Object, Options, Timer,
                 dateTimeMock.Object, randomMock.Object);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e =>
@@ -208,7 +216,8 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Returns(CreateDataSourceResults(new DataSourceResult<int, int>(5, 10, TimeSpan.FromHours(5))));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
+                dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<int>>()));
             Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.SetAsync)),
@@ -235,7 +244,8 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Returns(CreateDataSourceResults());
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
+                dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<int>>()), Times.Never);
             distributedCacheMock.Verify(c => c.SetAsync(5, It.IsAny<CacheEntry<int>>()), Times.Never);
@@ -262,7 +272,8 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Returns(CreateDataSourceResults());
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
+                dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Delete(5), Times.Once);
             Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.DeleteAsync)),
@@ -292,7 +303,7 @@ namespace ModernCaching.UTest
 
             ReadOnlyCacheOptions options = new() { CacheDataSourceMisses = true };
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object,
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
                 dataSourceMock.Object, options, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Set(5, It.IsAny<CacheEntry<int>>()), Times.Once);
@@ -322,7 +333,8 @@ namespace ModernCaching.UTest
                 .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
                 .Throws<Exception>();
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
+                dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
             var res = await cache.TryGetAsync(5);
             Assert.AreEqual(entryHasValue ? (true, 10) : (false, 0), res);
         }
@@ -349,7 +361,8 @@ namespace ModernCaching.UTest
                     return ((AsyncCacheStatus, CacheEntry<int>?))(AsyncCacheStatus.Hit, remoteCacheEntry);
                 }));
 
-            ReadOnlyCache<int, int> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options, Timer, MachineDateTime, Random);
+            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+                Timer, MachineDateTime, Random);
             var get1 = cache.TryGetAsync(5);
             var get2 = cache.TryGetAsync(5);
             Assert.IsFalse(get1.IsCompleted);
@@ -398,7 +411,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
 
-            ReadOnlyCache<int, string?> cache = new(localCacheMock.Object, distributedCacheMock.Object, null!, Options,
+            ReadOnlyCache<int, string?> cache = new(C, localCacheMock.Object, distributedCacheMock.Object, null!, Options,
                 Timer, MachineDateTime, Random);
             await cache.TryGetAsync(5);
 

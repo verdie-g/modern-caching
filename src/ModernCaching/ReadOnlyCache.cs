@@ -15,9 +15,14 @@ using ModernCaching.Utils;
 namespace ModernCaching
 {
     /// <inheritdoc />
-    [DebuggerDisplay("Count = {_localCache?.Count ?? 0}")]
+    [DebuggerDisplay("{_name} (Count = {_localCache?.Count ?? 0})")]
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
     {
+        /// <summary>
+        /// Name of the cache.
+        /// </summary>
+        private readonly string _name;
+
         /// <summary>
         /// First caching layer, local to the program. If null, this layer is always skipped.
         /// </summary>
@@ -63,10 +68,11 @@ namespace ModernCaching
         /// </summary>
         private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
 
-        public ReadOnlyCache(ICache<TKey, TValue>? localCache, IDistributedCache<TKey, TValue>? distributedCache,
-            IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime,
-            IRandom random)
+        public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache,
+            IDistributedCache<TKey, TValue>? distributedCache, IDataSource<TKey, TValue> dataSource,
+            ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime, IRandom random)
         {
+            _name = name;
             _localCache = localCache;
             _distributedCache = distributedCache;
             _dataSource = dataSource;
@@ -151,6 +157,11 @@ namespace ModernCaching
         public Task LoadAsync(IEnumerable<TKey> keys)
         {
             return InnerLoadAsync(keys.Select(static k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
+        }
+
+        public override string ToString()
+        {
+            return _name;
         }
 
         public void Dispose()
