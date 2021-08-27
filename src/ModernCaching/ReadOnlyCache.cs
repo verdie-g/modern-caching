@@ -15,7 +15,7 @@ using ModernCaching.Utils;
 namespace ModernCaching
 {
     /// <inheritdoc />
-    [DebuggerDisplay("Count = {_localCache.Count}")]
+    [DebuggerDisplay("Count = {_localCache?.Count ?? 0}")]
     internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
