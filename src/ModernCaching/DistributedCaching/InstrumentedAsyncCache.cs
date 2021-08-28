@@ -68,7 +68,7 @@ namespace ModernCaching.DistributedCaching
                 _logger.Log(LogLevel.Trace, "IAsyncCache: SET  {0} {1}B {2}", key, value.Length, timeToLive);
             }
 
-            _metrics.IncrementDistributedCacheSet();
+            _metrics.IncrementDistributedCacheSets();
             return _cache.SetAsync(key, value, timeToLive);
         }
 
@@ -79,7 +79,7 @@ namespace ModernCaching.DistributedCaching
                 _logger.Log(LogLevel.Trace, "IAsyncCache: DEL  {0}", key);
             }
 
-            _metrics.IncrementDistributedCacheDelete();
+            _metrics.IncrementDistributedCacheDeletes();
             return _cache.DeleteAsync(key);
         }
     }

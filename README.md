@@ -41,8 +41,7 @@ is built-in:
 - **Resilience**. With its fixed number of layers, each behavior is clearly
   defined when one of these layers is down. For instance, the data source is
   skipped if the distributed cache is unavailable to avoid DDOSing it.
-- **Instrumentation**. Metrics are exposed through
-  [EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
+- **Instrumentation**. Metrics are exposed using [OpenTelemetry](https://opentelemetry.io) API.
   Errors from user-code are logged if a logger is specified.
 
 ## Example
@@ -94,12 +93,10 @@ Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/
 
 ### Metrics
 
-Metrics are exposed using the standard way for modern .NET:
-[EventCounters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/event-counters).
-See the following example where the metrics are collected using
-[dotnet-counters](https://docs.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters).
-
-![metrics](https://user-images.githubusercontent.com/9092290/120233516-41b09680-c256-11eb-9088-cc4a033920fe.gif)
+Metrics are exposed using .NET implementation of the [OpenTelemetry Metrics API](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/api.md)
+([System.Diagnostics.Metrics](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics))
+under the source name `ModernCaching`. They can be exported using the
+[OpenTelemetry .NET SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
 
 ### Logs
 

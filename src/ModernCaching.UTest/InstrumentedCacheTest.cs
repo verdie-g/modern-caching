@@ -47,7 +47,7 @@ namespace ModernCaching.UTest
             InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             CacheEntry<int> cacheEntry = new(1) { ExpirationTime = DateTime.UtcNow, EvictionTime = DateTime.MaxValue };
             instrumentedCache.Set(0, cacheEntry);
-            metricsMock.Verify(m => m.IncrementLocalCacheSet(), Times.Once);
+            metricsMock.Verify(m => m.IncrementLocalCacheSets(), Times.Once);
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace ModernCaching.UTest
 
             InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.Delete(0);
-            metricsMock.Verify(m => m.IncrementLocalCacheDelete(), Times.Once);
+            metricsMock.Verify(m => m.IncrementLocalCacheDeletes(), Times.Once);
         }
     }
 }

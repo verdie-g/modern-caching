@@ -26,7 +26,7 @@ namespace ModernCaching.UTest
             {
             }
 
-            metricsMock.Verify(m => m.IncrementDataSourceLoadOk(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceLoadOks(), Times.Once);
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadHits(1), Times.Once);
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadMisses(1), Times.Once);
         }
@@ -47,7 +47,7 @@ namespace ModernCaching.UTest
                     .GetAsyncEnumerator()
                     .MoveNextAsync().AsTask());
 
-            metricsMock.Verify(m => m.IncrementDataSourceLoadError(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceLoadErrors(), Times.Once);
         }
 
         [Test]
@@ -66,7 +66,7 @@ namespace ModernCaching.UTest
                     .GetAsyncEnumerator()
                     .MoveNextAsync().AsTask());
 
-            metricsMock.Verify(m => m.IncrementDataSourceLoadError(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceLoadErrors(), Times.Once);
         }
 
         [Test]
@@ -90,7 +90,7 @@ namespace ModernCaching.UTest
                 .GetAsyncEnumerator()
                 .MoveNextAsync();
 
-            metricsMock.Verify(m => m.IncrementDataSourceLoadOk(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDataSourceLoadOks(), Times.Once);
             metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(4), Times.Once);
         }
 

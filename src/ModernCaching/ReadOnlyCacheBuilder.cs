@@ -108,7 +108,7 @@ namespace ModernCaching
         /// <returns>The built <see cref="IReadOnlyCache{TKey,TValue}"/>.</returns>
         public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
         {
-            EventCounterCacheMetrics metrics = new(_name);
+            OpenTelemetryCacheMetrics metrics = new(_name);
 
             ILogger? localCacheLogger = _loggerFactory?.CreateLogger<ICache<TKey, TValue>>();
             var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics, localCacheLogger) : null;

@@ -62,7 +62,7 @@ namespace ModernCaching.LocalCaching
                 _logger.Log(LogLevel.Trace, "ICache     : SET  {0} {1}", key, entry.GetValueOrDefault());
             }
 
-            _metrics.IncrementLocalCacheSet();
+            _metrics.IncrementLocalCacheSets();
             _cache.Set(key, entry);
         }
 
@@ -74,7 +74,7 @@ namespace ModernCaching.LocalCaching
                 _logger.Log(LogLevel.Trace, "ICache     : DEL  {0}", key);
             }
 
-            _metrics.IncrementLocalCacheDelete();
+            _metrics.IncrementLocalCacheDeletes();
             _cache.Delete(key);
         }
     }

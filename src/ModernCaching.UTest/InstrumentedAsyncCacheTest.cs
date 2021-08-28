@@ -48,7 +48,7 @@ namespace ModernCaching.UTest
 
             InstrumentedAsyncCache instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.SetAsync("0", Array.Empty<byte>(), TimeSpan.Zero);
-            metricsMock.Verify(m => m.IncrementDistributedCacheSet(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDistributedCacheSets(), Times.Once);
         }
 
         [Test]
@@ -61,7 +61,7 @@ namespace ModernCaching.UTest
 
             InstrumentedAsyncCache instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
             instrumentedCache.DeleteAsync("0");
-            metricsMock.Verify(m => m.IncrementDistributedCacheDelete(), Times.Once);
+            metricsMock.Verify(m => m.IncrementDistributedCacheDeletes(), Times.Once);
         }
     }
 }

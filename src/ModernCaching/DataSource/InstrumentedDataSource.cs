@@ -38,11 +38,11 @@ namespace ModernCaching.DataSource
             {
                 results = _dataSource.LoadAsync(keysNotFoundInSource, cancellationToken).GetAsyncEnumerator(cancellationToken)
                           ?? throw new NullReferenceException($"{nameof(IDataSource<TKey, TValue>.LoadAsync)} returned null");
-                _metrics.IncrementDataSourceLoadOk();
+                _metrics.IncrementDataSourceLoadOks();
             }
             catch (Exception e)
             {
-                _metrics.IncrementDataSourceLoadError();
+                _metrics.IncrementDataSourceLoadErrors();
                 _logger?.LogError(e, "An error occured loading keys from source");
                 throw;
             }
