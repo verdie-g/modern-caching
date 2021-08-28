@@ -7,29 +7,28 @@ namespace ModernCaching.LocalCaching
     /// </summary>
     public class CacheEntry<TValue>
     {
-        private readonly bool _hasValue;
         private readonly TValue _value;
 
         /// <summary>Instantiates a <see cref="CacheEntry{TValue}"/> with a value.</summary>
         internal CacheEntry(TValue value)
         {
-            _hasValue = true;
+            HasValue = true;
             _value = value;
         }
 
         /// <summary>Instantiates a <see cref="CacheEntry{TValue}"/> without a value.</summary>
         internal CacheEntry()
         {
-            _hasValue = false;
+            HasValue = false;
             _value = default!;
         }
 
         /// <summary>Whether the current <see cref="CacheEntry{TValue}"/> has a value.</summary>
-        public bool HasValue => _hasValue;
+        public bool HasValue { get; }
 
         /// <summary>The value of the current entry if <see cref="HasValue"/> is true; otherwise an exception.</summary>
         /// <exception cref="InvalidOperationException"><see cref="HasValue"/> is false.</exception>
-        public TValue Value => _hasValue
+        public TValue Value => HasValue
             ? _value
             : throw new InvalidOperationException("Cache entry object must have a value.");
 
