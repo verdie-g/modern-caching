@@ -43,9 +43,8 @@ namespace ModernCaching.LocalCaching
             {
                 _dictionary.TryUpdate(key, entry, existingEntry);
             }
-            else
+            else if (_dictionary.TryAdd(key, entry))
             {
-                _dictionary.TryAdd(key, entry);
                 Interlocked.Increment(ref _count);
             }
         }

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ModernCaching.LocalCaching;
 using NUnit.Framework;
 
@@ -38,6 +40,24 @@ namespace ModernCaching.UTest
 
             cache.Delete(5);
             Assert.AreEqual(1, cache.Count);
+        }
+
+        [Test]
+        public void TestCount()
+        {
+            const int threads = 4;
+            MemoryCache<int, int> cache = new();
+            Barrier barrier = new(threads);
+            Parallel.For(0, threads, _ =>
+            {
+                for (int i = 0; i < 100; i += 1)
+                {
+                    barrier.SignalAndWait();
+                    cache.Set(i, new CacheEntry<int>());
+                }
+            });
+
+            Assert.AreEqual(100, cache.Count);
         }
     }
 }
