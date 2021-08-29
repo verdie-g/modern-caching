@@ -25,6 +25,14 @@ because they are usually tied to the business. Only a single implementation of
 is built-in: 
 [`MemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/MemoryCache.cs).
 
+## Installation
+
+ModernCaching is available on [Nuget](https://www.nuget.org/packages/ModernCaching).
+
+```
+dotnet add package ModernCaching
+```
+
 ## Features
 
 - **Strict API**. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
