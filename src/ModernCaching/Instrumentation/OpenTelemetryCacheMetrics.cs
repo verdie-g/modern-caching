@@ -12,6 +12,7 @@ namespace ModernCaching.Instrumentation
         private static readonly AssemblyName AssemblyName = typeof(OpenTelemetryCacheMetrics).Assembly.GetName();
         private static readonly string InstrumentationName = AssemblyName.Name;
         private static readonly string InstrumentationVersion = AssemblyName.Version.ToString();
+        private static readonly Meter Meter = new(InstrumentationName, InstrumentationVersion);
 
         private static readonly KeyValuePair<string, object?> GetOperationTag = new("operation", "get");
         private static readonly KeyValuePair<string, object?> SetOperationTag = new("operation", "set");
@@ -21,7 +22,6 @@ namespace ModernCaching.Instrumentation
         private static readonly KeyValuePair<string, object?> MissStatusTag = new("status", "miss");
         private static readonly KeyValuePair<string, object?> ErrorStatusTag = new("status", "error");
 
-        private readonly Meter _meter;
         // ReSharper disable NotAccessedField.Local
         private readonly ObservableCounter<long> _localCacheRequestsCounter;
         private readonly ObservableGauge<long> _localCacheCountCounter;
@@ -65,8 +65,7 @@ namespace ModernCaching.Instrumentation
             KeyValuePair<string, object?>[] dataSourceKeyLoadMissesTags = { cacheNameTag, MissStatusTag };
             KeyValuePair<string, object?>[] dataSourceKeyLoadErrorsTags = { cacheNameTag, ErrorStatusTag };
 
-            _meter = new Meter(InstrumentationName, InstrumentationVersion);
-            _localCacheRequestsCounter = _meter.CreateObservableCounter($"{MetricNamePrefix}.local_cache.requests",
+            _localCacheRequestsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.local_cache.requests",
                 () => new[]
                 {
                     new Measurement<long>(Volatile.Read(ref _localCacheGetHits), localCacheGetHitsTags),
@@ -74,10 +73,10 @@ namespace ModernCaching.Instrumentation
                     new Measurement<long>(Volatile.Read(ref _localCacheSets), localCacheSetsTags),
                     new Measurement<long>(Volatile.Read(ref _localCacheDeletes), localCacheDeletesTags),
                 }, description: "local cache request statuses by operation");
-            _localCacheCountCounter = _meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
+            _localCacheCountCounter = Meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
                     new Measurement<long>(_localCacheCountPoller?.Invoke() ?? 0, localCacheCountTags),
                 description: "local cache entries count");
-            _distributedCacheRequestsCounter = _meter.CreateObservableCounter(
+            _distributedCacheRequestsCounter = Meter.CreateObservableCounter(
                 $"{MetricNamePrefix}.distributed_cache.requests", () => new[]
                 {
                     new Measurement<long>(Volatile.Read(ref _distributedCacheGetHits), distributedCacheGetHitsTags),
@@ -86,13 +85,13 @@ namespace ModernCaching.Instrumentation
                     new Measurement<long>(Volatile.Read(ref _distributedCacheSets), distributedCacheSetsTags),
                     new Measurement<long>(Volatile.Read(ref _distributedCacheDeletes), distributedCacheDeletesTags),
                 }, description: "distributed cache request statuses by operation");
-            _dataSourceLoadsCounter = _meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.loads",
+            _dataSourceLoadsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.loads",
                 () => new[]
                 {
                     new Measurement<long>(Volatile.Read(ref _dataSourceLoadOks), dataSourceLoadOksTags),
                     new Measurement<long>(Volatile.Read(ref _dataSourceLoadErrors), dataSourceLoadErrorsTags),
                 }, description: "data source load statuses");
-            _dataSourceKeyLoadsCounter = _meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.key_loads",
+            _dataSourceKeyLoadsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.key_loads",
                 () => new[]
                 {
                     new Measurement<long>(Volatile.Read(ref _dataSourceKeyLoadHits), dataSourceKeyLoadHitsTags),
@@ -117,10 +116,5 @@ namespace ModernCaching.Instrumentation
         public void IncrementDataSourceKeyLoadHits(long value) => Interlocked.Add(ref _dataSourceKeyLoadHits, value);
         public void IncrementDataSourceKeyLoadMisses(long value) => Interlocked.Add(ref _dataSourceKeyLoadMisses, value);
         public void IncrementDataSourceKeyLoadErrors(long value) => Interlocked.Add(ref _dataSourceKeyLoadErrors, value);
-
-        public void Dispose()
-        {
-            _meter.Dispose();
-        }
     }
 }

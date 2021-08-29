@@ -2,7 +2,7 @@
 
 namespace ModernCaching.Instrumentation
 {
-    internal interface ICacheMetrics : IDisposable
+    internal interface ICacheMetrics
     {
         void IncrementLocalCacheGetHits();
         void IncrementLocalCacheGetMisses();
