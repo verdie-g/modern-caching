@@ -6,15 +6,21 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+#if DEBUG
 using BenchmarkDotNet.Configs;
+#endif
 using BenchmarkDotNet.Running;
+using CacheManager.Core;
 using CacheTower;
 using CacheTower.Providers.Memory;
 using EasyCaching.Core;
 using EasyCaching.InMemory;
+using Foundatio.Caching;
+using LazyCache;
 using ModernCaching.DataSource;
 using ModernCaching.LocalCaching;
 using ZiggyCreatures.Caching.Fusion;
+using ExpirationMode = CacheManager.Core.ExpirationMode;
 
 namespace ModernCaching.Benchmarks
 {
@@ -41,16 +47,22 @@ namespace ModernCaching.Benchmarks
         private readonly ConcurrentDictionary<Guid, int> _concurrentDictionary;
         private readonly IReadOnlyCache<Guid, int> _modernCache;
         private readonly ICacheStack _cacheTower;
+        private readonly ICacheClient _foundatio;
+        private readonly IAppCache _lazyCache;
         private readonly IFusionCache _fusionCache;
         private readonly IEasyCachingProvider _easyCache;
+        private readonly ICacheManager<int> _cacheManager;
 
         public LocalGetBenchmark()
         {
             _concurrentDictionary = CreateConcurrentDictionary();
             _modernCache = CreateModernCache();
             _cacheTower = CreateCacheTower();
+            _foundatio = CreateFoundatio();
+            _lazyCache = CreateLazyCache();
             _fusionCache = CreateFusionCache();
             _easyCache = CreateEasyCache();
+            _cacheManager = CreateCacheManager();
         }
 
         [Benchmark(OperationsPerInvoke = DataCount, Baseline = true)]
@@ -92,6 +104,30 @@ namespace ModernCaching.Benchmarks
         }
 
         [Benchmark(OperationsPerInvoke = DataCount)]
+        public async Task<int> Foundatio()
+        {
+            int sum = 0;
+            foreach (var d in Data)
+            {
+                sum += (await _foundatio.GetAsync<int>(d.Key.ToString())).Value;
+            }
+
+            return sum;
+        }
+
+        [Benchmark(OperationsPerInvoke = DataCount)]
+        public int LazyCache()
+        {
+            int sum = 0;
+            foreach (var d in Data)
+            {
+                sum += _lazyCache.Get<int>(d.Key.ToString());
+            }
+
+            return sum;
+        }
+
+        [Benchmark(OperationsPerInvoke = DataCount)]
         public int FusionCache()
         {
             int sum = 0;
@@ -110,6 +146,18 @@ namespace ModernCaching.Benchmarks
             foreach (var d in Data)
             {
                 sum += _easyCache.Get<int>(d.Key.ToString()).Value;
+            }
+
+            return sum;
+        }
+
+        [Benchmark(OperationsPerInvoke = DataCount)]
+        public int CacheManager()
+        {
+            int sum = 0;
+            foreach (var d in Data)
+            {
+                sum += _cacheManager.Get<int>(d.Key.ToString());
             }
 
             return sum;
@@ -137,6 +185,28 @@ namespace ModernCaching.Benchmarks
             foreach ((Guid key, int value) in Data)
             {
                 cache.SetAsync(key.ToString(), value, TimeSpan.FromHours(1));
+            }
+
+            return cache;
+        }
+
+        private ICacheClient CreateFoundatio()
+        {
+            InMemoryCacheClient cache = new();
+            foreach ((Guid key, int value) in Data)
+            {
+                cache.SetAsync(key.ToString(), value, TimeSpan.FromHours(1));
+            }
+
+            return cache;
+        }
+
+        private IAppCache CreateLazyCache()
+        {
+            var cache = new CachingService();
+            foreach ((Guid key, int value) in Data)
+            {
+                cache.GetOrAdd(key.ToString(), () => value, TimeSpan.FromHours(1));
             }
 
             return cache;
@@ -170,6 +240,19 @@ namespace ModernCaching.Benchmarks
 
             return cache;
         }
+
+        private ICacheManager<int> CreateCacheManager()
+        {
+            var cache = CacheFactory.Build<int>("benchmark_cache",
+                settings => settings.WithSystemRuntimeCacheHandle("handleName"));
+            foreach ((Guid key, int value) in Data)
+            {
+                cache.Add(new CacheItem<int>(key.ToString(), value, ExpirationMode.Absolute, TimeSpan.FromHours(1)));
+            }
+
+            return cache;
+        }
+
 
         class ModernCacheDataSource : IDataSource<Guid, int>
         {
