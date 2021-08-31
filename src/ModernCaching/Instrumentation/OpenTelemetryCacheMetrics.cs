@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Reflection;
 using System.Threading;
@@ -34,7 +33,7 @@ namespace ModernCaching.Instrumentation
         private long _localCacheGetMisses;
         private long _localCacheSets;
         private long _localCacheDeletes;
-        private Func<long>? _localCacheCountPoller;
+        private long _localCacheCount;
         private long _distributedCacheGetHits;
         private long _distributedCacheGetMisses;
         private long _distributedCacheGetErrors;
@@ -74,7 +73,7 @@ namespace ModernCaching.Instrumentation
                     new Measurement<long>(Volatile.Read(ref _localCacheDeletes), localCacheDeletesTags),
                 }, description: "local cache request statuses by operation");
             _localCacheCountCounter = Meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
-                    new Measurement<long>(_localCacheCountPoller?.Invoke() ?? 0, localCacheCountTags),
+                    new Measurement<long>(_localCacheCount, localCacheCountTags),
                 description: "local cache entries count");
             _distributedCacheRequestsCounter = Meter.CreateObservableCounter(
                 $"{MetricNamePrefix}.distributed_cache.requests", () => new[]
@@ -104,8 +103,7 @@ namespace ModernCaching.Instrumentation
         public void IncrementLocalCacheGetMisses() => Interlocked.Increment(ref _localCacheGetMisses);
         public void IncrementLocalCacheSets() => Interlocked.Increment(ref _localCacheSets);
         public void IncrementLocalCacheDeletes() => Interlocked.Increment(ref _localCacheDeletes);
-        // Ugly. Is there a better way?
-        public void SetLocalCacheCountPoller(Func<long> poller) => _localCacheCountPoller = poller;
+        public void UpdateLocalCacheCount(long count) => _localCacheCount = count;
         public void IncrementDistributedCacheGetHits() => Interlocked.Increment(ref _distributedCacheGetHits);
         public void IncrementDistributedCacheGetMisses() => Interlocked.Increment(ref _distributedCacheGetMisses);
         public void IncrementDistributedCacheGetErrors() => Interlocked.Increment(ref _distributedCacheGetErrors);

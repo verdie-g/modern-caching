@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using ModernCaching.Instrumentation;
 
@@ -17,8 +16,6 @@ namespace ModernCaching.LocalCaching
             _cache = cache;
             _metrics = metrics;
             _logger = logger;
-
-            metrics.SetLocalCacheCountPoller(() => Count);
         }
 
         /// <inheritdoc />
@@ -64,6 +61,7 @@ namespace ModernCaching.LocalCaching
 
             _metrics.IncrementLocalCacheSets();
             _cache.Set(key, entry);
+            _metrics.UpdateLocalCacheCount(_cache.Count);
         }
 
         /// <inheritdoc />
@@ -76,6 +74,7 @@ namespace ModernCaching.LocalCaching
 
             _metrics.IncrementLocalCacheDeletes();
             _cache.Delete(key);
+            _metrics.UpdateLocalCacheCount(_cache.Count);
         }
     }
 }

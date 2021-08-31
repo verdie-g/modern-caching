@@ -8,7 +8,7 @@ namespace ModernCaching.Instrumentation
         void IncrementLocalCacheGetMisses();
         void IncrementLocalCacheSets();
         void IncrementLocalCacheDeletes();
-        void SetLocalCacheCountPoller(Func<long> poller);
+        void UpdateLocalCacheCount(long count);
 
         void IncrementDistributedCacheGetHits();
         void IncrementDistributedCacheGetMisses();
