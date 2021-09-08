@@ -42,6 +42,7 @@ namespace ModernCaching.LocalCaching
         /// Deletes the entry with the specified key.
         /// </summary>
         /// <param name="key">The key of the entry to delete.</param>
-        void Delete(TKey key);
+        /// <returns>true if the entry was deleted successfully; otherwise, false.</returns>
+        bool TryDelete(TKey key);
     }
 }

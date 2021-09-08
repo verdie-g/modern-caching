@@ -65,16 +65,25 @@ namespace ModernCaching.LocalCaching
         }
 
         /// <inheritdoc />
-        public void Delete(TKey key)
+        public bool TryDelete(TKey key)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.Log(LogLevel.Trace, "ICache     : DEL  {0}", key);
             }
 
-            _metrics.IncrementLocalCacheDeletes();
-            _cache.Delete(key);
+            bool deleted = _cache.TryDelete(key);
+            if (deleted)
+            {
+                _metrics.IncrementLocalCacheDeleteHits();
+            }
+            else
+            {
+                _metrics.IncrementLocalCacheDeleteMisses();
+            }
+
             _metrics.UpdateLocalCacheCount(_cache.Count);
+            return deleted;
         }
     }
 }

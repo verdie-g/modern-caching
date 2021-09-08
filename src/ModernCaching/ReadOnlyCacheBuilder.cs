@@ -127,13 +127,12 @@ namespace ModernCaching
             var cache = new ReadOnlyCache<TKey, TValue>(_name, localCache, distributedCacheWrapper, dataSource,
                 _options, UtilsCache.LoadingTimer, UtilsCache.DateTime, UtilsCache.Random);
 
-            if (_getKeys == null)
+            if (_getKeys != null)
             {
-                return cache;
+                var keys = await _getKeys(_getKeysState);
+                await cache.LoadAsync(keys);
             }
 
-            var keys = await _getKeys(_getKeysState);
-            await cache.LoadAsync(keys);
             return cache;
         }
     }

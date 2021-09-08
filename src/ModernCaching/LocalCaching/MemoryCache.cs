@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using ModernCaching.Utils;
 
@@ -17,7 +16,7 @@ namespace ModernCaching.LocalCaching
 
         /// <summary>
         /// Eventually consistent count of <see cref="_dictionary"/>. This count is increment/decremented using
-        /// <see cref="Interlocked.Increment"/> to avoid using <see cref="ConcurrentDictionary{TKey,TValue}.Count"/>
+        /// <see cref="Interlocked.Increment(ref long)"/> to avoid using <see cref="ConcurrentDictionary{TKey,TValue}.Count"/>
         /// that locks the entire dictionary.</summary>
         private int _count;
 
@@ -50,12 +49,16 @@ namespace ModernCaching.LocalCaching
         }
 
         /// <inheritdoc />
-        public void Delete(TKey key)
+        public bool TryDelete(TKey key)
         {
-            if (_dictionary.Remove(key, out _))
+            if (!_dictionary.TryRemove(key, out _))
             {
-                Interlocked.Decrement(ref _count);
+                return false;
             }
+
+            Interlocked.Decrement(ref _count);
+            return true;
+
         }
     }
 }

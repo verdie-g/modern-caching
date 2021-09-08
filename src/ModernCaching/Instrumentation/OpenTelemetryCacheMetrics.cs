@@ -32,7 +32,8 @@ namespace ModernCaching.Instrumentation
         private long _localCacheGetHits;
         private long _localCacheGetMisses;
         private long _localCacheSets;
-        private long _localCacheDeletes;
+        private long _localCacheDeleteHits;
+        private long _localCacheDeleteMisses;
         private long _localCacheCount;
         private long _distributedCacheGetHits;
         private long _distributedCacheGetMisses;
@@ -51,7 +52,8 @@ namespace ModernCaching.Instrumentation
             KeyValuePair<string, object?>[] localCacheGetHitsTags = { cacheNameTag, GetOperationTag, HitStatusTag };
             KeyValuePair<string, object?>[] localCacheGetMissesTags = { cacheNameTag, GetOperationTag, MissStatusTag };
             KeyValuePair<string, object?>[] localCacheSetsTags = { cacheNameTag, SetOperationTag };
-            KeyValuePair<string, object?>[] localCacheDeletesTags = { cacheNameTag, DeleteOperationTag };
+            KeyValuePair<string, object?>[] localCacheDeleteHitsTags = { cacheNameTag, DeleteOperationTag, HitStatusTag };
+            KeyValuePair<string, object?>[] localCacheDeleteMissesTags = { cacheNameTag, DeleteOperationTag, MissStatusTag };
             KeyValuePair<string, object?>[] localCacheCountTags = { cacheNameTag };
             KeyValuePair<string, object?>[] distributedCacheGetHitsTags = { cacheNameTag, GetOperationTag, HitStatusTag };
             KeyValuePair<string, object?>[] distributedCacheGetMissesTags = { cacheNameTag, GetOperationTag, MissStatusTag };
@@ -70,7 +72,8 @@ namespace ModernCaching.Instrumentation
                     new Measurement<long>(Volatile.Read(ref _localCacheGetHits), localCacheGetHitsTags),
                     new Measurement<long>(Volatile.Read(ref _localCacheGetMisses), localCacheGetMissesTags),
                     new Measurement<long>(Volatile.Read(ref _localCacheSets), localCacheSetsTags),
-                    new Measurement<long>(Volatile.Read(ref _localCacheDeletes), localCacheDeletesTags),
+                    new Measurement<long>(Volatile.Read(ref _localCacheDeleteHits), localCacheDeleteHitsTags),
+                    new Measurement<long>(Volatile.Read(ref _localCacheDeleteMisses), localCacheDeleteMissesTags),
                 }, description: "local cache request statuses by operation");
             _localCacheCountCounter = Meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
                     new Measurement<long>(_localCacheCount, localCacheCountTags),
@@ -102,7 +105,8 @@ namespace ModernCaching.Instrumentation
         public void IncrementLocalCacheGetHits() => Interlocked.Increment(ref _localCacheGetHits);
         public void IncrementLocalCacheGetMisses() => Interlocked.Increment(ref _localCacheGetMisses);
         public void IncrementLocalCacheSets() => Interlocked.Increment(ref _localCacheSets);
-        public void IncrementLocalCacheDeletes() => Interlocked.Increment(ref _localCacheDeletes);
+        public void IncrementLocalCacheDeleteHits() => Interlocked.Increment(ref _localCacheDeleteHits);
+        public void IncrementLocalCacheDeleteMisses() => Interlocked.Increment(ref _localCacheDeleteMisses);
         public void UpdateLocalCacheCount(long count) => _localCacheCount = count;
         public void IncrementDistributedCacheGetHits() => Interlocked.Increment(ref _distributedCacheGetHits);
         public void IncrementDistributedCacheGetMisses() => Interlocked.Increment(ref _distributedCacheGetMisses);

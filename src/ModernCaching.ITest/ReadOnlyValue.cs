@@ -129,7 +129,7 @@ namespace ModernCaching.ITest
             Interlocked.Exchange(ref _value, entry);
         }
 
-        public void Delete(int key)
+        public bool TryDelete(int key)
         {
             throw new NotImplementedException();
         }

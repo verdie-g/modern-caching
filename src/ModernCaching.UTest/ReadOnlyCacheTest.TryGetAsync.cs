@@ -259,7 +259,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(true);
-            localCacheMock.Setup(c => c.Delete(5));
+            localCacheMock.Setup(c => c.TryDelete(5)).Returns(true);
 
             CacheEntry<int> remoteCacheEntry = new(99) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
@@ -275,7 +275,7 @@ namespace ModernCaching.UTest
             ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
                 dataSourceMock.Object, Options, Timer, MachineDateTime, Random);
             Assert.AreEqual((false, 0), await cache.TryGetAsync(5));
-            localCacheMock.Verify(c => c.Delete(5), Times.Once);
+            localCacheMock.Verify(c => c.TryDelete(5), Times.Once);
             Assert.That(() => distributedCacheMock.Invocations.Any(i => i.Method.Name == nameof(IAsyncCache.DeleteAsync)),
                 Is.True.After(5000, 100));
         }

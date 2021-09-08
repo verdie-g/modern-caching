@@ -54,13 +54,16 @@ namespace ModernCaching.UTest
         public void DeleteShouldEmitMetric()
         {
             Mock<ICache<int, int>> cacheMock = new();
-            cacheMock.Setup(c => c.Delete(0));
+            cacheMock.Setup(c => c.TryDelete(0)).Returns(true);
+            cacheMock.Setup(c => c.TryDelete(1)).Returns(false);
 
             Mock<ICacheMetrics> metricsMock = new();
 
             InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, metricsMock.Object, null);
-            instrumentedCache.Delete(0);
-            metricsMock.Verify(m => m.IncrementLocalCacheDeletes(), Times.Once);
+            instrumentedCache.TryDelete(0);
+            metricsMock.Verify(m => m.IncrementLocalCacheDeleteHits(), Times.Once);
+            instrumentedCache.TryDelete(1);
+            metricsMock.Verify(m => m.IncrementLocalCacheDeleteMisses(), Times.Once);
         }
     }
 }

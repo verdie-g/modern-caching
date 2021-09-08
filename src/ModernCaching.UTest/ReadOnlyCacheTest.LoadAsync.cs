@@ -23,8 +23,8 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldLoadKeys(bool cacheDataSourceMisses)
         {
-            Mock<ICache<int, int>> localCacheMock = new();
-            Mock<IDistributedCache<int, int>> distributedCacheMock = new();
+            Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
+            Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
 
             // 1: distributed cache error
             CacheEntry<int>? remoteCacheEntry1 = null;
@@ -33,22 +33,41 @@ namespace ModernCaching.UTest
             // 2: distributed cache miss and data source miss
             CacheEntry<int>? remoteCacheEntry2 = null;
             distributedCacheMock.Setup(c => c.GetAsync(2)).ReturnsAsync((AsyncCacheStatus.Miss, remoteCacheEntry2));
+            if (cacheDataSourceMisses)
+            {
+                localCacheMock.Setup(c => c.Set(2, It.Is<CacheEntry<int>>(e => !e.HasValue)));
+            }
+            else
+            {
+                localCacheMock.Setup(c => c.TryDelete(2)).Returns(false);
+            }
 
             // 3: distributed cache miss and data source hit
             CacheEntry<int>? remoteCacheEntry3 = null;
             distributedCacheMock.Setup(c => c.GetAsync(3)).ReturnsAsync((AsyncCacheStatus.Miss, remoteCacheEntry3));
+            localCacheMock.Setup(c => c.Set(3, It.Is<CacheEntry<int>>(e => e.Value == 333)));
 
             // 4: distributed cache hit
             CacheEntry<int> remoteCacheEntry4 = new(44) { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(4)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry4));
+            localCacheMock.Setup(c => c.Set(4, remoteCacheEntry4));
 
             // 5: distributed cache hit stale and data source hit
             CacheEntry<int> remoteCacheEntry5 = new(55) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(5)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry5));
+            localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
 
             // 6: distributed cache hit stale and data source miss
             CacheEntry<int> remoteCacheEntry6 = new(66) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(6)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry6));
+            if (cacheDataSourceMisses)
+            {
+                localCacheMock.Setup(c => c.Set(6, It.Is<CacheEntry<int>>(e => !e.HasValue)));
+            }
+            else
+            {
+                localCacheMock.Setup(c => c.TryDelete(6)).Returns(true);
+            }
 
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
             dataSourceMock
@@ -65,21 +84,18 @@ namespace ModernCaching.UTest
                 dataSourceMock.Object, options, Timer, MachineDateTime, Random);
             await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
-            Func<Times> onceIfCacheSourceMiss = cacheDataSourceMisses ? Times.Once : Times.Never;
-            Func<Times> neverIfCacheSourceMiss = cacheDataSourceMisses ? Times.Never : Times.Once;
-
-            localCacheMock.Verify(c => c.Set(1, It.IsAny<CacheEntry<int>>()), Times.Never);
-            localCacheMock.Verify(c => c.Set(2, It.IsAny<CacheEntry<int>>()), onceIfCacheSourceMiss);
-            localCacheMock.Verify(c => c.Set(3, It.Is<CacheEntry<int>>(e => e.Value == 333)));
-            localCacheMock.Verify(c => c.Set(4, It.Is<CacheEntry<int>>(e => e.Value == 44)));
-            localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
-            localCacheMock.Verify(c => c.Set(6, It.IsAny<CacheEntry<int>>()), onceIfCacheSourceMiss);
-            localCacheMock.Verify(c => c.Delete(6), neverIfCacheSourceMiss);
-
             int expectedSetAsyncInvocations = cacheDataSourceMisses ? 4 : 2;
             Assert.That(
                 () => distributedCacheMock.Invocations.Count(i => i.Method.Name == nameof(IAsyncCache.SetAsync)) == expectedSetAsyncInvocations,
                 Is.True.After(5000, 100));
+            int expectedDeleteAsyncInvocations = cacheDataSourceMisses ? 0 : 1;
+            Assert.That(
+                () => distributedCacheMock.Invocations.Count(i => i.Method.Name == nameof(IAsyncCache.DeleteAsync)) == expectedDeleteAsyncInvocations,
+                Is.True.After(5000, 100));
+
+            localCacheMock.VerifyAll();
+            distributedCacheMock.VerifyAll();
+            dataSourceMock.VerifyAll();
         }
 
         [Test]

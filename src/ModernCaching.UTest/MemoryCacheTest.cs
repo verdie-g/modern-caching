@@ -33,12 +33,12 @@ namespace ModernCaching.UTest
             cache.Set(10, entry5);
             Assert.AreEqual(2, cache.Count);
 
-            cache.Delete(5);
+            Assert.IsTrue(cache.TryDelete(5));
             Assert.AreEqual(1, cache.Count);
 
             Assert.IsFalse(cache.TryGet(5, out _));
 
-            cache.Delete(5);
+            Assert.IsFalse(cache.TryDelete(5));
             Assert.AreEqual(1, cache.Count);
         }
 

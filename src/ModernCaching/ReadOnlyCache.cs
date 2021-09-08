@@ -202,15 +202,15 @@ namespace ModernCaching
             }
         }
 
-        /// <summary>Sets the specified key and entry to the local cache.</summary>
-        private void DeleteLocally(TKey key)
+        /// <summary>Deletes the entry with the specified key in the local cache.</summary>
+        private bool TryDeleteLocally(TKey key)
         {
             if (_localCache == null)
             {
-                return;
+                return false;
             }
 
-            _localCache.Delete(key);
+            return _localCache.TryDelete(key);
         }
 
         /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
@@ -261,8 +261,7 @@ namespace ModernCaching
             var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
             await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource.Select(k => k.Key), cancellationToken))
             {
-                CacheEntry<TValue>? localCacheEntry = localCacheEntriesByKey[dataSourceResult.Key];
-                localCacheEntriesByKey.Remove(dataSourceResult.Key);
+                localCacheEntriesByKey.Remove(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry);
 
                 CacheEntry<TValue> dataSourceCacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
@@ -285,8 +284,12 @@ namespace ModernCaching
                 // deleted recently. For that second case, we should delete the potential cached value.
                 foreach (var (key, _) in localCacheEntriesByKey)
                 {
-                    _ = Task.Run(() => DeleteRemotelyAsync(key));
-                    DeleteLocally(key);
+                    // Only delete the potential entry in the distributed cache if one existed in the local cache to
+                    // avoid sending useless deletes everytime an entry was not found in the data source.
+                    if (TryDeleteLocally(key))
+                    {
+                        _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    }
                 }
             }
         }
@@ -329,12 +332,11 @@ namespace ModernCaching
 
             if (dataSourceEntry == null) // If no results were returned from the data source.
             {
-                if (localCacheEntry != null)
+                // If a local entry exists, the data was recently deleted from the source so it should also be deleted
+                // from the local and distributed cache.
+                if (localCacheEntry != null&& TryDeleteLocally(key))
                 {
-                    // The entry was recently deleted from the data source so it should also be deleted from the
-                    // local and distributed cache.
                     _ = Task.Run(() => DeleteRemotelyAsync(key));
-                    DeleteLocally(key);
                 }
 
                 return (false, default);
