@@ -16,7 +16,7 @@ namespace ModernCaching.Instrumentation
         private static readonly KeyValuePair<string, object?> GetOperationTag = new("operation", "get");
         private static readonly KeyValuePair<string, object?> SetOperationTag = new("operation", "set");
         private static readonly KeyValuePair<string, object?> DeleteOperationTag = new("operation", "del");
-        private static readonly KeyValuePair<string, object?> OkStatusTag = new("status", "hit");
+        private static readonly KeyValuePair<string, object?> OkStatusTag = new("status", "ok");
         private static readonly KeyValuePair<string, object?> HitStatusTag = new("status", "hit");
         private static readonly KeyValuePair<string, object?> MissStatusTag = new("status", "miss");
         private static readonly KeyValuePair<string, object?> ErrorStatusTag = new("status", "error");
