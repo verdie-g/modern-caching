@@ -66,7 +66,7 @@ namespace ModernCaching.ITest
         }
 
         [Test]
-        public async Task TryPeekShouldReloadKeyInBackground()
+        public async Task TryPeekShouldRefreshKeyInBackground()
         {
             Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
             Assert.IsFalse(_cache.TryPeek(userId, out User? user));

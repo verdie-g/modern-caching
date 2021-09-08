@@ -17,8 +17,8 @@ namespace ModernCaching
     public interface IReadOnlyCache<in TKey, TValue> : IDisposable
     {
         /// <summary>
-        /// Gets the value associated with the specified key from the local cache and the local cache only. Reloads the
-        /// value in the background if it's stale. Use this method if getting stale values is not an issue.
+        /// Gets the value associated with the specified key from the local cache and the local cache only. Refreshes
+        /// the value in the background if it's stale. Use this method if getting stale values is not an issue.
         /// </summary>
         /// <param name="key">The key of the element to get.</param>
         /// <param name="value">Value associated with the specified key, if the key is found; otherwise, the default

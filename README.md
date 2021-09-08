@@ -66,7 +66,7 @@ var cache = await new ReadOnlyCacheBuilder<Guid, User>("user-cache", new UserDat
     .BuildAsync();
 
 Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
-bool found = cache.TryPeek(userId, out User? user); // Only check local cache with background reload.
+bool found = cache.TryPeek(userId, out User? user); // Only check local cache with background refresh.
 (bool found, User? user) = await cache.TryGetAsync(userId); // Check all layers for a fresh value.
 ```
 

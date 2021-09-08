@@ -44,14 +44,14 @@ namespace ModernCaching
         private readonly ReadOnlyCacheOptions _options;
 
         /// <summary>
-        /// Batch of keys to load in the background.
+        /// Batch of keys to refresh in the background.
         /// </summary>
-        private ConcurrentDictionary<TKey, CacheEntry<TValue>?> _keysToLoad;
+        private ConcurrentDictionary<TKey, CacheEntry<TValue>?> _keysToRefresh;
 
         /// <summary>
-        /// Timer to load the keys from <see cref="_keysToLoad"/>.
+        /// Timer to refresh the keys from <see cref="_keysToRefresh"/>.
         /// </summary>
-        private readonly ITimer _backgroundLoadTimer;
+        private readonly ITimer _backgroundRefreshTimer;
 
         /// <summary>
         /// DateTime abstract to be able to mock time.
@@ -66,7 +66,7 @@ namespace ModernCaching
         /// <summary>
         /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
         /// </summary>
-        private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _loadingTasks;
+        private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _refreshTasks;
 
         public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache,
             IDistributedCache<TKey, TValue>? distributedCache, IDataSource<TKey, TValue> dataSource,
@@ -77,13 +77,13 @@ namespace ModernCaching
             _distributedCache = distributedCache;
             _dataSource = dataSource;
             _options = options;
-            _keysToLoad = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
-            _loadingTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
-            _backgroundLoadTimer = loadingTimer;
+            _keysToRefresh = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
+            _refreshTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
+            _backgroundRefreshTimer = loadingTimer;
             _dateTime = dateTime;
             _random = random;
 
-            _backgroundLoadTimer.Elapsed += BackgroundLoad;
+            _backgroundRefreshTimer.Elapsed += BackgroundRefresh;
         }
 
         /// <inheritdoc />
@@ -110,7 +110,7 @@ namespace ModernCaching
             }
 
             // Not found or stale.
-            _keysToLoad[key] = cacheEntry;
+            _keysToRefresh[key] = cacheEntry;
             value = found && cacheEntry!.HasValue ? cacheEntry.Value : default;
             return found;
         }
@@ -128,29 +128,29 @@ namespace ModernCaching
                 return localCacheEntry.HasValue ? (true, localCacheEntry.Value) : (false, default);
             }
 
-            // Multiplex concurrent reload of the same key into a single task.
-            TaskCompletionSource<(bool, TValue?)> reloadTaskCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            var reloadTask = _loadingTasks.GetOrAdd(key, reloadTaskCompletion.Task);
-            if (reloadTask != reloadTaskCompletion.Task)
+            // Multiplex concurrent refresh of the same key into a single task.
+            TaskCompletionSource<(bool, TValue?)> refreshTaskCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var refreshTask = _refreshTasks.GetOrAdd(key, refreshTaskCompletion.Task);
+            if (refreshTask != refreshTaskCompletion.Task)
             {
                 // The key is already being loaded.
-                return await reloadTask;
+                return await refreshTask;
             }
 
             try
             {
-                var reloadResult = await ReloadAsync(key, localCacheEntry);
-                reloadTaskCompletion.SetResult(reloadResult);
-                return reloadResult;
+                var refreshResult = await RefreshAsync(key, localCacheEntry);
+                refreshTaskCompletion.SetResult(refreshResult);
+                return refreshResult;
             }
-            catch (Exception e) // ReloadAsync shouldn't throw but the consequence of not removing the loading task is terrible.
+            catch (Exception e) // RefreshAsync shouldn't throw but the consequence of not removing the loading task is terrible.
             {
-                reloadTaskCompletion.SetException(e);
+                refreshTaskCompletion.SetException(e);
                 throw;
             }
             finally
             {
-                _loadingTasks.Remove(key, out _);
+                _refreshTasks.Remove(key, out _);
             }
         }
 
@@ -166,7 +166,7 @@ namespace ModernCaching
 
         public void Dispose()
         {
-            _backgroundLoadTimer.Elapsed -= BackgroundLoad;
+            _backgroundRefreshTimer.Elapsed -= BackgroundRefresh;
         }
 
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
@@ -213,10 +213,10 @@ namespace ModernCaching
             return _localCache.TryDelete(key);
         }
 
-        /// <summary>Reloads the keys set in <see cref="_keysToLoad"/> by <see cref="TryPeek"/>.</summary>
-        private void BackgroundLoad(object _, ElapsedEventArgs __)
+        /// <summary>Refreshes the keys set in <see cref="_keysToRefresh"/> by <see cref="TryPeek"/>.</summary>
+        private void BackgroundRefresh(object _, ElapsedEventArgs __)
         {
-            var keysToLoad = Interlocked.Exchange(ref _keysToLoad, new ConcurrentDictionary<TKey, CacheEntry<TValue>?>());
+            var keysToLoad = Interlocked.Exchange(ref _keysToRefresh, new ConcurrentDictionary<TKey, CacheEntry<TValue>?>());
             Task.Run(() => InnerLoadAsync(keysToLoad));
         }
 
@@ -233,7 +233,7 @@ namespace ModernCaching
             var keysToLoadFromSource = new List<KeyValuePair<TKey, CacheEntry<TValue>?>>(distributedCacheResults.Length);
             foreach (var (status, keyEntryPair, distributedCacheEntry) in distributedCacheResults)
             {
-                // Filter out errors. If the distributed cache is not available, no reload is performed.
+                // Filter out errors. If the distributed cache is not available, no refresh is performed.
                 if (status == AsyncCacheStatus.Error)
                 {
                     continue;
@@ -295,10 +295,10 @@ namespace ModernCaching
         }
 
         /// <summary>
-        /// Reloads a key from the distributed cache or data source. Can return a stale value if of these two layers
+        /// Refreshes a key from the distributed cache or data source. Can return a stale value if of these two layers
         /// are unavailable.
         /// </summary>
-        private async Task<(bool found, TValue? value)> ReloadAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
+        private async Task<(bool found, TValue? value)> RefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
         {
             var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
             if (status == AsyncCacheStatus.Error)
@@ -334,7 +334,7 @@ namespace ModernCaching
             {
                 // If a local entry exists, the data was recently deleted from the source so it should also be deleted
                 // from the local and distributed cache.
-                if (localCacheEntry != null&& TryDeleteLocally(key))
+                if (localCacheEntry != null && TryDeleteLocally(key))
                 {
                     _ = Task.Run(() => DeleteRemotelyAsync(key));
                 }

@@ -49,7 +49,7 @@ namespace ModernCaching.UTest
         }
 
         [Test]
-        public void ShouldReturnLocalEntryEvenIfStaleAndReloadAsynchronously()
+        public void ShouldReturnLocalEntryEvenIfStaleAndRefreshAsynchronously()
         {
             CacheEntry<int>? entry = new(10) { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue };
 
