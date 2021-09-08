@@ -23,7 +23,7 @@ namespace ModernCaching.Instrumentation
 
         // ReSharper disable NotAccessedField.Local
         private readonly ObservableCounter<long> _localCacheRequestsCounter;
-        private readonly ObservableGauge<long> _localCacheCountCounter;
+        private readonly ObservableGauge<long> _localCacheCountGauge;
         private readonly ObservableCounter<long> _distributedCacheRequestsCounter;
         private readonly ObservableCounter<long> _dataSourceLoadsCounter;
         private readonly ObservableCounter<long> _dataSourceKeyLoadsCounter;
@@ -75,7 +75,7 @@ namespace ModernCaching.Instrumentation
                     new Measurement<long>(Volatile.Read(ref _localCacheDeleteHits), localCacheDeleteHitsTags),
                     new Measurement<long>(Volatile.Read(ref _localCacheDeleteMisses), localCacheDeleteMissesTags),
                 }, description: "local cache request statuses by operation");
-            _localCacheCountCounter = Meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
+            _localCacheCountGauge = Meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
                     new Measurement<long>(_localCacheCount, localCacheCountTags),
                 description: "local cache entries count");
             _distributedCacheRequestsCounter = Meter.CreateObservableCounter(
