@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace ModernCaching
@@ -25,7 +26,7 @@ namespace ModernCaching
         /// value for the type of the value parameter. Can be null if the data source returns null.</param>
         /// <returns>True if the local cache contains an element with the specified key; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException"><see cref="key"/> is null.</exception>
-        bool TryPeek(TKey key, out TValue? value);
+        bool TryPeek(TKey key, [MaybeNullWhen(false)] out TValue value);
 
         /// <summary>
         /// Gets the first fresh value associated with the specified key from, in order, the local cache, the distributed

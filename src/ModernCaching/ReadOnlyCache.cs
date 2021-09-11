@@ -87,7 +87,7 @@ namespace ModernCaching
         }
 
         /// <inheritdoc />
-        public bool TryPeek(TKey key, out TValue? value)
+        public bool TryPeek(TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             if (key == null)
             {
