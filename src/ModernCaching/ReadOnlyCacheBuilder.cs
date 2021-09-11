@@ -13,8 +13,14 @@ namespace ModernCaching
     /// <summary>
     /// Builder for <see cref="IReadOnlyCache{TKey,TValue}"/>.
     /// </summary>
-    /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
-    /// <typeparam name="TValue">The type of the values in the cache.</typeparam>
+    /// <typeparam name="TKey">
+    /// The type of the keys in the cache. This type should implement <see cref="object.Equals(object)"/>,
+    /// <see cref="object.GetHashCode"/> and optionally <see cref="IEquatable{T}"/>.
+    /// </typeparam>
+    /// <typeparam name="TValue">
+    /// The type of the values in the cache. This type can optionally implement <see cref="object.Equals(object)"/> to
+    /// avoid setting the local cache when the value didn't change. That reduces the gen 2 fragmentation.
+    /// </typeparam>
     public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     {
         private readonly string _name;

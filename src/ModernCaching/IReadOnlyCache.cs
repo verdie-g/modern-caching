@@ -11,7 +11,7 @@ namespace ModernCaching
     /// <see cref="object.GetHashCode"/> and optionally <see cref="IEquatable{T}"/>.
     /// </typeparam>
     /// <typeparam name="TValue">
-    /// The type of the values in the cache. This type can optionally implement <see cref="IEquatable{TValue}"/> to
+    /// The type of the values in the cache. This type can optionally implement <see cref="object.Equals(object)"/> to
     /// avoid setting the local cache when the value didn't change. That reduces the gen 2 fragmentation.
     /// </typeparam>
     public interface IReadOnlyCache<in TKey, TValue> : IDisposable
