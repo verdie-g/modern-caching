@@ -8,12 +8,13 @@ namespace ModernCaching
     /// A 2-layer caching solution in front of a data source.
     /// </summary>
     /// <typeparam name="TKey">
-    /// The type of the keys in the cache. This type should implement <see cref="object.Equals(object)"/>,
-    /// <see cref="object.GetHashCode"/> and optionally <see cref="IEquatable{T}"/>.
+    /// The type of the keys in the cache. This type should implement <see cref="object.Equals(object)"/>
+    /// (and optionally <see cref="IEquatable{T}"/> if it's a struct) and <see cref="object.GetHashCode"/> .
     /// </typeparam>
     /// <typeparam name="TValue">
-    /// The type of the values in the cache. This type can optionally implement <see cref="object.Equals(object)"/> to
-    /// avoid setting the local cache when the value didn't change. That reduces the gen 2 fragmentation.
+    /// The type of the values in the cache. This type can optionally implement <see cref="object.Equals(object)"/>
+    /// (and <see cref="IEquatable{T}"/> if it's a struct) to avoid setting the local cache when the value didn't
+    /// change. That reduces the gen 2 fragmentation.
     /// </typeparam>
     public interface IReadOnlyCache<in TKey, TValue> : IDisposable
     {
