@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
@@ -11,6 +12,59 @@ namespace ModernCaching.UTest
     public class ReadOnlyCacheBuilderTest
     {
         [Test]
+        public void ConstructorShouldThrowIfKeyDoesNotOverrideEquals()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new ReadOnlyCacheBuilder<NoEqualsType, int>("test", Mock.Of<IDataSource<NoEqualsType, int>>())
+            );
+        }
+
+        [Test]
+        public void ConstructorShouldThrowIfKeyDoesNotOverrideGetHashCode()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new ReadOnlyCacheBuilder<NoGetHashCodeType, int>("test", Mock.Of<IDataSource<NoGetHashCodeType, int>>())
+            );
+        }
+
+        [Test]
+        public void ConstructorShouldNotThrowIfKeyOverridesEqualsAndGetHashCode()
+        {
+            Assert.DoesNotThrow(() =>
+                new ReadOnlyCacheBuilder<OkType, int>("test", Mock.Of<IDataSource<OkType, int>>())
+            );
+        }
+
+        [Test]
+        public void ConstructorShouldNotThrowIfKeyDerivesFromTypeOverridingEqualsAndGetHashCode()
+        {
+            Assert.DoesNotThrow(() =>
+                new ReadOnlyCacheBuilder<DeriveOkType, int>("test", Mock.Of<IDataSource<DeriveOkType, int>>())
+            );
+        }
+
+        [Test]
+        public void ConstructorShouldNotThrowIfKeyIsCommonType()
+        {
+            static void T<T>() where T : notnull => Assert.DoesNotThrow(() =>
+                new ReadOnlyCacheBuilder<T, int>("test", Mock.Of<IDataSource<T, int>>())
+            );
+
+            T<sbyte>();
+            T<short>();
+            T<int>();
+            T<long>();
+            T<byte>();
+            T<ushort>();
+            T<uint>();
+            T<ulong>();
+            T<float>();
+            T<double>();
+            T<string>();
+            T<IPAddress>();
+        }
+
+        [Test]
         public void FullBuilderShouldNotThrow()
         {
             Assert.DoesNotThrowAsync(() =>
@@ -21,5 +75,10 @@ namespace ModernCaching.UTest
                     .BuildAsync()
             );
         }
+
+        public class NoEqualsType { public override int GetHashCode() => 0; }
+        public class NoGetHashCodeType { public override bool Equals(object? obj) => true; }
+        public class OkType { public override bool Equals(object? obj) => true; public override int GetHashCode() => 0; }
+        public class DeriveOkType : OkType { }
     }
 }

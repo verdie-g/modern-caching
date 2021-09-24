@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ModernCaching.DataSource;
@@ -45,6 +46,7 @@ namespace ModernCaching
         /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="dataSource"/> is null.</exception>
         public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions? options = null)
         {
+            CheckTypeOverrideEqualsAndGetHashCode(typeof(TKey));
             _name = name ?? throw new ArgumentNullException(nameof(name));
             _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
             _options = options ?? new ReadOnlyCacheOptions();
@@ -141,6 +143,21 @@ namespace ModernCaching
             }
 
             return cache;
+        }
+
+        private void CheckTypeOverrideEqualsAndGetHashCode(Type type)
+        {
+            void CheckTypeOverrideMethod(string methodName, Type[] types)
+            {
+                if (type.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance, null, types!, null)!
+                    .DeclaringType == typeof(object))
+                {
+                    throw new ArgumentException($"Argument type '{type}' doesn't override method '{methodName}");
+                }
+            }
+
+            CheckTypeOverrideMethod(nameof(Equals), new[] { typeof(object) });
+            CheckTypeOverrideMethod(nameof(GetHashCode), Array.Empty<Type>());
         }
     }
 }
