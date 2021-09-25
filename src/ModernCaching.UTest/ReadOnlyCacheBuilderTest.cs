@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModernCaching.DataSource;
 using ModernCaching.DistributedCaching;
@@ -62,6 +63,14 @@ namespace ModernCaching.UTest
             T<double>();
             T<string>();
             T<IPAddress>();
+        }
+
+        [Test]
+        public async Task CacheNameShouldGetNormalized()
+        {
+            var cache = await new ReadOnlyCacheBuilder<int, int>("-Ri cé#\t ^k.ro Ll_", Mock.Of<IDataSource<int, int>>())
+                .BuildAsync();
+            Assert.AreEqual("-Rick.roLl_", cache.ToString());
         }
 
         [Test]

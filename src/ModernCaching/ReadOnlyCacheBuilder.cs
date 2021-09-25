@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ModernCaching.DataSource;
@@ -47,7 +48,7 @@ namespace ModernCaching
         public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions? options = null)
         {
             CheckTypeOverrideEqualsAndGetHashCode(typeof(TKey));
-            _name = name ?? throw new ArgumentNullException(nameof(name));
+            _name = NormalizeCacheName(name ?? throw new ArgumentNullException(nameof(name)));
             _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
             _options = options ?? new ReadOnlyCacheOptions();
         }
@@ -143,6 +144,11 @@ namespace ModernCaching
             }
 
             return cache;
+        }
+
+        private string NormalizeCacheName(string name)
+        {
+            return Regex.Replace(name, "[^a-zA-Z0-9.\\-_]", "");
         }
 
         private void CheckTypeOverrideEqualsAndGetHashCode(Type type)
