@@ -25,6 +25,10 @@ because they are usually tied to the business. Only a single implementation of
 is built-in: 
 [`MemoryCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/LocalCaching/MemoryCache.cs).
 
+This library is inspired by a component of the [Criteo](https://medium.com/criteo-engineering)'s
+SDK that handles 10B+ requests per second (hint: it's a lot). ModernCaching is production ready
+but lacks a way to invalidate data ([#1](https://github.com/verdie-g/modern-caching/issues/1)).
+
 ## Installation
 
 ModernCaching is available on [Nuget](https://www.nuget.org/packages/ModernCaching).
