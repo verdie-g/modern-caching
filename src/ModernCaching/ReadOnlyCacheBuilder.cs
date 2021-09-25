@@ -24,7 +24,7 @@ namespace ModernCaching
     /// (and <see cref="IEquatable{T}"/> if it's a struct) to avoid setting the local cache when the value didn't
     /// change. That reduces the gen 2 fragmentation.
     /// </typeparam>
-    public class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
+    public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     {
         private readonly string _name;
         private readonly IDataSource<TKey, TValue> _dataSource;

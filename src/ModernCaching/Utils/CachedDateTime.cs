@@ -6,7 +6,7 @@ namespace ModernCaching.Utils
     /// An implementation of <see cref="IDateTime"/> that reuses the loading timer to compute UtcNow. It was measured
     /// that <see cref="DateTime.UtcNow"/> would take 75% of the time of a TryPeek hence this class.
     /// </summary>
-    internal class CachedDateTime : IDateTime
+    internal sealed class CachedDateTime : IDateTime
     {
         public CachedDateTime(ITimer timer)
         {

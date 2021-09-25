@@ -16,7 +16,7 @@ namespace ModernCaching
 {
     /// <inheritdoc />
     [DebuggerDisplay("{_name} (Count = {_localCache?.Count ?? 0})")]
-    internal class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
+    internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// Name of the cache.

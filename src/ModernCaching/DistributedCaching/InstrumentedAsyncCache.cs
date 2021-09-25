@@ -6,7 +6,7 @@ using ModernCaching.Instrumentation;
 namespace ModernCaching.DistributedCaching
 {
     /// <summary>Wraps an <see cref="IAsyncCache"/> with metrics.</summary>
-    internal class InstrumentedAsyncCache : IAsyncCache
+    internal sealed class InstrumentedAsyncCache : IAsyncCache
     {
         private readonly IAsyncCache _cache;
         private readonly ICacheMetrics _metrics;

@@ -9,7 +9,7 @@ using ModernCaching.Instrumentation;
 namespace ModernCaching.DataSource
 {
     /// <summary>Wraps an <see cref="IDataSource{TKey,TValue}"/> with metrics and sanitizes what's return by user code.</summary>
-    internal class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, TValue>
+    internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, TValue>
     {
         private readonly IDataSource<TKey, TValue> _dataSource;
         private readonly ICacheMetrics _metrics;

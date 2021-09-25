@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace ModernCaching.Utils
 {
-    internal class ConcurrentDictionaryHelper
+    internal sealed class ConcurrentDictionaryHelper
     {
         public static ConcurrentDictionary<TKey, TValue> Create<TKey, TValue>()
         {

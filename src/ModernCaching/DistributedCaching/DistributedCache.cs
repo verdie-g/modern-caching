@@ -23,7 +23,7 @@ namespace ModernCaching.DistributedCaching
     /// Internal class that wraps a generic <see cref="IAsyncCache"/> with a <see cref="IKeyValueSerializer{TKey,TValue}"/>
     /// for a specific <see cref="ReadOnlyCache{TKey,TValue}"/>.
     /// </summary>
-    internal class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : notnull
+    internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
         /// Version of the header of a value in the distributed cache. It is included in the key so that it can be

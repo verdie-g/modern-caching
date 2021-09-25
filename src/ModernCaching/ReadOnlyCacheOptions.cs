@@ -3,7 +3,7 @@ using ModernCaching.DataSource;
 
 namespace ModernCaching
 {
-    public class ReadOnlyCacheOptions
+    public sealed class ReadOnlyCacheOptions
     {
         /// <summary>
         /// Whether keys that were not found in the <see cref="IDataSource{TKey,TValue}"/> should be cached. If true,

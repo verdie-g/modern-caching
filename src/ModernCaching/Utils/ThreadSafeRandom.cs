@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace ModernCaching.Utils
 {
-    internal class ThreadSafeRandom : IRandom
+    internal sealed class ThreadSafeRandom : IRandom
     {
         // https://devblogs.microsoft.com/pfxteam/getting-random-numbers-in-a-thread-safe-way/
         private static readonly RNGCryptoServiceProvider StrongRng = new();

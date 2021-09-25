@@ -3,7 +3,7 @@ using System.Timers;
 
 namespace ModernCaching.Utils
 {
-    internal class TimerWrapper : ITimer
+    internal sealed class TimerWrapper : ITimer
     {
         private readonly Timer _underlyingTimer;
 

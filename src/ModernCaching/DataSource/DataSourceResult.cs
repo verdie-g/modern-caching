@@ -10,5 +10,5 @@ namespace ModernCaching.DataSource
     /// <param name="Key">The key.</param>
     /// <param name="Value">The value associated with the key. Can be null.</param>
     /// <param name="TimeToLive">Duration after which the data is considered stale.</param>
-    public record DataSourceResult<TKey, TValue>(TKey Key, TValue Value, TimeSpan TimeToLive);
+    public sealed record DataSourceResult<TKey, TValue>(TKey Key, TValue Value, TimeSpan TimeToLive);
 }

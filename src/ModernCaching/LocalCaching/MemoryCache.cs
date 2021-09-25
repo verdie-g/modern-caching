@@ -10,7 +10,7 @@ namespace ModernCaching.LocalCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys.</typeparam>
     /// <typeparam name="TValue">The type of the values.</typeparam>
-    public class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey : notnull
+    public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey : notnull
     {
         private readonly ConcurrentDictionary<TKey, CacheEntry<TValue>> _dictionary;
 

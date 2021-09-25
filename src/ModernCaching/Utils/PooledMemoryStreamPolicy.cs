@@ -3,7 +3,7 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace ModernCaching.Utils
 {
-    internal class PooledMemoryStreamPolicy : IPooledObjectPolicy<MemoryStream>
+    internal sealed class PooledMemoryStreamPolicy : IPooledObjectPolicy<MemoryStream>
     {
         private const int InitialCapacity = 128;
         private const int MaximumRetainedCapacity = 4096;

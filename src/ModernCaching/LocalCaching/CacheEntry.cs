@@ -5,7 +5,7 @@ namespace ModernCaching.LocalCaching
     /// <summary>
     /// Entry of an <see cref="ICache{TKey,TValue}"/>.
     /// </summary>
-    public class CacheEntry<TValue>
+    public sealed class CacheEntry<TValue>
     {
         private readonly TValue _value;
 
