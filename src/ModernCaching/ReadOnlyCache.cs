@@ -189,12 +189,15 @@ namespace ModernCaching
                 return;
             }
 
+            RandomizeCacheEntryExpiration(newCacheEntry);
+
             // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
             // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
             if (oldCacheEntry != null && CacheEntryEquals(oldCacheEntry, newCacheEntry))
             {
-                oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
+                oldCacheEntry.CreationTime = newCacheEntry.CreationTime;
                 oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
+                oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
             }
             else
             {
@@ -263,7 +266,7 @@ namespace ModernCaching
             {
                 localCacheEntriesByKey.Remove(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry);
 
-                CacheEntry<TValue> dataSourceCacheEntry = CacheEntryFromDataSourceResult(dataSourceResult);
+                CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(dataSourceResult.Value, dataSourceResult.TimeToLive);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
                 SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry, localCacheEntry);
             }
@@ -273,7 +276,7 @@ namespace ModernCaching
                 TimeSpan ttl = _options.DefaultTimeToLive;
                 foreach (var (key, _) in localCacheEntriesByKey)
                 {
-                    CacheEntry<TValue> dataSourceCacheEntry = InitCacheEntryTimeToLive(new CacheEntry<TValue>(), ttl);
+                    CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(ttl);
                     _ = Task.Run(() => SetRemotelyAsync(key, dataSourceCacheEntry));
                     SetOrExtendLocally(key, dataSourceCacheEntry, null);
                 }
@@ -394,11 +397,12 @@ namespace ModernCaching
                 if (!await results.MoveNextAsync())
                 {
                     return _options.CacheDataSourceMisses
-                        ? (true, InitCacheEntryTimeToLive(new CacheEntry<TValue>(), _options.DefaultTimeToLive))
+                        ? (true, NewCacheEntry(_options.DefaultTimeToLive))
                         : (true, null);
                 }
 
-                return (true, CacheEntryFromDataSourceResult(results.Current));
+                var dataSourceResult = results.Current;
+                return (true, NewCacheEntry(dataSourceResult.Value, dataSourceResult.TimeToLive));
             }
             catch
             {
@@ -418,26 +422,38 @@ namespace ModernCaching
             return !cacheEntry2.HasValue;
         }
 
-        private CacheEntry<TValue> CacheEntryFromDataSourceResult(DataSourceResult<TKey, TValue> result)
+        private CacheEntry<TValue> NewCacheEntry(TimeSpan timeToLive)
         {
-            return InitCacheEntryTimeToLive(new CacheEntry<TValue>(result.Value), result.TimeToLive);
+            return InitCacheEntry(new CacheEntry<TValue>(), timeToLive);
         }
 
-        private CacheEntry<TValue> InitCacheEntryTimeToLive(CacheEntry<TValue> entry, TimeSpan timeToLive)
+        private CacheEntry<TValue> NewCacheEntry(TValue value, TimeSpan timeToLive)
         {
-            TimeSpan randomizedTimeToLive = RandomizeTimeSpan(timeToLive);
-            DateTime utcNow = _dateTime.UtcNow;
+            return InitCacheEntry(new CacheEntry<TValue>(value), timeToLive);
+        }
 
-            entry.ExpirationTime = utcNow + randomizedTimeToLive;
-            entry.EvictionTime = utcNow + randomizedTimeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
-
+        private CacheEntry<TValue> InitCacheEntry(CacheEntry<TValue> entry, TimeSpan timeToLive)
+        {
+            entry.CreationTime = _dateTime.UtcNow;
+            entry.ExpirationTime = entry.CreationTime + timeToLive;
+            entry.EvictionTime = entry.CreationTime + timeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
             return entry;
+        }
+
+        private void RandomizeCacheEntryExpiration(CacheEntry<TValue> entry)
+        {
+            var ttl = entry.ExpirationTime - entry.CreationTime;
+            // Probabilistic early expiration to mitigate cache stampede.
+            var randomizedTtl = RandomizeTimeSpan(ttl);
+
+            entry.ExpirationTime = entry.CreationTime + randomizedTtl;
+            entry.EvictionTime = entry.CreationTime + randomizedTtl * 2; // Entries are kept in cache twice longer than the expiration time.
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)
         {
             double seconds = ts.TotalSeconds;
-            seconds -= _random.Next(0, (int)(0.15 * seconds));
+            seconds -= _random.Next(0, (int)(0.05 * seconds));
             return TimeSpan.FromSeconds(seconds);
         }
     }

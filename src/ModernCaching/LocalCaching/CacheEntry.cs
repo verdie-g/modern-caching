@@ -32,6 +32,9 @@ namespace ModernCaching.LocalCaching
             ? _value
             : throw new InvalidOperationException("Cache entry object must have a value.");
 
+        /// <summary>The UTC creation time of the entry.</summary>
+        public DateTime CreationTime { get; internal set; }
+
         /// <summary>The UTC time after which the value is considered stale.</summary>
         public DateTime ExpirationTime { get; internal set; }
 
@@ -44,6 +47,7 @@ namespace ModernCaching.LocalCaching
             return _value;
         }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             return HasValue && Value != null ? Value.ToString() : string.Empty;

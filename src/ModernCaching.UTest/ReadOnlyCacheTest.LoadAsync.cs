@@ -48,17 +48,17 @@ namespace ModernCaching.UTest
             localCacheMock.Setup(c => c.Set(3, It.Is<CacheEntry<int>>(e => e.Value == 333)));
 
             // 4: distributed cache hit
-            CacheEntry<int> remoteCacheEntry4 = new(44) { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> remoteCacheEntry4 = new(44) { CreationTime = DateTime.UtcNow, ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(4)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry4));
             localCacheMock.Setup(c => c.Set(4, remoteCacheEntry4));
 
             // 5: distributed cache hit stale and data source hit
-            CacheEntry<int> remoteCacheEntry5 = new(55) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> remoteCacheEntry5 = new(55) { CreationTime = DateTime.UtcNow, ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(5)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry5));
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 555)));
 
             // 6: distributed cache hit stale and data source miss
-            CacheEntry<int> remoteCacheEntry6 = new(66) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> remoteCacheEntry6 = new(66) { CreationTime = DateTime.UtcNow, ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
             distributedCacheMock.Setup(c => c.GetAsync(6)).ReturnsAsync((AsyncCacheStatus.Hit, remoteCacheEntry6));
             if (cacheDataSourceMisses)
             {

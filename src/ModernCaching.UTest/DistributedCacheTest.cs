@@ -56,14 +56,19 @@ namespace ModernCaching.UTest
             DistributedCache<int, int?> distributedCache = new("c", asyncCache, serializer, "ab", null);
 
             var entry = entryHasValue
-                ? new CacheEntry<int?>(value) { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) }
-                : new CacheEntry<int?> { ExpirationTime = DateTime.UtcNow.AddHours(1), EvictionTime = DateTime.UtcNow.AddHours(2) };
+                ? new CacheEntry<int?>(value)
+                : new CacheEntry<int?>();
+            entry.CreationTime = DateTime.UtcNow;
+            entry.ExpirationTime = DateTime.UtcNow.AddHours(1);
+            entry.EvictionTime = DateTime.UtcNow.AddHours(2);
             await distributedCache.SetAsync(10, entry);
 
             var res = await distributedCache.GetAsync(10);
             Assert.AreEqual(AsyncCacheStatus.Hit, res.status);
             Assert.AreEqual(entryHasValue, entry.HasValue);
             Assert.AreEqual(entry.GetValueOrDefault(), res.entry!.GetValueOrDefault());
+            Assert.AreEqual(entry.CreationTime.Ticks, res.entry.CreationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
+            Assert.AreEqual(DateTimeKind.Utc, entry.CreationTime.Kind);
             Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.ExpirationTime.Kind);
             Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromSeconds(1).Ticks);

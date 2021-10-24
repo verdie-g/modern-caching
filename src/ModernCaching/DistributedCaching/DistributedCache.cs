@@ -29,7 +29,7 @@ namespace ModernCaching.DistributedCaching
         /// Version of the header of a value in the distributed cache. It is included in the key so that it can be
         /// bumped after any backward incompatible changes.
         /// </summary>
-        private const char HeaderVersion = '0';
+        private const int HeaderVersion = 0;
 
         /// <summary>
         /// Name of cache. Used in the distributed cache key.
@@ -134,6 +134,9 @@ namespace ModernCaching.DistributedCaching
 
             writer.Write((int)AsyncCacheEntryOptions.None);
 
+            long unixCreationTime = new DateTimeOffset(entry.CreationTime).ToUnixTimeSeconds();
+            writer.Write(unixCreationTime);
+
             long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeSeconds();
             writer.Write(unixExpirationTime);
 
@@ -157,6 +160,9 @@ namespace ModernCaching.DistributedCaching
 
             var options = (AsyncCacheEntryOptions)reader.ReadInt32();
 
+            long unixCreationTime = reader.ReadInt64();
+            DateTime creationTime = DateTimeOffset.FromUnixTimeSeconds(unixCreationTime).UtcDateTime;
+
             long unixExpirationTime = reader.ReadInt64();
             DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(unixExpirationTime).UtcDateTime;
 
@@ -164,23 +170,14 @@ namespace ModernCaching.DistributedCaching
             DateTime evictionTime = DateTimeOffset.FromUnixTimeSeconds(unixEvictionTime).UtcDateTime;
 
             // If the end of the stream was reached it means that the entry has no value.
-            if (reader.BaseStream.Position == reader.BaseStream.Length)
-            {
-                return new CacheEntry<TValue>()
-                {
-                    ExpirationTime = expirationTime,
-                    EvictionTime = evictionTime,
-                };
-            }
-            else
-            {
-                TValue value = _keyValueSerializer.DeserializeValue(reader);
-                return new CacheEntry<TValue>(value)
-                {
-                    ExpirationTime = expirationTime,
-                    EvictionTime = evictionTime,
-                };
-            }
+            var cacheEntry = reader.BaseStream.Position == reader.BaseStream.Length
+                ? new CacheEntry<TValue>()
+                : new CacheEntry<TValue>(_keyValueSerializer.DeserializeValue(reader));
+            cacheEntry.CreationTime = creationTime;
+            cacheEntry.ExpirationTime = expirationTime;
+            cacheEntry.EvictionTime = evictionTime;
+
+            return cacheEntry;
         }
     }
 }

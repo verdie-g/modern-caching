@@ -13,6 +13,21 @@ namespace ModernCaching.UTest
         private static readonly ITimer Timer = Mock.Of<ITimer>();
         private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
         private static readonly IRandom Random = new ThreadSafeRandom();
+        private static readonly CacheEntry<int> FreshEntry = new(10)
+        {
+            ExpirationTime = DateTime.Now.AddHours(5),
+            EvictionTime = DateTime.Now.AddHours(10),
+        };
+        private static readonly CacheEntry<int> FreshEmptyEntry = new()
+        {
+            ExpirationTime = DateTime.Now.AddHours(5),
+            EvictionTime = DateTime.Now.AddHours(10),
+        };
+        private static readonly CacheEntry<int> StaleEntry = new(10)
+        {
+            ExpirationTime = DateTime.Now.AddHours(-5),
+            EvictionTime = DateTime.Now.AddHours(-3),
+        };
 
         [Test]
         public void GettingNullKeyShouldThrow()
@@ -24,9 +39,7 @@ namespace ModernCaching.UTest
         [Theory]
         public void ShouldReturnLocalEntryIfExists(bool entryHasValue)
         {
-            var entry = entryHasValue
-                ? new CacheEntry<int>(10) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue }
-                : new CacheEntry<int> { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            var entry = entryHasValue ? FreshEntry : FreshEmptyEntry;
 
             Mock<ICache<int, int>> localCacheMock = new();
             localCacheMock
@@ -49,9 +62,9 @@ namespace ModernCaching.UTest
         }
 
         [Test]
-        public void ShouldReturnLocalEntryEvenIfStaleAndRefreshAsynchronously()
+        public void ShouldReturnLocalEntryEvenIfStale()
         {
-            CacheEntry<int>? entry = new(10) { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int>? entry = StaleEntry;
 
             Mock<ICache<int, int>> localCacheMock = new();
             localCacheMock
@@ -83,7 +96,12 @@ namespace ModernCaching.UTest
         [Test]
         public void ShouldReturnNullIfNullWasCached()
         {
-            CacheEntry<object?>? entry = new(null) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<object?>? entry = new(null)
+            {
+                CreationTime = DateTime.Now,
+                ExpirationTime = DateTime.Now.AddHours(5),
+                EvictionTime = DateTime.MaxValue,
+            };
 
             Mock<ICache<int, object?>> localCacheMock = new();
             localCacheMock

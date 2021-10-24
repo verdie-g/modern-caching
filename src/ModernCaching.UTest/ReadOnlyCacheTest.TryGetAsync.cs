@@ -30,9 +30,7 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldReturnLocalEntryIfExists(bool entryHasValue)
         {
-            var localCacheEntry = entryHasValue
-                ? new CacheEntry<int>(10) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue }
-                : new CacheEntry<int> { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            var localCacheEntry = entryHasValue ? FreshEntry(10) : FreshEntry<int>();
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -49,9 +47,7 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldReturnRemoteEntryIfNoLocalCache(bool entryHasValue)
         {
-            var distributedCacheEntry = entryHasValue
-                ? new CacheEntry<int>(10) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue }
-                : new CacheEntry<int> { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            var distributedCacheEntry = entryHasValue ? FreshEntry(10) : FreshEntry<int>();
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -74,7 +70,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int> distributedCacheEntry = new(10) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> distributedCacheEntry = FreshEntry(10);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -88,7 +84,7 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnRemoteEntryIfLocalEntryIsStale()
         {
-            CacheEntry<int>? localCacheEntry = new(10) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int>? localCacheEntry = StaleEntry(10);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -96,7 +92,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int> distributedCacheEntry = new(10) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> distributedCacheEntry = FreshEntry(10);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -118,7 +114,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.Set(5, It.Is<CacheEntry<string?>>(e => e.Value == null)));
 
-            CacheEntry<string?> distributedCacheEntry = new(null) { ExpirationTime = DateTime.Now.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<string?> distributedCacheEntry = FreshEntry<string?>(null);
             Mock<IDistributedCache<int, string?>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -132,9 +128,7 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldReturnStaleLocalEntryIfDistributedCacheUnavailable(bool entryHasValue)
         {
-            var localCacheEntry = entryHasValue
-                ? new CacheEntry<int>(10) { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue }
-                : new CacheEntry<int> { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            var localCacheEntry = entryHasValue ? StaleEntry(10) : StaleEntry<int>();
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -181,7 +175,7 @@ namespace ModernCaching.UTest
             dateTimeMock.Setup(dt => dt.UtcNow).Returns(new DateTime(2000, 1, 1));
 
             Mock<IRandom> randomMock = new(MockBehavior.Strict);
-            randomMock.Setup(r => r.Next(0, 15)).Returns(10);
+            randomMock.Setup(r => r.Next(0, 5)).Returns(10);
 
             ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, dataSourceMock.Object, Options, Timer,
                 dateTimeMock.Object, randomMock.Object);
@@ -195,7 +189,7 @@ namespace ModernCaching.UTest
         [Theory]
         public async Task ShouldReturnDataFromSourceIfNotAvailableInLocalOrRemote(bool localStale, bool remoteStale)
         {
-            CacheEntry<int>? localCacheEntry = localStale ? new(99) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue } : null;
+            CacheEntry<int>? localCacheEntry = localStale ? StaleEntry(99) : null;
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
@@ -203,7 +197,7 @@ namespace ModernCaching.UTest
             localCacheMock
                 .Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int>? remoteCacheEntry = remoteStale ? new(99) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue } : null;
+            CacheEntry<int>? remoteCacheEntry = remoteStale ? StaleEntry(99) : null;
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -254,14 +248,14 @@ namespace ModernCaching.UTest
         [Test]
         public async Task ShouldReturnFalseIfDataWasDeletedFromSource()
         {
-            CacheEntry<int>? localCacheEntry = new(99) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int>? localCacheEntry = StaleEntry(99);
             Mock<ICache<int, int>> localCacheMock = new(MockBehavior.Strict);
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(true);
             localCacheMock.Setup(c => c.TryDelete(5)).Returns(true);
 
-            CacheEntry<int> remoteCacheEntry = new(99) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> remoteCacheEntry = StaleEntry(99);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -320,9 +314,7 @@ namespace ModernCaching.UTest
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(false);
 
-            var remoteCacheEntry = entryHasValue
-                ? new CacheEntry<int>(10) { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue }
-                : new CacheEntry<int> { ExpirationTime = DateTime.Now.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            var remoteCacheEntry = entryHasValue ? StaleEntry(10) : StaleEntry<int>();
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -351,7 +343,7 @@ namespace ModernCaching.UTest
                 .Returns(false);
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 10)));
 
-            CacheEntry<int> remoteCacheEntry = new(10) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> remoteCacheEntry = StaleEntry(10);
             Mock<IDistributedCache<int, int>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -376,7 +368,7 @@ namespace ModernCaching.UTest
 
             // Now check that the cached task for key '5' was deleted.
             localCacheMock.Setup(c => c.Set(5, It.Is<CacheEntry<int>>(e => e.Value == 20)));
-            CacheEntry<int> distributedCacheEntry = new(20) { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<int> distributedCacheEntry = FreshEntry(20);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
                 .ReturnsAsync((AsyncCacheStatus.Hit, distributedCacheEntry));
@@ -395,17 +387,15 @@ namespace ModernCaching.UTest
         [Description("Replace expired local cache entry by the one distributed cache one and check if the local entry was replaced or extended")]
         public async Task SetOrExtendTest(string? oldValue, string? newValue, bool shouldSet)
         {
-            CacheEntry<string?>? localCacheEntry = oldValue == "NOVALUE"
-                ? new() { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue }
-                : new(oldValue) { ExpirationTime = DateTime.UtcNow.AddHours(-5), EvictionTime = DateTime.MaxValue };
+            CacheEntry<string?>? localCacheEntry = oldValue == "NOVALUE" ? StaleEntry<string?>() : StaleEntry(oldValue);
             Mock<ICache<int, string?>> localCacheMock = new();
             localCacheMock
                 .Setup(c => c.TryGet(5, out localCacheEntry))
                 .Returns(true);
 
             CacheEntry<string?> distributedCacheEntry = newValue == "NOVALUE"
-                ? new() { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue }
-                : new(newValue) { ExpirationTime = DateTime.UtcNow.AddHours(5), EvictionTime = DateTime.MaxValue };
+                ? FreshEntry<string?>()
+                : FreshEntry(newValue);
             Mock<IDistributedCache<int, string?>> distributedCacheMock = new(MockBehavior.Strict);
             distributedCacheMock
                 .Setup(c => c.GetAsync(5))
@@ -433,6 +423,46 @@ namespace ModernCaching.UTest
             {
                 yield return result;
             }
+        }
+
+        private CacheEntry<TValue> FreshEntry<TValue>()
+        {
+            return new CacheEntry<TValue>()
+            {
+                CreationTime = DateTime.UtcNow,
+                ExpirationTime = DateTime.UtcNow.AddHours(5),
+                EvictionTime = DateTime.UtcNow.AddHours(10),
+            };
+        }
+
+        private CacheEntry<TValue> FreshEntry<TValue>(TValue value)
+        {
+            return new CacheEntry<TValue>(value)
+            {
+                CreationTime = DateTime.UtcNow,
+                ExpirationTime = DateTime.UtcNow.AddHours(5),
+                EvictionTime = DateTime.UtcNow.AddHours(10),
+            };
+        }
+
+        private CacheEntry<TValue> StaleEntry<TValue>()
+        {
+            return new CacheEntry<TValue>()
+            {
+                CreationTime = DateTime.UtcNow,
+                ExpirationTime = DateTime.UtcNow.AddHours(-5),
+                EvictionTime = DateTime.UtcNow.AddHours(-3),
+            };
+        }
+
+        private CacheEntry<TValue> StaleEntry<TValue>(TValue value)
+        {
+            return new CacheEntry<TValue>(value)
+            {
+                CreationTime = DateTime.UtcNow,
+                ExpirationTime = DateTime.UtcNow.AddHours(-5),
+                EvictionTime = DateTime.UtcNow.AddHours(-3),
+            };
         }
     }
 }

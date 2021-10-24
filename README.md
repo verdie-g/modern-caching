@@ -42,7 +42,7 @@ dotnet add package ModernCaching
 - **Strict API**. [`IReadOnlyCache`](https://github.com/verdie-g/modern-caching/blob/main/src/ModernCaching/IReadOnlyCache.cs)
   has only two methods:
   - `TryPeek`, a synchronous operation to only get the value if it's present in
-    the local cache.
+    the local cache and refresh in the background if needed.
   - `TryGetAsync`, an asynchronous operation to get the first fresh value in the
     local cache, distributed cache or the data source, in that order.
 - **Performance**. Unlike other caching libraries that use a `string` as a key or an
