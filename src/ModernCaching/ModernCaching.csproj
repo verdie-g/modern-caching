@@ -12,6 +12,8 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>cache distributed</PackageTags>
         <RepositoryUrl>https://github.com/verdie-g/modern-caching</RepositoryUrl>
+        <!-- Needed to export XML doc in nuget -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
