@@ -71,7 +71,7 @@ namespace ModernCaching.UTest
 
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
             dataSourceMock
-                .Setup(s => s.LoadAsync(It.Is<IEnumerable<int>>(e => e.Count() == 4), CancellationToken.None))
+                .Setup(s => s.LoadAsync(It.Is<IEnumerable<int>>(e => e.Count() == 4), It.IsAny<CancellationToken>()))
                 .Returns(CreateDataSourceResults(new[]
                 {
                     new DataSourceResult<int, int>(3, 333, TimeSpan.FromHours(5)),
@@ -116,7 +116,7 @@ namespace ModernCaching.UTest
         {
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
             dataSourceMock
-                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), CancellationToken.None))
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
                 .Throws<Exception>();
 
             ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer,

@@ -261,8 +261,8 @@ namespace ModernCaching
 
             var localCacheEntriesByKey = keysToLoadFromSource.ToDictionary(k => k.Key, k => k.Value);
 
-            var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-            await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource.Select(k => k.Key), cancellationToken))
+            CancellationTokenSource cts = new(_options.LoadTimeout);
+            await foreach (var dataSourceResult in _dataSource.LoadAsync(keysToLoadFromSource.Select(k => k.Key), cts.Token))
             {
                 localCacheEntriesByKey.Remove(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry);
 
@@ -391,9 +391,9 @@ namespace ModernCaching
         {
             try
             {
-                var cancellationToken = CancellationToken.None; // TODO: what cancellation token should be passed to the loader?
-                await using var results = _dataSource.LoadAsync(new[] { key }, cancellationToken)
-                    .GetAsyncEnumerator(cancellationToken);
+                CancellationTokenSource cts = new(_options.LoadTimeout);
+                await using var results = _dataSource.LoadAsync(new[] { key }, cts.Token)
+                    .GetAsyncEnumerator(cts.Token);
                 if (!await results.MoveNextAsync())
                 {
                     return _options.CacheDataSourceMisses
