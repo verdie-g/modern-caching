@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -140,6 +141,8 @@ namespace ModernCaching
             if (_getKeys != null)
             {
                 var keys = await _getKeys(_getKeysState);
+                // Keys are shuffled to avoid different cache instances to load the same key at the same time.
+                keys = ShuffleKeys(keys);
                 await cache.LoadAsync(keys);
             }
 
@@ -164,6 +167,25 @@ namespace ModernCaching
 
             CheckTypeOverrideMethod(nameof(Equals), new[] { typeof(object) });
             CheckTypeOverrideMethod(nameof(GetHashCode), Array.Empty<Type>());
+        }
+
+        private static IEnumerable<TKey> ShuffleKeys(IEnumerable<TKey> keys)
+        {
+            return ShuffleKeys(keys is IList<TKey> l ? l : keys.ToArray());
+        }
+
+        private static IEnumerable<TKey> ShuffleKeys(IList<TKey> keys)
+        {
+            IRandom rng = UtilsCache.Random;
+            int i = keys.Count;
+            while (i > 1)
+            {
+                int j = rng.Next(0, i);
+                i -= 1;
+                (keys[i], keys[j]) = (keys[j], keys[i]);
+            }
+
+            return keys;
         }
     }
 }
