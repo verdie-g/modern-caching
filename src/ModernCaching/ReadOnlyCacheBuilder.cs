@@ -158,7 +158,7 @@ namespace ModernCaching
         {
             void CheckTypeOverrideMethod(string methodName, Type[] types)
             {
-                if (type.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance, null, types!, null)!
+                if (type.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance, null, types, null)!
                     .DeclaringType == typeof(object))
                 {
                     throw new ArgumentException($"Argument type '{type}' doesn't override method '{methodName}");
