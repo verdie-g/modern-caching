@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <LangVersion>9.0</LangVersion>
+        <TargetFramework>net6.0</TargetFramework>
+        <LangVersion>10.0</LangVersion>
         <!-- Enable C# 8 nullable and treat its warnings as errors -->
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
