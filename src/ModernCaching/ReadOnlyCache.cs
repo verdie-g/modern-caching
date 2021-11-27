@@ -189,15 +189,14 @@ namespace ModernCaching
                 return;
             }
 
-            RandomizeCacheEntryExpiration(newCacheEntry);
+            newCacheEntry.TimeToLive = RandomizeTimeSpan(newCacheEntry.TimeToLive);
 
             // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
             // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
             if (newCacheEntry.Equals(oldCacheEntry))
             {
                 oldCacheEntry.CreationTime = newCacheEntry.CreationTime;
-                oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
-                oldCacheEntry.ExpirationTime = newCacheEntry.ExpirationTime;
+                oldCacheEntry.TimeToLive = newCacheEntry.TimeToLive;
             }
             else
             {
@@ -353,7 +352,7 @@ namespace ModernCaching
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
         private bool IsCacheEntryStale(CacheEntry<TValue> entry)
         {
-            return entry.ExpirationTime < _dateTime.UtcNow;
+            return entry.CreationTime + entry.TimeToLive < _dateTime.UtcNow;
         }
 
         private Task<(AsyncCacheStatus status, CacheEntry<TValue>? cacheEntry)> TryGetRemotelyAsync(TKey key)
@@ -423,19 +422,8 @@ namespace ModernCaching
         private CacheEntry<TValue> InitCacheEntry(CacheEntry<TValue> entry, TimeSpan timeToLive)
         {
             entry.CreationTime = _dateTime.UtcNow;
-            entry.ExpirationTime = entry.CreationTime + timeToLive;
-            entry.EvictionTime = entry.CreationTime + timeToLive * 2; // Entries are kept in cache twice longer than the expiration time.
+            entry.TimeToLive = timeToLive;
             return entry;
-        }
-
-        private void RandomizeCacheEntryExpiration(CacheEntry<TValue> entry)
-        {
-            var ttl = entry.ExpirationTime - entry.CreationTime;
-            // Probabilistic early expiration to mitigate cache stampede.
-            var randomizedTtl = RandomizeTimeSpan(ttl);
-
-            entry.ExpirationTime = entry.CreationTime + randomizedTtl;
-            entry.EvictionTime = entry.CreationTime + randomizedTtl * 2; // Entries are kept in cache twice longer than the expiration time.
         }
 
         private TimeSpan RandomizeTimeSpan(TimeSpan ts)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace ModernCaching.LocalCaching
 {
@@ -8,7 +7,10 @@ namespace ModernCaching.LocalCaching
     /// </summary>
     /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
     /// <typeparam name="TValue">The type of the values in the cache entries.</typeparam>
-    /// <remarks>If the cache is evicting, <see cref="CacheEntry{TValue}.EvictionTime"/> should be used for the eviction time.</remarks>
+    /// <remarks>
+    /// If the cache is evicting, entries should be kept longer than <see cref="CacheEntry{TValue}.TimeToLive"/> so
+    /// that <see cref="IReadOnlyCache{TKey,TValue}.TryPeek"/> can return stale values.
+    /// </remarks>
     public interface ICache<in TKey, TValue> where TKey : notnull
     {
         /// <summary>

@@ -30,14 +30,12 @@ namespace ModernCaching.UTest
             CacheEntry<int> entry1 = new(5)
             {
                 CreationTime = DateTime.Parse("01/02/2000"),
-                ExpirationTime = DateTime.Parse("02/03/2000"),
-                EvictionTime = DateTime.Parse("04/05/2000"),
+                TimeToLive = TimeSpan.FromHours(1),
             };
             CacheEntry<int> entry2 = new(5)
             {
                 CreationTime = DateTime.Parse("06/07/2000"),
-                ExpirationTime = DateTime.Parse("08/09/2000"),
-                EvictionTime = DateTime.Parse("10/11/2000"),
+                TimeToLive = TimeSpan.FromHours(2),
             };
 
             Assert.AreEqual(entry1, entry2);

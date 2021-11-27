@@ -59,8 +59,7 @@ namespace ModernCaching.UTest
                 ? new CacheEntry<int?>(value)
                 : new CacheEntry<int?>();
             entry.CreationTime = DateTime.UtcNow;
-            entry.ExpirationTime = DateTime.UtcNow.AddHours(1);
-            entry.EvictionTime = DateTime.UtcNow.AddHours(2);
+            entry.TimeToLive = TimeSpan.FromHours(1);
             await distributedCache.SetAsync(10, entry);
 
             var res = await distributedCache.GetAsync(10);
@@ -69,10 +68,7 @@ namespace ModernCaching.UTest
             Assert.AreEqual(entry.GetValueOrDefault(), res.entry!.GetValueOrDefault());
             Assert.AreEqual(entry.CreationTime.Ticks, res.entry.CreationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
             Assert.AreEqual(DateTimeKind.Utc, entry.CreationTime.Kind);
-            Assert.AreEqual(entry.ExpirationTime.Ticks, res.entry.ExpirationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
-            Assert.AreEqual(DateTimeKind.Utc, entry.ExpirationTime.Kind);
-            Assert.AreEqual(entry.EvictionTime.Ticks, res.entry.EvictionTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
-            Assert.AreEqual(DateTimeKind.Utc, entry.EvictionTime.Kind);
+            Assert.AreEqual(entry.TimeToLive.TotalSeconds, res.entry.TimeToLive.TotalSeconds, TimeSpan.FromSeconds(1).Ticks);
         }
 
         private class IntToIntKeyValueSerializer : IKeyValueSerializer<int, int?>

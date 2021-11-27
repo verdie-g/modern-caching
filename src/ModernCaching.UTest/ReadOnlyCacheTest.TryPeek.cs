@@ -15,18 +15,18 @@ namespace ModernCaching.UTest
         private static readonly IRandom Random = new ThreadSafeRandom();
         private static readonly CacheEntry<int> FreshEntry = new(10)
         {
-            ExpirationTime = DateTime.Now.AddHours(5),
-            EvictionTime = DateTime.Now.AddHours(10),
+            CreationTime = DateTime.UtcNow,
+            TimeToLive = TimeSpan.FromHours(1),
         };
         private static readonly CacheEntry<int> FreshEmptyEntry = new()
         {
-            ExpirationTime = DateTime.Now.AddHours(5),
-            EvictionTime = DateTime.Now.AddHours(10),
+            CreationTime = DateTime.UtcNow,
+            TimeToLive = TimeSpan.FromHours(1),
         };
         private static readonly CacheEntry<int> StaleEntry = new(10)
         {
-            ExpirationTime = DateTime.Now.AddHours(-5),
-            EvictionTime = DateTime.Now.AddHours(-3),
+            CreationTime = DateTime.UtcNow.AddHours(-5),
+            TimeToLive = TimeSpan.FromHours(1),
         };
 
         [Test]
@@ -99,8 +99,7 @@ namespace ModernCaching.UTest
             CacheEntry<object?>? entry = new(null)
             {
                 CreationTime = DateTime.Now,
-                ExpirationTime = DateTime.Now.AddHours(5),
-                EvictionTime = DateTime.MaxValue,
+                TimeToLive = TimeSpan.FromHours(1),
             };
 
             Mock<ICache<int, object?>> localCacheMock = new();

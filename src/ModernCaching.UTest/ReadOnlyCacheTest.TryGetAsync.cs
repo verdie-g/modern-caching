@@ -160,7 +160,7 @@ namespace ModernCaching.UTest
         }
 
         [Theory]
-        public async Task ShouldCorrectlySetExpirationAndGraceTime()
+        public async Task ShouldCorrectlySetCreationTimeAndTimeToLive()
         {
             CacheEntry<int>? localCacheEntry = null;
             Mock<ICache<int, int>> localCacheMock = new();
@@ -175,15 +175,15 @@ namespace ModernCaching.UTest
             dateTimeMock.Setup(dt => dt.UtcNow).Returns(new DateTime(2000, 1, 1));
 
             Mock<IRandom> randomMock = new(MockBehavior.Strict);
-            randomMock.Setup(r => r.Next(0, 5)).Returns(10);
+            randomMock.Setup(r => r.Next(0, 5)).Returns(2);
 
             ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, dataSourceMock.Object, Options, Timer,
                 dateTimeMock.Object, randomMock.Object);
             Assert.AreEqual((true, 10), await cache.TryGetAsync(5));
             localCacheMock.Verify(c => c.Set(5, It.Is<CacheEntry<int>>(e =>
                 e.Value == 10
-                && e.ExpirationTime == new DateTime(2000, 1, 1, 0, 1, 30)
-                && e.EvictionTime == new DateTime(2000, 1, 1, 0, 3, 0))));
+                && e.CreationTime == new DateTime(2000, 1, 1)
+                && e.TimeToLive == TimeSpan.FromSeconds(98))));
         }
 
         [Theory]
@@ -411,7 +411,8 @@ namespace ModernCaching.UTest
             }
             else
             {
-                Assert.AreEqual(DateTime.UtcNow.AddHours(5).Ticks, localCacheEntry!.ExpirationTime.Ticks, delta: TimeSpan.FromHours(1).Ticks);
+                Assert.AreEqual(DateTime.UtcNow.Ticks, localCacheEntry.CreationTime.Ticks, delta: TimeSpan.FromMinutes(5).Ticks);
+                Assert.AreEqual(TimeSpan.FromHours(1).Ticks, localCacheEntry.TimeToLive.Ticks, delta: TimeSpan.FromMinutes(5).Ticks);
             }
         }
 
@@ -427,11 +428,10 @@ namespace ModernCaching.UTest
 
         private CacheEntry<TValue> FreshEntry<TValue>()
         {
-            return new CacheEntry<TValue>()
+            return new CacheEntry<TValue>
             {
                 CreationTime = DateTime.UtcNow,
-                ExpirationTime = DateTime.UtcNow.AddHours(5),
-                EvictionTime = DateTime.UtcNow.AddHours(10),
+                TimeToLive = TimeSpan.FromHours(1),
             };
         }
 
@@ -440,8 +440,7 @@ namespace ModernCaching.UTest
             return new CacheEntry<TValue>(value)
             {
                 CreationTime = DateTime.UtcNow,
-                ExpirationTime = DateTime.UtcNow.AddHours(5),
-                EvictionTime = DateTime.UtcNow.AddHours(10),
+                TimeToLive = TimeSpan.FromHours(1),
             };
         }
 
@@ -449,9 +448,8 @@ namespace ModernCaching.UTest
         {
             return new CacheEntry<TValue>()
             {
-                CreationTime = DateTime.UtcNow,
-                ExpirationTime = DateTime.UtcNow.AddHours(-5),
-                EvictionTime = DateTime.UtcNow.AddHours(-3),
+                CreationTime = DateTime.UtcNow.AddHours(-5),
+                TimeToLive = TimeSpan.FromHours(1),
             };
         }
 
@@ -459,9 +457,8 @@ namespace ModernCaching.UTest
         {
             return new CacheEntry<TValue>(value)
             {
-                CreationTime = DateTime.UtcNow,
-                ExpirationTime = DateTime.UtcNow.AddHours(-5),
-                EvictionTime = DateTime.UtcNow.AddHours(-3),
+                CreationTime = DateTime.UtcNow.AddHours(-5),
+                TimeToLive = TimeSpan.FromHours(1),
             };
         }
     }

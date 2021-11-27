@@ -36,11 +36,8 @@ namespace ModernCaching.LocalCaching
         /// <summary>The UTC creation time of the entry.</summary>
         public DateTime CreationTime { get; internal set; }
 
-        /// <summary>The UTC time after which the value is considered stale.</summary>
-        public DateTime ExpirationTime { get; internal set; }
-
-        /// <summary>The UTC time after which the entry should get evicted (if the cache is evicting).</summary>
-        public DateTime EvictionTime { get; internal set; }
+        /// <summary>Duration after which the entry is considered stale.</summary>
+        public TimeSpan TimeToLive { get; internal set; }
 
         /// <summary>Retrieves the value or the default value of the underlying type.</summary>
         public TValue GetValueOrDefault()

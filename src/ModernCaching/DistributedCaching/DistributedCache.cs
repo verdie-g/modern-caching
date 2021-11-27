@@ -110,8 +110,7 @@ namespace ModernCaching.DistributedCaching
             }
 
             string keyStr = BuildDistributedCacheKey(key);
-            TimeSpan timeToLive = entry.EvictionTime - DateTime.UtcNow;
-            return _cache.SetAsync(keyStr, valueBytes, timeToLive);
+            return _cache.SetAsync(keyStr, valueBytes, entry.TimeToLive);
         }
 
         /// <inheritdoc />
@@ -137,11 +136,8 @@ namespace ModernCaching.DistributedCaching
             long unixCreationTime = new DateTimeOffset(entry.CreationTime).ToUnixTimeSeconds();
             writer.Write(unixCreationTime);
 
-            long unixExpirationTime = new DateTimeOffset(entry.ExpirationTime).ToUnixTimeSeconds();
-            writer.Write(unixExpirationTime);
-
-            long unixEvictionTime = new DateTimeOffset(entry.EvictionTime).ToUnixTimeSeconds();
-            writer.Write(unixEvictionTime);
+            long ttlSeconds = (long)entry.TimeToLive.TotalSeconds;
+            writer.Write(ttlSeconds);
 
             if (entry.HasValue)
             {
@@ -163,19 +159,15 @@ namespace ModernCaching.DistributedCaching
             long unixCreationTime = reader.ReadInt64();
             DateTime creationTime = DateTimeOffset.FromUnixTimeSeconds(unixCreationTime).UtcDateTime;
 
-            long unixExpirationTime = reader.ReadInt64();
-            DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(unixExpirationTime).UtcDateTime;
-
-            long unixEvictionTime = reader.ReadInt64();
-            DateTime evictionTime = DateTimeOffset.FromUnixTimeSeconds(unixEvictionTime).UtcDateTime;
+            long ttlSeconds = reader.ReadInt64();
+            TimeSpan timeToLive = TimeSpan.FromSeconds(ttlSeconds);
 
             // If the end of the stream was reached it means that the entry has no value.
             var cacheEntry = reader.BaseStream.Position == reader.BaseStream.Length
                 ? new CacheEntry<TValue>()
                 : new CacheEntry<TValue>(_keyValueSerializer.DeserializeValue(reader));
             cacheEntry.CreationTime = creationTime;
-            cacheEntry.ExpirationTime = expirationTime;
-            cacheEntry.EvictionTime = evictionTime;
+            cacheEntry.TimeToLive = timeToLive;
 
             return cacheEntry;
         }
