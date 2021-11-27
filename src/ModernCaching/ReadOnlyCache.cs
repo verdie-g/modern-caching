@@ -193,7 +193,7 @@ namespace ModernCaching
 
             // If an entry already exists for the key with the same value, extends its lifetime instead of replacing it
             // to avoid replacing a gen 2 object by gen 0 one which would induce gen 2 fragmentation.
-            if (oldCacheEntry != null && CacheEntryEquals(oldCacheEntry, newCacheEntry))
+            if (newCacheEntry.Equals(oldCacheEntry))
             {
                 oldCacheEntry.CreationTime = newCacheEntry.CreationTime;
                 oldCacheEntry.EvictionTime = newCacheEntry.EvictionTime;
@@ -408,18 +408,6 @@ namespace ModernCaching
             {
                 return (false, null);
             }
-        }
-
-        private bool CacheEntryEquals(CacheEntry<TValue> cacheEntry1, CacheEntry<TValue> cacheEntry2)
-        {
-            if (cacheEntry1.HasValue)
-            {
-                // Equals will involve boxing for structs that don't implement IEquatable.
-                return cacheEntry2.HasValue
-                       && EqualityComparer<TValue>.Default.Equals(cacheEntry1.Value, cacheEntry2.Value);
-            }
-
-            return !cacheEntry2.HasValue;
         }
 
         private CacheEntry<TValue> NewCacheEntry(TimeSpan timeToLive)

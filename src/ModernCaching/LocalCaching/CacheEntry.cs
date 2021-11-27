@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ModernCaching.LocalCaching
 {
@@ -45,6 +46,35 @@ namespace ModernCaching.LocalCaching
         public TValue GetValueOrDefault()
         {
             return _value;
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is a <see cref="CacheEntry{TValue}"/> and that its
+        /// <see cref="Value"/> is equal to to the one of the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+        public override bool Equals(object? other)
+        {
+            if (other is not CacheEntry<TValue> entry)
+            {
+                return false;
+            }
+
+            if (!HasValue)
+            {
+                return !entry.HasValue;
+            }
+
+            // Equals will involve boxing for structs that don't implement IEquatable.
+            return entry.HasValue && EqualityComparer<TValue>.Default.Equals(Value, entry.Value);
+
+        }
+
+        /// <summary>Computes a hash of the entry using only the <see cref="Value"/>.</summary>
+        public override int GetHashCode()
+        {
+            return HasValue && Value != null ? Value.GetHashCode() : 0;
         }
 
         /// <inheritdoc />
