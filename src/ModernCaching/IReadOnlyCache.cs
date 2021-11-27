@@ -26,7 +26,7 @@ namespace ModernCaching
         /// <param name="value">Value associated with the specified key, if the key is found; otherwise, the default
         /// value for the type of the value parameter. Can be null if the data source returns null.</param>
         /// <returns>True if the local cache contains an element with the specified key; otherwise, false.</returns>
-        /// <exception cref="ArgumentNullException"><see cref="key"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
         bool TryPeek(TKey key, [MaybeNullWhen(false)] out TValue value);
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace ModernCaching
         /// <param name="key">The key of the element to get.</param>
         /// <returns>(true, not default) if a fresh value was found; otherwise, (false, default). The value can be null
         /// if the data source returns null.</returns>
-        /// <exception cref="ArgumentNullException"><see cref="key"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
         ValueTask<(bool found, TValue? value)> TryGetAsync(TKey key);
     }
 }

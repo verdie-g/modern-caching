@@ -1,5 +1,8 @@
 ﻿namespace ModernCaching.DistributedCaching
 {
+    /// <summary>
+    /// Status of an <see cref="IAsyncCache"/> operation.
+    /// </summary>
     public enum AsyncCacheStatus
     {
         /// <summary>

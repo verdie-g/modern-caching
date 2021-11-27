@@ -58,7 +58,7 @@ namespace ModernCaching
         /// Adds a local cache to the resulting <see cref="IReadOnlyCache{TKey,TValue}"/>.
         /// </summary>
         /// <param name="localCache">The local cache.</param>
-        /// <exception cref="ArgumentNullException"><see cref="localCache"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="localCache"/> is null.</exception>
         /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithLocalCache(ICache<TKey, TValue> localCache)
         {

@@ -86,7 +86,9 @@ namespace ModernCaching.UTest
         }
 
         public class NoEqualsType { public override int GetHashCode() => 0; }
+#pragma warning disable 659 // For test
         public class NoGetHashCodeType { public override bool Equals(object? obj) => true; }
+#pragma warning restore 659
         public class OkType { public override bool Equals(object? obj) => true; public override int GetHashCode() => 0; }
         public class DeriveOkType : OkType { }
     }

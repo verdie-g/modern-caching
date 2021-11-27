@@ -20,6 +20,9 @@ namespace ModernCaching.LocalCaching
         /// that locks the entire dictionary.</summary>
         private int _count;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MemoryCache{TKey,TValue}"/> class.
+        /// </summary>
         public MemoryCache()
         {
             _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>>();

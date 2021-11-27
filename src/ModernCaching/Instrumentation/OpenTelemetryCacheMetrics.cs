@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace ModernCaching.Instrumentation
 {
-    public sealed class OpenTelemetryCacheMetrics : ICacheMetrics
+    internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
     {
         private const string MetricNamePrefix = "modern_caching";
         private static readonly AssemblyName AssemblyName = typeof(OpenTelemetryCacheMetrics).Assembly.GetName();
