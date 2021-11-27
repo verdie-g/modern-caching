@@ -92,14 +92,14 @@ was also added as a baseline.
 
 |               Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Allocated |
 |--------------------- |-----------:|----------:|----------:|------:|--------:|----------:|
-| ConcurrentDictionary |   8.967 ns | 0.0788 ns | 0.0699 ns |  1.00 |    0.00 |         - |
-|        ModernCaching |  21.321 ns | 0.0177 ns | 0.0157 ns |  2.38 |    0.02 |         - |
-|           CacheTower | 111.208 ns | 0.4620 ns | 0.4321 ns | 12.40 |    0.09 |      96 B |
-|            Foundatio | 249.350 ns | 0.4539 ns | 0.4246 ns | 27.81 |    0.21 |     216 B |
-|            LazyCache | 258.981 ns | 0.5150 ns | 0.4817 ns | 28.88 |    0.22 |      96 B |
-|          FusionCache | 288.695 ns | 0.8292 ns | 0.7756 ns | 32.21 |    0.29 |     184 B |
-|          EasyCaching | 340.371 ns | 0.4929 ns | 0.4116 ns | 37.95 |    0.31 |     264 B |
-|         CacheManager | 462.209 ns | 0.6508 ns | 0.6087 ns | 51.55 |    0.41 |     344 B |
+| ConcurrentDictionary |   9.728 ns | 0.1687 ns | 0.1578 ns |  1.00 |    0.00 |         - |
+|        ModernCaching |  23.887 ns | 0.1283 ns | 0.1200 ns |  2.46 |    0.04 |         - |
+|           CacheTower | 111.146 ns | 0.6491 ns | 0.5754 ns | 11.44 |    0.21 |      96 B |
+|            Foundatio | 251.498 ns | 0.2877 ns | 0.2551 ns | 25.88 |    0.43 |     216 B |
+|            LazyCache | 258.821 ns | 1.2548 ns | 0.9797 ns | 26.64 |    0.43 |      96 B |
+|          FusionCache | 292.959 ns | 1.8200 ns | 1.6134 ns | 30.15 |    0.52 |     184 B |
+|          EasyCaching | 383.052 ns | 0.2729 ns | 0.2419 ns | 39.42 |    0.65 |     264 B |
+|         CacheManager | 465.721 ns | 0.5287 ns | 0.4687 ns | 47.93 |    0.76 |     344 B |
 
 This library has similar performance as a raw ConcurrentDictionary since its hot
 path is a thin layer around it. It doesn't allocate anything, putting no pressure
