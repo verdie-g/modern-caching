@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a random number generator.
     /// </summary>
-    public interface IRandom
+    internal interface IRandom
     {
         /// <summary>
         /// Returns a random integer.
