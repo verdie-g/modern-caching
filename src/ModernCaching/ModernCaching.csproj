@@ -6,7 +6,7 @@
         <!-- Enable C# 8 nullable and treat its warnings as errors -->
         <Nullable>enable</Nullable>
         <WarningsAsErrors>CS8073;CS8597;CS8600;CS8601;CS8602;CS8603;CS8604;CS8605;CS8606;CS8607;CS8608;CS8609;CS8610;CS8611;CS8612;CS8613;CS8614;CS8615;CS8616;CS8617;CS8618;CS8619;CS8620;CS8621;CS8622;CS8624;CS8625;CS8626;CS8629;CS8631;CS8632;CS8633;CS8634;CS8638;CS8643;CS8644;CS8645;CS8653;CS8654;CS8655;CS8667;CS8714</WarningsAsErrors>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
         <Authors>Grégoire Verdier</Authors>
         <Description>Modern caching library for modern .NET</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -31,7 +31,7 @@
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.0.0" />
       <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="3.0.0" />
-      <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.0-preview.7.21377.19" />
+      <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
     </ItemGroup>
 
 </Project>
