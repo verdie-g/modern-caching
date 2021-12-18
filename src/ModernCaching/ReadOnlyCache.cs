@@ -19,6 +19,11 @@ namespace ModernCaching
     internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
     {
         /// <summary>
+        /// Number max of keys sent to <see cref="IDataSource{TKey,TValue}.LoadAsync"/>.
+        /// </summary>
+        private const int LoadBatchSize = 1000;
+
+        /// <summary>
         /// Name of the cache.
         /// </summary>
         private readonly string _name;
@@ -223,6 +228,45 @@ namespace ModernCaching
         }
 
         private async Task InnerLoadAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
+        {
+            // If many instances start their preload at the same time they could all get misses/stale from the distributed
+            // cache and all proceed to hit the data source which is dangerous. Also if the data source is a relational
+            // database it's often not great to do a filter on a very large number of keys. To cope with these two problems
+            // the load is done in several times by chunking the keys.
+            foreach (var batch in ChunkKeyEntryPairs(keyEntryPairs))
+            {
+                await LoadBatchAsync(batch);
+            }
+        }
+
+        private IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>[]> ChunkKeyEntryPairs(
+            IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
+        {
+            using var e = keyEntryPairs.GetEnumerator();
+            while (e.MoveNext())
+            {
+                var chunk = new KeyValuePair<TKey, CacheEntry<TValue>?>[LoadBatchSize];
+                chunk[0] = e.Current;
+
+                int i = 1;
+                for (; i < chunk.Length && e.MoveNext(); i += 1)
+                {
+                    chunk[i] = e.Current;
+                }
+
+                if (i == chunk.Length)
+                {
+                    yield return chunk;
+                }
+                else
+                {
+                    Array.Resize(ref chunk, i);
+                    yield return chunk;
+                }
+            }
+        }
+
+        private async Task LoadBatchAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
         {
             // TODO: could also set tasks in _loadingTasks.
 

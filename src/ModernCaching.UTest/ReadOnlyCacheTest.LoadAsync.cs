@@ -112,6 +112,28 @@ namespace ModernCaching.UTest
         }
 
         [Test]
+        public async Task ShouldChunkKeys()
+        {
+            Mock<IDataSource<int, int>> dataSourceMock = new();
+            dataSourceMock
+                .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+                .Returns(CreateDataSourceResults());
+
+            ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
+                Random);
+            await cache.LoadAsync(Enumerable.Range(1, 5432));
+
+            dataSourceMock.Verify(s => s.LoadAsync(
+                    It.Is<IEnumerable<int>>(e => e.Count() == 1000),
+                    It.IsAny<CancellationToken>()),
+                Times.Exactly(5));
+            dataSourceMock.Verify(s => s.LoadAsync(
+                    It.Is<IEnumerable<int>>(e => e.Count() == 432),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Test]
         public void ShouldThrowIfDataSourceThrows()
         {
             Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
