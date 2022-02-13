@@ -90,16 +90,16 @@ that is, getting locally cached data. The .NET
 [ConcurrentDictionary](https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2)
 was also added as a baseline.
 
-|               Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Allocated |
-|--------------------- |-----------:|----------:|----------:|------:|--------:|----------:|
-| ConcurrentDictionary |   9.728 ns | 0.1687 ns | 0.1578 ns |  1.00 |    0.00 |         - |
-|        ModernCaching |  23.887 ns | 0.1283 ns | 0.1200 ns |  2.46 |    0.04 |         - |
-|           CacheTower | 111.146 ns | 0.6491 ns | 0.5754 ns | 11.44 |    0.21 |      96 B |
-|            Foundatio | 251.498 ns | 0.2877 ns | 0.2551 ns | 25.88 |    0.43 |     216 B |
-|            LazyCache | 258.821 ns | 1.2548 ns | 0.9797 ns | 26.64 |    0.43 |      96 B |
-|          FusionCache | 292.959 ns | 1.8200 ns | 1.6134 ns | 30.15 |    0.52 |     184 B |
-|          EasyCaching | 383.052 ns | 0.2729 ns | 0.2419 ns | 39.42 |    0.65 |     264 B |
-|         CacheManager | 465.721 ns | 0.5287 ns | 0.4687 ns | 47.93 |    0.76 |     344 B |
+|               Method |      Mean |    Error |   StdDev | Ratio | RatioSD | Allocated |
+|--------------------- |----------:|---------:|---------:|------:|--------:|----------:|
+| ConcurrentDictionary |  10.26 ns | 0.004 ns | 0.004 ns |  1.00 |    0.00 |         - |
+|        ModernCaching |  23.08 ns | 0.020 ns | 0.017 ns |  2.25 |    0.00 |         - |
+|           CacheTower | 103.02 ns | 0.255 ns | 0.199 ns | 10.04 |    0.02 |      96 B |
+|            LazyCache | 157.87 ns | 0.995 ns | 0.931 ns | 15.40 |    0.09 |      96 B |
+|            Foundatio | 158.23 ns | 0.337 ns | 0.299 ns | 15.43 |    0.03 |     216 B |
+|          FusionCache | 195.63 ns | 0.414 ns | 0.387 ns | 19.07 |    0.04 |     184 B |
+|          EasyCaching | 244.47 ns | 1.033 ns | 0.966 ns | 23.83 |    0.10 |     264 B |
+|         CacheManager | 312.22 ns | 0.811 ns | 0.758 ns | 30.43 |    0.07 |     344 B |
 
 This library has similar performance as a raw ConcurrentDictionary since its hot
 path is a thin layer around it. It doesn't allocate anything, putting no pressure
