@@ -344,53 +344,53 @@ namespace ModernCaching
         /// Refreshes a key from the distributed cache or data source. Can return a stale value if of these two layers
         /// are unavailable.
         /// </summary>
-        private async Task<(bool found, TValue? value)> RefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
+        private async Task<(bool found, TValue? value)> RefreshAsync(TKey k, CacheEntry<TValue>? e)
         {
-            var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
-            if (status == AsyncCacheStatus.Error)
+            var cacheEntry = await DoRefreshAsync(k, e);
+            return cacheEntry != null && cacheEntry.HasValue
+                ? (true, cacheEntry.Value)
+                : (false, default);
+            
+            async Task<CacheEntry<TValue>?> DoRefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
             {
-                // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
-                // local entry or not found.
-                return localCacheEntry != null && localCacheEntry.HasValue
-                    ? (true, localCacheEntry.Value)
-                    : (false, default);
-            }
+                var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
+                if (status == AsyncCacheStatus.Error)
+                {
+                    // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
+                    // local entry or not found.
+                    return localCacheEntry;
+                }
 
-            if (status == AsyncCacheStatus.Hit)
-            {
-                if (!IsCacheEntryStale(distributedCacheEntry!))
+                if (status == AsyncCacheStatus.Hit && !IsCacheEntryStale(distributedCacheEntry!))
                 {
                     SetOrExtendLocally(key, distributedCacheEntry!, localCacheEntry);
-                    return distributedCacheEntry!.HasValue ? (true, distributedCacheEntry.Value) : (false, default);
+                    return distributedCacheEntry;
                 }
-            }
 
-            (bool loadSuccessful, var dataSourceEntry) = await LoadFromDataSourceAsync(key);
-            if (!loadSuccessful)
-            {
-                // If the data source is unavailable return the stale value of the distributed cache or the stale
-                // value of the local cache or not found.
-                var availableCacheEntry = distributedCacheEntry ?? localCacheEntry;
-                return availableCacheEntry != null && availableCacheEntry.HasValue
-                    ? (true, availableCacheEntry.Value)
-                    : (false, default);
-            }
-
-            if (dataSourceEntry == null) // If no results were returned from the data source.
-            {
-                // If a local entry exists, the data was recently deleted from the source so it should also be deleted
-                // from the local and distributed cache.
-                if (localCacheEntry != null && TryDeleteLocally(key))
+                (bool loadSuccessful, var dataSourceEntry) = await LoadFromDataSourceAsync(key);
+                if (!loadSuccessful)
                 {
-                    _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    // If the data source is unavailable return the stale value of the distributed cache or the stale
+                    // value of the local cache or not found.
+                    return distributedCacheEntry ?? localCacheEntry;
                 }
 
-                return (false, default);
-            }
+                if (dataSourceEntry == null) // If no results were returned from the data source.
+                {
+                    // If a local entry exists, the data was recently deleted from the source so it should also be deleted
+                    // from the local and distributed cache.
+                    if (localCacheEntry != null && TryDeleteLocally(key))
+                    {
+                        _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    }
 
-            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
-            SetOrExtendLocally(key, dataSourceEntry, localCacheEntry);
-            return dataSourceEntry.HasValue ? (true, dataSourceEntry.Value) : (false, default);
+                    return null;
+                }
+
+                _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
+                SetOrExtendLocally(key, dataSourceEntry, localCacheEntry);
+                return dataSourceEntry;
+            }
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
