@@ -34,7 +34,6 @@ namespace ModernCaching
         private ICache<TKey, TValue>? _localCache;
         private IAsyncCache? _distributedCache;
         private IKeyValueSerializer<TKey, TValue>? _keyValueSerializer;
-        private string? _keyPrefix;
         private Func<object?, Task<IEnumerable<TKey>>>? _getKeys;
         private object? _getKeysState;
         private ILoggerFactory? _loggerFactory;
@@ -72,15 +71,13 @@ namespace ModernCaching
         /// </summary>
         /// <param name="distributedCache">The distributed cache.</param>
         /// <param name="keyValueSerializer"><typeparamref name="TKey"/>/<typeparamref name="TValue"/> serializer.</param>
-        /// <param name="keyPrefix">Prefix prepended to the distributed cache key.</param>
         /// <exception cref="ArgumentNullException"><paramref name="distributedCache"/> or <paramref name="keyValueSerializer"/> is null.</exception>
         /// <returns>A reference to this instance.</returns>
         public ReadOnlyCacheBuilder<TKey, TValue> WithDistributedCache(IAsyncCache distributedCache,
-            IKeyValueSerializer<TKey, TValue> keyValueSerializer, string? keyPrefix = null)
+            IKeyValueSerializer<TKey, TValue> keyValueSerializer)
         {
             _distributedCache = distributedCache ?? throw new ArgumentNullException(nameof(distributedCache));
             _keyValueSerializer = keyValueSerializer ?? throw new ArgumentNullException(nameof(keyValueSerializer));
-            _keyPrefix = keyPrefix;
             return this;
         }
 
@@ -132,7 +129,7 @@ namespace ModernCaching
 
             ILogger? distributedCacheWrapperLogger = _loggerFactory?.CreateLogger<IDistributedCache<TKey, TValue>>();
             IDistributedCache<TKey, TValue>? distributedCacheWrapper = distributedCache != null
-                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, _keyPrefix, distributedCacheWrapperLogger)
+                ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, distributedCacheWrapperLogger)
                 : null;
 
             var cache = new ReadOnlyCache<TKey, TValue>(_name, localCache, distributedCacheWrapper, dataSource,

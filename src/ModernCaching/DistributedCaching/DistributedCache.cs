@@ -47,20 +47,19 @@ namespace ModernCaching.DistributedCaching
         private readonly IKeyValueSerializer<TKey, TValue> _keyValueSerializer;
 
         /// <summary>
-        /// Prefix added to the keys of the <see cref="_cache"/> ("{prefix}|{cacheName}|{headerVersion}/{cacheVersion}|").
+        /// Prefix added to the keys of the <see cref="_cache"/> ("{cacheName}|{headerVersion}/{cacheVersion}|").
         /// </summary>
-        private readonly string? _keyPrefix;
+        private readonly string _keyPrefix;
 
         private readonly ILogger? _logger;
 
         public DistributedCache(string name, IAsyncCache cache, IKeyValueSerializer<TKey, TValue> keyValueSerializer,
-            string? keyPrefix, ILogger? logger)
+            ILogger? logger)
         {
             _name = name;
             _cache = cache;
             _keyValueSerializer = keyValueSerializer;
-            _keyPrefix = (string.IsNullOrEmpty(keyPrefix) ? _name : _keyPrefix + '|' + _name) + '|' + HeaderVersion
-                         + '/' + keyValueSerializer.Version + '|';
+            _keyPrefix = $"{_name}|{HeaderVersion}/{keyValueSerializer.Version}|";
             _logger = logger;
         }
 
@@ -120,7 +119,7 @@ namespace ModernCaching.DistributedCaching
             return _cache.DeleteAsync(keyStr);
         }
 
-        /// <summary>{prefix}|{cacheName}|{headerVersion}/{cacheVersion}|{key}</summary>
+        /// <summary>{cacheName}|{headerVersion}/{cacheVersion}|{key}</summary>
         private string BuildDistributedCacheKey(TKey key)
         {
             return _keyPrefix + _keyValueSerializer.StringifyKey(key);
