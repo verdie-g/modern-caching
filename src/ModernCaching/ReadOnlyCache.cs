@@ -378,14 +378,21 @@ namespace ModernCaching
 
                 if (dataSourceEntry == null) // If no results were returned from the data source.
                 {
-                    // If a local entry exists, the data was recently deleted from the source so it should also be deleted
-                    // from the local and distributed cache.
-                    if (localCacheEntry != null && TryDeleteLocally(key))
+                    if (_options.CacheDataSourceMisses)
                     {
-                        _ = Task.Run(() => DeleteRemotelyAsync(key));
+                         dataSourceEntry = NewCacheEntry(_options.DefaultTimeToLive);
                     }
+                    else
+                    {
+                        // If a local entry exists, the data was recently deleted from the source so it should also be
+                        // deleted from the local and distributed cache.
+                        if (localCacheEntry != null && TryDeleteLocally(key))
+                        {
+                            _ = Task.Run(() => DeleteRemotelyAsync(key));
+                        }
 
-                    return null;
+                        return null;
+                    }
                 }
 
                 _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
@@ -441,9 +448,7 @@ namespace ModernCaching
                     .GetAsyncEnumerator(cts.Token);
                 if (!await results.MoveNextAsync())
                 {
-                    return _options.CacheDataSourceMisses
-                        ? (true, NewCacheEntry(_options.DefaultTimeToLive))
-                        : (true, null);
+                    return (true, null);
                 }
 
                 var dataSourceResult = results.Current;
