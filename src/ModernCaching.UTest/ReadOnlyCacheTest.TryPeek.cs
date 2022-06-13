@@ -4,113 +4,112 @@ using ModernCaching.Utils;
 using Moq;
 using NUnit.Framework;
 
-namespace ModernCaching.UTest
+namespace ModernCaching.UTest;
+
+public class ReadOnlyCacheTest_TryPeek
 {
-    public class ReadOnlyCacheTest_TryPeek
+    private const string C = "cache_test";
+    private static readonly ReadOnlyCacheOptions Options = new();
+    private static readonly ITimer Timer = Mock.Of<ITimer>();
+    private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
+    private static readonly IRandom Random = new ThreadSafeRandom();
+    private static readonly CacheEntry<int> FreshEntry = new(10)
     {
-        private const string C = "cache_test";
-        private static readonly ReadOnlyCacheOptions Options = new();
-        private static readonly ITimer Timer = Mock.Of<ITimer>();
-        private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
-        private static readonly IRandom Random = new ThreadSafeRandom();
-        private static readonly CacheEntry<int> FreshEntry = new(10)
+        CreationTime = DateTime.UtcNow,
+        TimeToLive = TimeSpan.FromHours(1),
+    };
+    private static readonly CacheEntry<int> FreshEmptyEntry = new()
+    {
+        CreationTime = DateTime.UtcNow,
+        TimeToLive = TimeSpan.FromHours(1),
+    };
+    private static readonly CacheEntry<int> StaleEntry = new(10)
+    {
+        CreationTime = DateTime.UtcNow.AddHours(-5),
+        TimeToLive = TimeSpan.FromHours(1),
+    };
+
+    [Test]
+    public void GettingNullKeyShouldThrow()
+    {
+        ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random);
+        Assert.Throws<ArgumentNullException>(() => cache.TryPeek(null!, out _));
+    }
+
+    [Theory]
+    public void ShouldReturnLocalEntryIfExists(bool entryHasValue)
+    {
+        var entry = entryHasValue ? FreshEntry : FreshEmptyEntry;
+
+        Mock<ICache<int, int>> localCacheMock = new();
+        localCacheMock
+            .Setup(c => c.TryGet(5, out entry))
+            .Returns(true);
+
+        ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+            Random);
+        bool found = cache.TryPeek(5, out int val);
+        if (entryHasValue)
         {
-            CreationTime = DateTime.UtcNow,
-            TimeToLive = TimeSpan.FromHours(1),
-        };
-        private static readonly CacheEntry<int> FreshEmptyEntry = new()
-        {
-            CreationTime = DateTime.UtcNow,
-            TimeToLive = TimeSpan.FromHours(1),
-        };
-        private static readonly CacheEntry<int> StaleEntry = new(10)
-        {
-            CreationTime = DateTime.UtcNow.AddHours(-5),
-            TimeToLive = TimeSpan.FromHours(1),
-        };
-
-        [Test]
-        public void GettingNullKeyShouldThrow()
-        {
-            ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random);
-            Assert.Throws<ArgumentNullException>(() => cache.TryPeek(null!, out _));
-        }
-
-        [Theory]
-        public void ShouldReturnLocalEntryIfExists(bool entryHasValue)
-        {
-            var entry = entryHasValue ? FreshEntry : FreshEmptyEntry;
-
-            Mock<ICache<int, int>> localCacheMock = new();
-            localCacheMock
-                .Setup(c => c.TryGet(5, out entry))
-                .Returns(true);
-
-            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-                Random);
-            bool found = cache.TryPeek(5, out int val);
-            if (entryHasValue)
-            {
-                Assert.IsTrue(found);
-                Assert.AreEqual(10, val);
-            }
-            else
-            {
-                Assert.IsFalse(found);
-                Assert.Zero(val);
-            }
-        }
-
-        [Test]
-        public void ShouldReturnLocalEntryEvenIfStale()
-        {
-            CacheEntry<int>? entry = StaleEntry;
-
-            Mock<ICache<int, int>> localCacheMock = new();
-            localCacheMock
-                .Setup(c => c.TryGet(5, out entry))
-                .Returns(true);
-
-            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-                Random);
-            Assert.IsTrue(cache.TryPeek(5, out int val));
+            Assert.IsTrue(found);
             Assert.AreEqual(10, val);
         }
-
-        [Test]
-        public void ShouldReturnDefaultIfKeyWasNotPresentInLocalCache()
+        else
         {
-            CacheEntry<int>? entry = null;
-
-            Mock<ICache<int, int>> localCacheMock = new();
-            localCacheMock
-                .Setup(c => c.TryGet(5, out entry))
-                .Returns(false);
-
-            ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-                Random);
-            Assert.IsFalse(cache.TryPeek(5, out int val));
+            Assert.IsFalse(found);
             Assert.Zero(val);
         }
+    }
 
-        [Test]
-        public void ShouldReturnNullIfNullWasCached()
+    [Test]
+    public void ShouldReturnLocalEntryEvenIfStale()
+    {
+        CacheEntry<int>? entry = StaleEntry;
+
+        Mock<ICache<int, int>> localCacheMock = new();
+        localCacheMock
+            .Setup(c => c.TryGet(5, out entry))
+            .Returns(true);
+
+        ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+            Random);
+        Assert.IsTrue(cache.TryPeek(5, out int val));
+        Assert.AreEqual(10, val);
+    }
+
+    [Test]
+    public void ShouldReturnDefaultIfKeyWasNotPresentInLocalCache()
+    {
+        CacheEntry<int>? entry = null;
+
+        Mock<ICache<int, int>> localCacheMock = new();
+        localCacheMock
+            .Setup(c => c.TryGet(5, out entry))
+            .Returns(false);
+
+        ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
+            Random);
+        Assert.IsFalse(cache.TryPeek(5, out int val));
+        Assert.Zero(val);
+    }
+
+    [Test]
+    public void ShouldReturnNullIfNullWasCached()
+    {
+        CacheEntry<object?>? entry = new(null)
         {
-            CacheEntry<object?>? entry = new(null)
-            {
-                CreationTime = DateTime.Now,
-                TimeToLive = TimeSpan.FromHours(1),
-            };
+            CreationTime = DateTime.Now,
+            TimeToLive = TimeSpan.FromHours(1),
+        };
 
-            Mock<ICache<int, object?>> localCacheMock = new();
-            localCacheMock
-                .Setup(c => c.TryGet(5, out entry))
-                .Returns(true);
+        Mock<ICache<int, object?>> localCacheMock = new();
+        localCacheMock
+            .Setup(c => c.TryGet(5, out entry))
+            .Returns(true);
 
-            ReadOnlyCache<int, object?> cache = new(C, localCacheMock.Object, null, null!, Options, Timer,
-                MachineDateTime, Random);
-            Assert.IsTrue(cache.TryPeek(5, out object? val));
-            Assert.IsNull(val);
-        }
+        ReadOnlyCache<int, object?> cache = new(C, localCacheMock.Object, null, null!, Options, Timer,
+            MachineDateTime, Random);
+        Assert.IsTrue(cache.TryPeek(5, out object? val));
+        Assert.IsNull(val);
     }
 }

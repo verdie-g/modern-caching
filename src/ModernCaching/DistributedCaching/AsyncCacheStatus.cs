@@ -1,23 +1,22 @@
-﻿namespace ModernCaching.DistributedCaching
+﻿namespace ModernCaching.DistributedCaching;
+
+/// <summary>
+/// Status of an <see cref="IAsyncCache"/> operation.
+/// </summary>
+public enum AsyncCacheStatus
 {
     /// <summary>
-    /// Status of an <see cref="IAsyncCache"/> operation.
+    /// The key was found.
     /// </summary>
-    public enum AsyncCacheStatus
-    {
-        /// <summary>
-        /// The key was found.
-        /// </summary>
-        Hit,
+    Hit,
 
-        /// <summary>
-        /// The key was not found.
-        /// </summary>
-        Miss,
+    /// <summary>
+    /// The key was not found.
+    /// </summary>
+    Miss,
 
-        /// <summary>
-        /// An error occured.
-        /// </summary>
-        Error,
-    }
+    /// <summary>
+    /// An error occured.
+    /// </summary>
+    Error,
 }

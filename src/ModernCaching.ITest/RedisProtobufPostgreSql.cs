@@ -16,103 +16,103 @@ using NUnit.Framework;
 using ProtoBuf;
 using StackExchange.Redis;
 
-namespace ModernCaching.ITest
+namespace ModernCaching.ITest;
+
+/// <summary>
+/// - local cache: builtin MemoryCache
+/// - distributed cache: Redis with Protobuf serialization
+/// - data source: PostgreSQL
+/// </summary>
+public class RedisProtobufPostgreSql
 {
-    /// <summary>
-    /// - local cache: builtin MemoryCache
-    /// - distributed cache: Redis with Protobuf serialization
-    /// - data source: PostgreSQL
-    /// </summary>
-    public class RedisProtobufPostgreSql
+    private DockerClient? _docker;
+    private string[] _containerIds = Array.Empty<string>();
+    private IReadOnlyCache<Guid, User> _cache = default!;
+
+    [OneTimeSetUp]
+    public async Task OneTimeSetUp()
     {
-        private DockerClient? _docker;
-        private string[] _containerIds = Array.Empty<string>();
-        private IReadOnlyCache<Guid, User> _cache = default!;
+        _docker = new DockerClientConfiguration().CreateClient();
+        _containerIds = await Task.WhenAll(
+            RunContainerAsync(_docker, "redis", 6379),
+            RunContainerAsync(_docker, "postgres", 5432, new[] { "POSTGRES_HOST_AUTH_METHOD=trust" })
+        );
 
-        [OneTimeSetUp]
-        public async Task OneTimeSetUp()
+        var redis = await ConnectionMultiplexer.ConnectAsync("localhost,allowAdmin=true");
+
+        string postgreSqlConnectionString = "Host=localhost;User ID=postgres";
+        await InitializePostgreSql(postgreSqlConnectionString);
+
+        _cache = await new ReadOnlyCacheBuilder<Guid, User>("test", new UserDataSource(postgreSqlConnectionString))
+            .WithLocalCache(new MemoryCache<Guid, User>())
+            .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
+            .WithLoggerFactory(new ConsoleLoggerFactory())
+            .WithPreload(_ => Task.FromResult<IEnumerable<Guid>>(new Guid[] { new("c11f0067-ec91-4355-8c7e-1caf4c940136")}), null)
+            .BuildAsync();
+    }
+
+    [OneTimeTearDown]
+    public async Task OneTimeTearDown()
+    {
+        await Task.WhenAll(_containerIds.Select(id => KillContainerAsync(_docker!, id)));
+    }
+
+    [Test]
+    public void PreloadedKeyShouldPresentInCache()
+    {
+        Guid userId = new("c11f0067-ec91-4355-8c7e-1caf4c940136");
+        Assert.IsTrue(_cache.TryPeek(userId, out User? user));
+        Assert.AreEqual("Raphaël", user!.Name);
+    }
+
+    [Test]
+    public async Task TryPeekShouldRefreshKeyInBackground()
+    {
+        Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
+        Assert.IsFalse(_cache.TryPeek(userId, out User? user));
+        do
         {
-            _docker = new DockerClientConfiguration().CreateClient();
-            _containerIds = await Task.WhenAll(
-                RunContainerAsync(_docker, "redis", 6379),
-                RunContainerAsync(_docker, "postgres", 5432, new[] { "POSTGRES_HOST_AUTH_METHOD=trust" })
-            );
+            await Task.Delay(1000);
+        } while (!_cache.TryPeek(userId, out user));
+        Assert.IsNotNull(user);
+        Assert.AreEqual("Gabriel", user!.Name);
+    }
 
-            var redis = await ConnectionMultiplexer.ConnectAsync("localhost,allowAdmin=true");
+    [Test]
+    public async Task TryGetAsyncShouldReturnFalseForNonExistingKey()
+    {
+        Guid userId = new("cd288523-a602-47d2-ad6b-ceff590fcda9");
+        (bool found, User? _) = await _cache.TryGetAsync(userId);
+        Assert.IsFalse(found);
+    }
 
-            string postgreSqlConnectionString = "Host=localhost;User ID=postgres";
-            await InitializePostgreSql(postgreSqlConnectionString);
+    [Test]
+    public async Task TryGetAsyncShouldReturnTrueForExistingKey()
+    {
+        Guid userId = new("ed67d23e-74bc-42ca-bc6d-ee9f302b67c1");
+        (bool found, User? user) = await _cache.TryGetAsync(userId);
+        Assert.IsTrue(found);
+        Assert.IsNotNull(user);
+        Assert.AreEqual("Léo", user!.Name);
+    }
 
-            _cache = await new ReadOnlyCacheBuilder<Guid, User>("test", new UserDataSource(postgreSqlConnectionString))
-                .WithLocalCache(new MemoryCache<Guid, User>())
-                .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
-                .WithLoggerFactory(new ConsoleLoggerFactory())
-                .WithPreload(_ => Task.FromResult<IEnumerable<Guid>>(new Guid[] { new("c11f0067-ec91-4355-8c7e-1caf4c940136")}), null)
-                .BuildAsync();
-        }
-
-        [OneTimeTearDown]
-        public async Task OneTimeTearDown()
+    private static async Task InitializePostgreSql(string connectionString)
+    {
+        await using var conn = new NpgsqlConnection(connectionString);
+        for (int i = 0; i < 3; i += 1)
         {
-            await Task.WhenAll(_containerIds.Select(id => KillContainerAsync(_docker!, id)));
-        }
-
-        [Test]
-        public void PreloadedKeyShouldPresentInCache()
-        {
-            Guid userId = new("c11f0067-ec91-4355-8c7e-1caf4c940136");
-            Assert.IsTrue(_cache.TryPeek(userId, out User? user));
-            Assert.AreEqual("Raphaël", user!.Name);
-        }
-
-        [Test]
-        public async Task TryPeekShouldRefreshKeyInBackground()
-        {
-            Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
-            Assert.IsFalse(_cache.TryPeek(userId, out User? user));
-            do
+            try
             {
-                await Task.Delay(1000);
-            } while (!_cache.TryPeek(userId, out user));
-            Assert.IsNotNull(user);
-            Assert.AreEqual("Gabriel", user!.Name);
-        }
-
-        [Test]
-        public async Task TryGetAsyncShouldReturnFalseForNonExistingKey()
-        {
-            Guid userId = new("cd288523-a602-47d2-ad6b-ceff590fcda9");
-            (bool found, User? _) = await _cache.TryGetAsync(userId);
-            Assert.IsFalse(found);
-        }
-
-        [Test]
-        public async Task TryGetAsyncShouldReturnTrueForExistingKey()
-        {
-            Guid userId = new("ed67d23e-74bc-42ca-bc6d-ee9f302b67c1");
-            (bool found, User? user) = await _cache.TryGetAsync(userId);
-            Assert.IsTrue(found);
-            Assert.IsNotNull(user);
-            Assert.AreEqual("Léo", user!.Name);
-        }
-
-        private static async Task InitializePostgreSql(string connectionString)
-        {
-            await using var conn = new NpgsqlConnection(connectionString);
-            for (int i = 0; i < 3; i += 1)
-            {
-                try
-                {
-                    await conn.OpenAsync();
-                    break;
-                }
-                catch (NpgsqlException) when (i < 2)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                }
+                await conn.OpenAsync();
+                break;
             }
+            catch (NpgsqlException) when (i < 2)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+        }
 
-            await using var cmd = new NpgsqlCommand(@"
+        await using var cmd = new NpgsqlCommand(@"
 CREATE TABLE users (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL
@@ -128,124 +128,123 @@ INSERT INTO users VALUES
   ('88683f66-4905-4d8e-93a1-e47eb29ee25b', 'Jade'),
   ('53b1269f-f318-4787-af37-14d509e1d664', 'Louise'),
   ('03e504a7-8bd4-4e0f-833f-483c3d542e34', 'Lucas');", conn);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        await cmd.ExecuteNonQueryAsync();
+    }
 
-        private static async Task<string> RunContainerAsync(DockerClient docker, string image, int port, IList<string>? env = null)
+    private static async Task<string> RunContainerAsync(DockerClient docker, string image, int port, IList<string>? env = null)
+    {
+        await docker.Images.CreateImageAsync(new ImagesCreateParameters
         {
-            await docker.Images.CreateImageAsync(new ImagesCreateParameters
-            {
-                FromImage = image,
-                Tag = "latest",
-            }, null, new Progress<JSONMessage>(m => TestContext.WriteLine(m.Status)));
+            FromImage = image,
+            Tag = "latest",
+        }, null, new Progress<JSONMessage>(m => TestContext.WriteLine(m.Status)));
 
-            var container = await docker.Containers.CreateContainerAsync(new CreateContainerParameters
+        var container = await docker.Containers.CreateContainerAsync(new CreateContainerParameters
+        {
+            Image = image,
+            Env = env,
+            HostConfig = new HostConfig
             {
-                Image = image,
-                Env = env,
-                HostConfig = new HostConfig
+                PortBindings = new Dictionary<string, IList<PortBinding>>
                 {
-                    PortBindings = new Dictionary<string, IList<PortBinding>>
+                    [port + "/tcp"] = new PortBinding[]
                     {
-                        [port + "/tcp"] = new PortBinding[]
-                        {
-                            new() { HostIP = IPAddress.Loopback.ToString(), HostPort = port.ToString() },
-                        },
+                        new() { HostIP = IPAddress.Loopback.ToString(), HostPort = port.ToString() },
                     },
                 },
-            });
+            },
+        });
 
-            await docker.Containers.StartContainerAsync(container.ID, new ContainerStartParameters());
-            return container.ID;
+        await docker.Containers.StartContainerAsync(container.ID, new ContainerStartParameters());
+        return container.ID;
+    }
+
+    private static Task KillContainerAsync(DockerClient docker, string containerId)
+    {
+        return docker.Containers.RemoveContainerAsync(containerId, new ContainerRemoveParameters
+        {
+            RemoveVolumes = true,
+            Force = true,
+        });
+    }
+
+    private class RedisAsyncCache : IAsyncCache
+    {
+        private readonly IDatabase _database;
+
+        public RedisAsyncCache(IConnectionMultiplexer redis)
+        {
+            _database = redis.GetDatabase();
         }
 
-        private static Task KillContainerAsync(DockerClient docker, string containerId)
+        public async Task<AsyncCacheResult> GetAsync(string key)
         {
-            return docker.Containers.RemoveContainerAsync(containerId, new ContainerRemoveParameters
+            try
             {
-                RemoveVolumes = true,
-                Force = true,
-            });
-        }
-
-        private class RedisAsyncCache : IAsyncCache
-        {
-            private readonly IDatabase _database;
-
-            public RedisAsyncCache(IConnectionMultiplexer redis)
-            {
-                _database = redis.GetDatabase();
+                var res = await _database.StringGetAsync(key);
+                return res.HasValue
+                    ? new AsyncCacheResult(AsyncCacheStatus.Hit, (byte[])res)
+                    : new AsyncCacheResult(AsyncCacheStatus.Miss, null);
             }
-
-            public async Task<AsyncCacheResult> GetAsync(string key)
+            catch (Exception)
             {
-                try
-                {
-                    var res = await _database.StringGetAsync(key);
-                    return res.HasValue
-                        ? new AsyncCacheResult(AsyncCacheStatus.Hit, (byte[])res)
-                        : new AsyncCacheResult(AsyncCacheStatus.Miss, null);
-                }
-                catch (Exception)
-                {
-                    return new AsyncCacheResult(AsyncCacheStatus.Error, null);
-                }
-            }
-
-            public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
-            {
-                return _database.StringSetAsync(key, value, timeToLive);
-            }
-
-            public Task DeleteAsync(string key)
-            {
-                return _database.KeyDeleteAsync(key);
+                return new AsyncCacheResult(AsyncCacheStatus.Error, null);
             }
         }
 
-        private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue> where TKey : notnull
+        public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
         {
-            // Protobuf is forward/backward-compatible so bumping the version shouldn't be needed.
-            public int Version => 0;
-            public string StringifyKey(TKey key) => key.ToString()!;
-            public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
-            public TValue DeserializeValue(BinaryReader reader) => Serializer.Deserialize<TValue>(reader.BaseStream);
+            return _database.StringSetAsync(key, value, timeToLive);
         }
 
-        private class UserDataSource : IDataSource<Guid, User>
+        public Task DeleteAsync(string key)
         {
-            private readonly string _connectionString;
+            return _database.KeyDeleteAsync(key);
+        }
+    }
 
-            public UserDataSource(string connectionString) => _connectionString = connectionString;
+    private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue> where TKey : notnull
+    {
+        // Protobuf is forward/backward-compatible so bumping the version shouldn't be needed.
+        public int Version => 0;
+        public string StringifyKey(TKey key) => key.ToString()!;
+        public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
+        public TValue DeserializeValue(BinaryReader reader) => Serializer.Deserialize<TValue>(reader.BaseStream);
+    }
 
-            public async IAsyncEnumerable<DataSourceResult<Guid, User>> LoadAsync(IEnumerable<Guid> ids,
-                [EnumeratorCancellation] CancellationToken cancellationToken)
+    private class UserDataSource : IDataSource<Guid, User>
+    {
+        private readonly string _connectionString;
+
+        public UserDataSource(string connectionString) => _connectionString = connectionString;
+
+        public async IAsyncEnumerable<DataSourceResult<Guid, User>> LoadAsync(IEnumerable<Guid> ids,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync(cancellationToken);
+
+            // If there is a lot of keys there may be better alternatives than IN operator.
+            string idsStr = '\'' + string.Join("', '", ids) + '\'';
+            await using var cmd = new NpgsqlCommand($"SELECT * FROM users WHERE id IN ({idsStr});", conn);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
             {
-                await using var conn = new NpgsqlConnection(_connectionString);
-                await conn.OpenAsync(cancellationToken);
-
-                // If there is a lot of keys there may be better alternatives than IN operator.
-                string idsStr = '\'' + string.Join("', '", ids) + '\'';
-                await using var cmd = new NpgsqlCommand($"SELECT * FROM users WHERE id IN ({idsStr});", conn);
-                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-                while (await reader.ReadAsync(cancellationToken))
-                {
-                    Guid id = reader.GetGuid(0);
-                    string name = reader.GetString(1);
-                    User user = new() { Id = id, Name = name };
-                    yield return new DataSourceResult<Guid, User>(id, user, TimeSpan.FromHours(1));
-                }
+                Guid id = reader.GetGuid(0);
+                string name = reader.GetString(1);
+                User user = new() { Id = id, Name = name };
+                yield return new DataSourceResult<Guid, User>(id, user, TimeSpan.FromHours(1));
             }
         }
+    }
 
-        [ProtoContract]
-        private record User
-        {
-            [ProtoMember(1)]
-            public Guid Id { get; init; }
+    [ProtoContract]
+    private record User
+    {
+        [ProtoMember(1)]
+        public Guid Id { get; init; }
 
-            [ProtoMember(2)]
-            public string Name { get; init; } = string.Empty;
-        }
+        [ProtoMember(2)]
+        public string Name { get; init; } = string.Empty;
     }
 }

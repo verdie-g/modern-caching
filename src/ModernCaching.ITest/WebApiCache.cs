@@ -10,60 +10,59 @@ using ModernCaching.DataSource;
 using ModernCaching.LocalCaching;
 using NUnit.Framework;
 
-namespace ModernCaching.ITest
+namespace ModernCaching.ITest;
+
+/// <summary>
+/// - local cache: builtin MemoryCache
+/// - distributed cache: none
+/// - data source: Web API (ip-api.com)
+/// </summary>
+public class WebApiCache
 {
-    /// <summary>
-    /// - local cache: builtin MemoryCache
-    /// - distributed cache: none
-    /// - data source: Web API (ip-api.com)
-    /// </summary>
-    public class WebApiCache
+    private IReadOnlyCache<IPAddress, LatLon> _cache = default!;
+
+    [OneTimeSetUp]
+    public async Task OneTimeSetUp()
     {
-        private IReadOnlyCache<IPAddress, LatLon> _cache = default!;
+        _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>("ip-lat-lng", new IpApiDataSource())
+            .WithLocalCache(new MemoryCache<IPAddress, LatLon>())
+            .WithLoggerFactory(new ConsoleLoggerFactory())
+            .BuildAsync();
+    }
 
-        [OneTimeSetUp]
-        public async Task OneTimeSetUp()
+    [Test, Explicit]
+    public async Task TestGoogle()
+    {
+        var (found, _) = await _cache.TryGetAsync(IPAddress.Parse("8.8.8.8"));
+        Assert.IsTrue(found);
+    }
+
+    private class IpApiDataSource : IDataSource<IPAddress, LatLon>
+    {
+        private readonly HttpClient _httpClient;
+
+        public IpApiDataSource()
         {
-            _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>("ip-lat-lng", new IpApiDataSource())
-                .WithLocalCache(new MemoryCache<IPAddress, LatLon>())
-                .WithLoggerFactory(new ConsoleLoggerFactory())
-                .BuildAsync();
-        }
-
-        [Test, Explicit]
-        public async Task TestGoogle()
-        {
-            var (found, _) = await _cache.TryGetAsync(IPAddress.Parse("8.8.8.8"));
-            Assert.IsTrue(found);
-        }
-
-        private class IpApiDataSource : IDataSource<IPAddress, LatLon>
-        {
-            private readonly HttpClient _httpClient;
-
-            public IpApiDataSource()
+            _httpClient = new HttpClient()
             {
-                _httpClient = new HttpClient()
-                {
-                    BaseAddress = new Uri("http://ip-api.com/json/"),
-                };
-            }
+                BaseAddress = new Uri("http://ip-api.com/json/"),
+            };
+        }
 
 #pragma warning disable 1998
-            public async IAsyncEnumerable<DataSourceResult<IPAddress, LatLon>> LoadAsync(
+        public async IAsyncEnumerable<DataSourceResult<IPAddress, LatLon>> LoadAsync(
 #pragma warning restore 1998
-                IEnumerable<IPAddress> ips,
-                [EnumeratorCancellation] CancellationToken cancellationToken)
+            IEnumerable<IPAddress> ips,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            foreach (var ip in ips)
             {
-                foreach (var ip in ips)
-                {
-                    var latLon = await _httpClient.GetFromJsonAsync<LatLon>($"{ip}?fields=message,lat,lon",
-                        cancellationToken: cancellationToken);
-                    yield return new DataSourceResult<IPAddress, LatLon>(ip, latLon!, TimeSpan.FromDays(1));
-                }
+                var latLon = await _httpClient.GetFromJsonAsync<LatLon>($"{ip}?fields=message,lat,lon",
+                    cancellationToken: cancellationToken);
+                yield return new DataSourceResult<IPAddress, LatLon>(ip, latLon!, TimeSpan.FromDays(1));
             }
         }
-
-        private record LatLon(float Lat, float Lon);
     }
+
+    private record LatLon(float Lat, float Lon);
 }

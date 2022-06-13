@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Timers;
 
-namespace ModernCaching.Utils
+namespace ModernCaching.Utils;
+
+internal interface ITimer : IDisposable
 {
-    internal interface ITimer : IDisposable
-    {
-        event ElapsedEventHandler Elapsed;
-    }
+    event ElapsedEventHandler Elapsed;
 }

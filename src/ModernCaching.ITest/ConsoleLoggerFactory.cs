@@ -1,37 +1,36 @@
 ﻿using System;
 using Microsoft.Extensions.Logging;
 
-namespace ModernCaching.ITest
+namespace ModernCaching.ITest;
+
+internal class ConsoleLoggerFactory : ILoggerFactory
 {
-    internal class ConsoleLoggerFactory : ILoggerFactory
+    public ILogger CreateLogger(string categoryName)
     {
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new ConsoleLogger();
-        }
-
-        public void AddProvider(ILoggerProvider provider)
-        {
-        }
-
-        public void Dispose()
-        {
-        }
+        return new ConsoleLogger();
     }
 
-    internal class ConsoleLogger : ILogger, IDisposable
+    public void AddProvider(ILoggerProvider provider)
     {
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
-        {
-            Console.WriteLine(formatter(state, exception));
-        }
+    }
 
-        public bool IsEnabled(LogLevel logLevel) => true;
+    public void Dispose()
+    {
+    }
+}
 
-        public IDisposable BeginScope<TState>(TState state) => this;
+internal class ConsoleLogger : ILogger, IDisposable
+{
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+    {
+        Console.WriteLine(formatter(state, exception));
+    }
 
-        public void Dispose()
-        {
-        }
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public IDisposable BeginScope<TState>(TState state) => this;
+
+    public void Dispose()
+    {
     }
 }

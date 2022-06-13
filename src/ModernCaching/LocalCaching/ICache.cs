@@ -1,50 +1,49 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ModernCaching.LocalCaching
+namespace ModernCaching.LocalCaching;
+
+/// <summary>
+/// Cache that gets its key synchronously. Typically an in-memory cache.
+/// </summary>
+/// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
+/// <typeparam name="TValue">The type of the values in the cache entries.</typeparam>
+/// <remarks>
+/// If the cache is evicting, entries should be kept longer than <see cref="CacheEntry{TValue}.TimeToLive"/> so
+/// that <see cref="IReadOnlyCache{TKey,TValue}.TryPeek"/> can return stale values.
+/// </remarks>
+public interface ICache<in TKey, TValue> where TKey : notnull
 {
     /// <summary>
-    /// Cache that gets its key synchronously. Typically an in-memory cache.
+    /// Gets the number of entries contained in the cache.
     /// </summary>
-    /// <typeparam name="TKey">The type of the keys in the cache.</typeparam>
-    /// <typeparam name="TValue">The type of the values in the cache entries.</typeparam>
     /// <remarks>
-    /// If the cache is evicting, entries should be kept longer than <see cref="CacheEntry{TValue}.TimeToLive"/> so
-    /// that <see cref="IReadOnlyCache{TKey,TValue}.TryPeek"/> can return stale values.
+    /// It is preferred that the implementation returns an approximate value rather than locking the entire cache.
     /// </remarks>
-    public interface ICache<in TKey, TValue> where TKey : notnull
-    {
-        /// <summary>
-        /// Gets the number of entries contained in the cache.
-        /// </summary>
-        /// <remarks>
-        /// It is preferred that the implementation returns an approximate value rather than locking the entire cache.
-        /// </remarks>
-        int Count { get; }
+    int Count { get; }
 
-        /// <summary>
-        /// Gets the entry associated with the specified key.
-        /// </summary>
-        /// <param name="key">The key of the element to get.</param>
-        /// <param name="entry">Entry associated with the specified key, if the key is found; otherwise, the value is
-        /// set to the default for the type of the value parameter. Existing entries should be returned even if stale.
-        /// <see cref="CacheEntry{TValue}.Value"/> can be null if the data source returns null.</param>
-        /// <returns>True if the cache contains an entry with the specified key; otherwise, false.</returns>
-        /// <remarks>This method should never throw.</remarks>
-        bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry);
+    /// <summary>
+    /// Gets the entry associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the element to get.</param>
+    /// <param name="entry">Entry associated with the specified key, if the key is found; otherwise, the value is
+    /// set to the default for the type of the value parameter. Existing entries should be returned even if stale.
+    /// <see cref="CacheEntry{TValue}.Value"/> can be null if the data source returns null.</param>
+    /// <returns>True if the cache contains an entry with the specified key; otherwise, false.</returns>
+    /// <remarks>This method should never throw.</remarks>
+    bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry);
 
-        /// <summary>
-        /// Sets the entry associated with the specified key.
-        /// </summary>
-        /// <param name="key">The key of the element to set.</param>
-        /// <param name="entry">The entry associated with the specified key.</param>
-        /// <remarks>This method should never throw.</remarks>
-        void Set(TKey key, CacheEntry<TValue> entry);
+    /// <summary>
+    /// Sets the entry associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the element to set.</param>
+    /// <param name="entry">The entry associated with the specified key.</param>
+    /// <remarks>This method should never throw.</remarks>
+    void Set(TKey key, CacheEntry<TValue> entry);
 
-        /// <summary>
-        /// Deletes the entry with the specified key.
-        /// </summary>
-        /// <param name="key">The key of the entry to delete.</param>
-        /// <returns>true if the entry was deleted successfully; otherwise, false.</returns>
-        bool TryDelete(TKey key);
-    }
+    /// <summary>
+    /// Deletes the entry with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the entry to delete.</param>
+    /// <returns>true if the entry was deleted successfully; otherwise, false.</returns>
+    bool TryDelete(TKey key);
 }
