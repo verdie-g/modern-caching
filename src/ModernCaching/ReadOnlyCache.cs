@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -180,6 +181,7 @@ namespace ModernCaching
         }
 
         /// <summary>Gets the value associated with the specified key from the local cache.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetLocally(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> cacheEntry)
         {
             if (_localCache == null)
@@ -400,6 +402,7 @@ namespace ModernCaching
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsCacheEntryStale(CacheEntry<TValue> entry)
         {
             return entry.CreationTime + entry.TimeToLive < _dateTime.UtcNow;
