@@ -71,7 +71,7 @@ namespace ModernCaching
         /// <summary>
         /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
         /// </summary>
-        private readonly ConcurrentDictionary<TKey, Task<(bool found, TValue? value)>> _refreshTasks;
+        private readonly ConcurrentDictionary<TKey, Task<CacheEntry<TValue>?>> _refreshTasks;
 
         public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache,
             IDistributedCache<TKey, TValue>? distributedCache, IDataSource<TKey, TValue> dataSource,
@@ -83,7 +83,7 @@ namespace ModernCaching
             _dataSource = dataSource;
             _options = options;
             _keysToRefresh = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
-            _refreshTasks = ConcurrentDictionaryHelper.Create<TKey, Task<(bool, TValue?)>>();
+            _refreshTasks = ConcurrentDictionaryHelper.Create<TKey, Task<CacheEntry<TValue>?>>();
             _backgroundRefreshTimer = loadingTimer;
             _dateTime = dateTime;
             _random = random;
@@ -134,19 +134,24 @@ namespace ModernCaching
             }
 
             // Multiplex concurrent refresh of the same key into a single task.
-            TaskCompletionSource<(bool, TValue?)> refreshTaskCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<CacheEntry<TValue>?> refreshTaskCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var refreshTask = _refreshTasks.GetOrAdd(key, refreshTaskCompletion.Task);
             if (refreshTask != refreshTaskCompletion.Task)
             {
                 // The key is already being loaded.
-                return await refreshTask;
+                var refreshedCacheEntry = await refreshTask;
+                return refreshedCacheEntry != null && refreshedCacheEntry.HasValue
+                    ? (true, refreshedCacheEntry.Value)
+                    : (false, default);
             }
 
             try
             {
-                var refreshResult = await RefreshAsync(key, localCacheEntry);
-                refreshTaskCompletion.SetResult(refreshResult);
-                return refreshResult;
+                var refreshedCacheEntry = await RefreshAsync(key, localCacheEntry);
+                refreshTaskCompletion.SetResult(refreshedCacheEntry);
+                return refreshedCacheEntry != null && refreshedCacheEntry.HasValue
+                    ? (true, refreshedCacheEntry.Value)
+                    : (false, default);
             }
             catch (Exception e) // RefreshAsync shouldn't throw but the consequence of not removing the loading task is terrible.
             {
@@ -345,61 +350,53 @@ namespace ModernCaching
         /// Refreshes a key from the distributed cache or data source. Can return a stale value if of these two layers
         /// are unavailable.
         /// </summary>
-        private async Task<(bool found, TValue? value)> RefreshAsync(TKey k, CacheEntry<TValue>? e)
+        private async Task<CacheEntry<TValue>?> RefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
         {
-            var cacheEntry = await DoRefreshAsync(k, e);
-            return cacheEntry != null && cacheEntry.HasValue
-                ? (true, cacheEntry.Value)
-                : (false, default);
-            
-            async Task<CacheEntry<TValue>?> DoRefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
+            var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
+            if (status == AsyncCacheStatus.Error)
             {
-                var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
-                if (status == AsyncCacheStatus.Error)
-                {
-                    // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
-                    // local entry or not found.
-                    return localCacheEntry;
-                }
-
-                if (status == AsyncCacheStatus.Hit && !IsCacheEntryStale(distributedCacheEntry!))
-                {
-                    SetOrExtendLocally(key, distributedCacheEntry!, localCacheEntry);
-                    return distributedCacheEntry;
-                }
-
-                (bool loadSuccessful, var dataSourceEntry) = await LoadFromDataSourceAsync(key);
-                if (!loadSuccessful)
-                {
-                    // If the data source is unavailable return the stale value of the distributed cache or the stale
-                    // value of the local cache or not found.
-                    return distributedCacheEntry ?? localCacheEntry;
-                }
-
-                if (dataSourceEntry == null) // If no results were returned from the data source.
-                {
-                    if (_options.CacheDataSourceMisses)
-                    {
-                         dataSourceEntry = NewCacheEntry(_options.DefaultTimeToLive);
-                    }
-                    else
-                    {
-                        // If a local entry exists, the data was recently deleted from the source so it should also be
-                        // deleted from the local and distributed cache.
-                        if (localCacheEntry != null && TryDeleteLocally(key))
-                        {
-                            _ = Task.Run(() => DeleteRemotelyAsync(key));
-                        }
-
-                        return null;
-                    }
-                }
-
-                _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
-                // SetOrExtendLocally randomizes the TTL so to avoid SetRemotelyAsync to set a random TTL, the cache entry is cloned.
-                SetOrExtendLocally(key, dataSourceEntry.Clone(), localCacheEntry);
-                return dataSourceEntry;
+                // If the distributed cache is unavailable, to avoid DDOSing the data source, return the stale
+                // local entry or not found.
+                return localCacheEntry;
             }
+
+            if (status == AsyncCacheStatus.Hit && !IsCacheEntryStale(distributedCacheEntry!))
+            {
+                SetOrExtendLocally(key, distributedCacheEntry!, localCacheEntry);
+                return distributedCacheEntry;
+            }
+
+            (bool loadSuccessful, var dataSourceEntry) = await LoadFromDataSourceAsync(key);
+            if (!loadSuccessful)
+            {
+                // If the data source is unavailable return the stale value of the distributed cache or the stale
+                // value of the local cache or not found.
+                return distributedCacheEntry ?? localCacheEntry;
+            }
+
+            if (dataSourceEntry == null) // If no results were returned from the data source.
+            {
+                if (_options.CacheDataSourceMisses)
+                {
+                     dataSourceEntry = NewCacheEntry(_options.DefaultTimeToLive);
+                }
+                else
+                {
+                    // If a local entry exists, the data was recently deleted from the source so it should also be
+                    // deleted from the local and distributed cache.
+                    if (localCacheEntry != null && TryDeleteLocally(key))
+                    {
+                        _ = Task.Run(() => DeleteRemotelyAsync(key));
+                    }
+
+                    return null;
+                }
+            }
+
+            _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
+            // SetOrExtendLocally randomizes the TTL so to avoid SetRemotelyAsync to set a random TTL, the cache entry is cloned.
+            SetOrExtendLocally(key, dataSourceEntry.Clone(), localCacheEntry);
+            return dataSourceEntry;
         }
 
         /// <summary>Checks if a <see cref="CacheEntry{TValue}"/> is stale.</summary>
