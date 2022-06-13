@@ -311,7 +311,8 @@ namespace ModernCaching
 
                 CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(dataSourceResult.Value, dataSourceResult.TimeToLive);
                 _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
-                SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry, localCacheEntry);
+                // SetOrExtendLocally randomizes the TTL so to avoid SetRemotelyAsync to set a random TTL, the cache entry is cloned.
+                SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry.Clone(), localCacheEntry);
             }
 
             if (_options.CacheDataSourceMisses)
@@ -321,7 +322,7 @@ namespace ModernCaching
                 {
                     CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(ttl);
                     _ = Task.Run(() => SetRemotelyAsync(key, dataSourceCacheEntry));
-                    SetOrExtendLocally(key, dataSourceCacheEntry, null);
+                    SetOrExtendLocally(key, dataSourceCacheEntry.Clone(), null);
                 }
             }
             else
@@ -388,7 +389,8 @@ namespace ModernCaching
                 }
 
                 _ = Task.Run(() => SetRemotelyAsync(key, dataSourceEntry));
-                SetOrExtendLocally(key, dataSourceEntry, localCacheEntry);
+                // SetOrExtendLocally randomizes the TTL so to avoid SetRemotelyAsync to set a random TTL, the cache entry is cloned.
+                SetOrExtendLocally(key, dataSourceEntry.Clone(), localCacheEntry);
                 return dataSourceEntry;
             }
         }

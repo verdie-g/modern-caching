@@ -74,5 +74,18 @@ namespace ModernCaching.UTest
 
             Assert.IsEmpty(entry.ToString());
         }
+
+        [Theory]
+        public void CloneShouldReturnANewInstance(bool hasValue)
+        {
+            CacheEntry<int> entry = hasValue ? new(5) : new();
+            CacheEntry<int> clone = entry.Clone();
+            
+            Assert.AreNotSame(entry, clone);
+            Assert.AreEqual(entry.HasValue, clone.HasValue);
+            Assert.AreEqual(entry.GetValueOrDefault(), clone.GetValueOrDefault());
+            Assert.AreEqual(entry.CreationTime, clone.CreationTime);
+            Assert.AreEqual(entry.TimeToLive, clone.TimeToLive);
+        }
     }
 }

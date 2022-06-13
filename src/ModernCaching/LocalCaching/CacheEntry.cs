@@ -79,5 +79,14 @@ namespace ModernCaching.LocalCaching
         {
             return HasValue && Value != null ? Value.ToString() : string.Empty;
         }
+
+        /// <summary>Creates a copy of the current instance.</summary>
+        public CacheEntry<TValue> Clone()
+        {
+            CacheEntry<TValue> copy = HasValue ? new(Value) : new();
+            copy.CreationTime = CreationTime;
+            copy.TimeToLive = TimeToLive;
+            return copy;
+        }
     }
 }
