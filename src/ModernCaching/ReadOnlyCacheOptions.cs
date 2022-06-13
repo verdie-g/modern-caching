@@ -1,13 +1,12 @@
 ﻿using System;
 using ModernCaching.DataSource;
-using ModernCaching.DistributedCaching;
 
 namespace ModernCaching;
 
 /// <summary>
 /// Provides options to be used with <see cref="ReadOnlyCacheBuilder{TKey,TValue}"/>.
 /// </summary>
-public sealed class ReadOnlyCacheOptions
+public sealed record ReadOnlyCacheOptions
 {
     /// <summary>
     /// Whether keys that were not found in the <see cref="IDataSource{TKey,TValue}"/> should be cached. If true,
