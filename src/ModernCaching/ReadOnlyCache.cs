@@ -161,7 +161,7 @@ namespace ModernCaching
 
         public Task LoadAsync(IEnumerable<TKey> keys)
         {
-            return InnerLoadAsync(keys.Select(static k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
+            return ChunkedRefreshAsync(keys.Select(static k => new KeyValuePair<TKey, CacheEntry<TValue>?>(k, null)));
         }
 
         public override string ToString()
@@ -224,10 +224,10 @@ namespace ModernCaching
         private void BackgroundRefresh(object _, ElapsedEventArgs __)
         {
             var keysToLoad = Interlocked.Exchange(ref _keysToRefresh, new ConcurrentDictionary<TKey, CacheEntry<TValue>?>());
-            Task.Run(() => InnerLoadAsync(keysToLoad));
+            Task.Run(() => ChunkedRefreshAsync(keysToLoad));
         }
 
-        private async Task InnerLoadAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
+        private async Task ChunkedRefreshAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
         {
             // If many instances start their preload at the same time they could all get misses/stale from the distributed
             // cache and all proceed to hit the data source which is dangerous. Also if the data source is a relational
@@ -235,7 +235,7 @@ namespace ModernCaching
             // the load is done in several times by chunking the keys.
             foreach (var batch in ChunkKeyEntryPairs(keyEntryPairs))
             {
-                await LoadBatchAsync(batch);
+                await RefreshAsync(batch);
             }
         }
 
@@ -266,7 +266,7 @@ namespace ModernCaching
             }
         }
 
-        private async Task LoadBatchAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
+        private async Task RefreshAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
         {
             // TODO: could also set tasks in _loadingTasks.
 
