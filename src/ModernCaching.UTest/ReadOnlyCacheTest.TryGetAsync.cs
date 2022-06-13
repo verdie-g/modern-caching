@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -415,6 +417,48 @@ public class ReadOnlyCacheTest_TryGetAsync
             Assert.AreEqual(TimeSpan.FromHours(1).Ticks, localCacheEntry.TimeToLive.Ticks, delta: TimeSpan.FromMinutes(5).Ticks);
         }
     }
+    
+    [Test, Description("Test the TTL are randomized locally but not in the distributed cache")]
+    public async Task TimeToLiveShouldBeRandomizedLocally()
+    {
+        DictionaryDistributedCache<int, int> distributedCache = new();
+        Mock<IDataSource<int, int>> dataSourceMock = new();
+        Mock<IDateTime> dateTimeMock = new();
+        ThreadSafeRandom random = new();
+
+        var ttl = TimeSpan.FromSeconds(10000);
+        dataSourceMock
+            .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .Returns((IEnumerable<int> keys, CancellationToken _) => CreateDataSourceResults(new DataSourceResult<int, int>(keys.First(), keys.First(), ttl)));
+
+        DictionaryCache<int, int> localCache1 = new();
+        ReadOnlyCache<int, int> cache1 = new("yo", localCache1, distributedCache, dataSourceMock.Object,
+            new ReadOnlyCacheOptions(), Mock.Of<ITimer>(), dateTimeMock.Object, random);
+        DictionaryCache<int, int> localCache2 = new();
+        ReadOnlyCache<int, int> cache2 = new("yo", localCache2, distributedCache, dataSourceMock.Object,
+            new ReadOnlyCacheOptions(), Mock.Of<ITimer>(), dateTimeMock.Object, random);
+        DictionaryCache<int, int> localCache3 = new();
+        ReadOnlyCache<int, int> cache3 = new("yo", localCache3, distributedCache, dataSourceMock.Object,
+            new ReadOnlyCacheOptions(), Mock.Of<ITimer>(), dateTimeMock.Object, random);
+
+        for (int i = 0; i < 10_000; i += 1)
+        {
+            await cache1.TryGetAsync(i);
+            await cache2.TryGetAsync(i);
+            await cache3.TryGetAsync(i);
+        }
+
+        // Wait for all distributed cache sets to be performed.
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        
+        for (int i = 0; i < 10_000; i += 1)
+        {
+            Assert.AreEqual(ttl.TotalSeconds - 500, localCache1.Dictionary[i].TimeToLive.TotalSeconds, delta: 500);
+            Assert.AreEqual(ttl.TotalSeconds - 500, localCache2.Dictionary[i].TimeToLive.TotalSeconds, delta: 500);
+            Assert.AreEqual(ttl.TotalSeconds - 500, localCache3.Dictionary[i].TimeToLive.TotalSeconds, delta: 500);
+            Assert.AreEqual(ttl, distributedCache.Dictionary[i].TimeToLive);
+        }
+    }
 
 #pragma warning disable 1998
     private async IAsyncEnumerable<DataSourceResult<int, int>> CreateDataSourceResults(params DataSourceResult<int, int>[] results)
@@ -460,5 +504,50 @@ public class ReadOnlyCacheTest_TryGetAsync
             CreationTime = DateTime.UtcNow.AddHours(-5),
             TimeToLive = TimeSpan.FromHours(1),
         };
+    }
+    
+    private class DictionaryCache<TKey, TValue> : ICache<TKey, TValue> where TKey : notnull
+    {
+        public ConcurrentDictionary<TKey, CacheEntry<TValue>> Dictionary { get; } = new();
+        public int Count => Dictionary.Count;
+        
+        public bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry)
+        {
+            return Dictionary.TryGetValue(key, out entry);
+        }
+
+        public void Set(TKey key, CacheEntry<TValue> entry)
+        {
+            Dictionary[key] = entry;
+        }
+
+        public bool TryDelete(TKey key)
+        {
+            return Dictionary.TryRemove(key, out _);
+        }
+    }
+    
+    private class DictionaryDistributedCache<TKey, TValue> : IDistributedCache<TKey, TValue> where TKey : notnull
+    {
+        public ConcurrentDictionary<TKey, CacheEntry<TValue>> Dictionary { get; } = new();
+        
+        public Task<(AsyncCacheStatus status, CacheEntry<TValue>? entry)> GetAsync(TKey key)
+        {
+            return Task.FromResult(Dictionary.TryGetValue(key, out var entry)
+                ? (AsyncCacheStatus.Hit, entry.Clone())
+                : (AsyncCacheStatus.Miss, default));
+        }
+
+        public Task SetAsync(TKey key, CacheEntry<TValue> entry)
+        {
+            Dictionary[key] = entry;
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(TKey key)
+        {
+            Dictionary.TryRemove(key, out _);
+            return Task.CompletedTask;
+        }
     }
 }
