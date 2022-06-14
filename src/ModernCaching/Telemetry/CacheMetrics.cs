@@ -1,17 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-using System.Reflection;
 using System.Threading;
+using ModernCaching.Utils;
 
-namespace ModernCaching.Instrumentation;
+namespace ModernCaching.Telemetry;
 
-internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
+internal sealed class CacheMetrics : ICacheMetrics
 {
     private const string MetricNamePrefix = "modern-caching";
-    private static readonly AssemblyName AssemblyName = typeof(OpenTelemetryCacheMetrics).Assembly.GetName();
-    private static readonly string InstrumentationName = AssemblyName.Name;
-    private static readonly string InstrumentationVersion = AssemblyName.Version.ToString();
-    private static readonly Meter Meter = new(InstrumentationName, InstrumentationVersion);
 
     private static readonly KeyValuePair<string, object?> GetOperationTag = new("operation", "get");
     private static readonly KeyValuePair<string, object?> SetOperationTag = new("operation", "set");
@@ -46,7 +42,7 @@ internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
     private long _dataSourceKeyLoadMisses;
     private long _dataSourceKeyLoadErrors;
 
-    public OpenTelemetryCacheMetrics(string cacheName)
+    public CacheMetrics(string cacheName)
     {
         KeyValuePair<string, object?> cacheNameTag = new("name", cacheName);
         KeyValuePair<string, object?>[] localCacheGetHitsTags = { cacheNameTag, GetOperationTag, HitStatusTag };
@@ -66,7 +62,8 @@ internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
         KeyValuePair<string, object?>[] dataSourceKeyLoadMissesTags = { cacheNameTag, MissStatusTag };
         KeyValuePair<string, object?>[] dataSourceKeyLoadErrorsTags = { cacheNameTag, ErrorStatusTag };
 
-        _localCacheRequestsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.local-cache.requests",
+        var meter = UtilsCache.Meter;
+        _localCacheRequestsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.local-cache.requests",
             () => new[]
             {
                 new Measurement<long>(Volatile.Read(ref _localCacheGetHits), localCacheGetHitsTags),
@@ -75,10 +72,10 @@ internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
                 new Measurement<long>(Volatile.Read(ref _localCacheDeleteHits), localCacheDeleteHitsTags),
                 new Measurement<long>(Volatile.Read(ref _localCacheDeleteMisses), localCacheDeleteMissesTags),
             }, description: "Local cache request statuses by operation");
-        _localCacheCountGauge = Meter.CreateObservableGauge($"{MetricNamePrefix}.local-cache.count", () =>
+        _localCacheCountGauge = meter.CreateObservableGauge($"{MetricNamePrefix}.local-cache.count", () =>
                 new Measurement<long>(_localCacheCount, localCacheCountTags),
             description: "Local cache entries count");
-        _distributedCacheRequestsCounter = Meter.CreateObservableCounter(
+        _distributedCacheRequestsCounter = meter.CreateObservableCounter(
             $"{MetricNamePrefix}.distributed-cache.requests", () => new[]
             {
                 new Measurement<long>(Volatile.Read(ref _distributedCacheGetHits), distributedCacheGetHitsTags),
@@ -87,13 +84,13 @@ internal sealed class OpenTelemetryCacheMetrics : ICacheMetrics
                 new Measurement<long>(Volatile.Read(ref _distributedCacheSets), distributedCacheSetsTags),
                 new Measurement<long>(Volatile.Read(ref _distributedCacheDeletes), distributedCacheDeletesTags),
             }, description: "Distributed cache request statuses by operation");
-        _dataSourceLoadsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.loads",
+        _dataSourceLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.loads",
             () => new[]
             {
                 new Measurement<long>(Volatile.Read(ref _dataSourceLoadOks), dataSourceLoadOksTags),
                 new Measurement<long>(Volatile.Read(ref _dataSourceLoadErrors), dataSourceLoadErrorsTags),
             }, description: "Data source load statuses");
-        _dataSourceKeyLoadsCounter = Meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.key-loads",
+        _dataSourceKeyLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.key-loads",
             () => new[]
             {
                 new Measurement<long>(Volatile.Read(ref _dataSourceKeyLoadHits), dataSourceKeyLoadHitsTags),

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ModernCaching.Instrumentation;
+using ModernCaching.Telemetry;
 
 namespace ModernCaching.DistributedCaching;
 

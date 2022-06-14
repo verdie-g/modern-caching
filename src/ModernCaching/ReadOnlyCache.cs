@@ -276,6 +276,12 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     private async Task RefreshAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
     {
         // TODO: could also set tasks in _loadingTasks.
+        
+        using var span = UtilsCache.ActivitySource.StartActivity("cache refresh");
+        if (span != null && span.IsAllDataRequested)
+        {
+            span.SetTag("cache.name", _name);
+        }
 
         var distributedCacheResults = await Task.WhenAll(keyEntryPairs.Select(async keyEntryPair =>
         {
@@ -354,6 +360,13 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     /// </summary>
     private async Task<CacheEntry<TValue>?> RefreshAsync(TKey key, CacheEntry<TValue>? localCacheEntry)
     {
+        using var span = UtilsCache.ActivitySource.StartActivity("cache refresh");
+        if (span != null && span.IsAllDataRequested)
+        {
+            span.SetTag("cache.name", _name);
+            span.SetTag("cache.key", key.ToString());
+        }
+        
         var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
         if (status == AsyncCacheStatus.Error)
         {

@@ -1,6 +1,6 @@
 ﻿using System;
 using ModernCaching.DistributedCaching;
-using ModernCaching.Instrumentation;
+using ModernCaching.Telemetry;
 using Moq;
 using NUnit.Framework;
 

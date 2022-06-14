@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ModernCaching.DataSource;
-using ModernCaching.Instrumentation;
+using ModernCaching.Telemetry;
 using Moq;
 using NUnit.Framework;
 

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using ModernCaching.Instrumentation;
+using ModernCaching.Telemetry;
 
 namespace ModernCaching.LocalCaching;
 

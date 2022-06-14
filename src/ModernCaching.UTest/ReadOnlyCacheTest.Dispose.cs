@@ -1,5 +1,4 @@
-﻿using ModernCaching.Instrumentation;
-using ModernCaching.Utils;
+﻿using ModernCaching.Utils;
 using Moq;
 using NUnit.Framework;
 

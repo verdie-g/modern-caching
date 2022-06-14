@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using ModernCaching.Instrumentation;
+using ModernCaching.Telemetry;
 
 namespace ModernCaching.DataSource;
 

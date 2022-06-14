@@ -107,12 +107,12 @@ on the garbage collector.
 
 Code can be found in [src/ModernCaching.Benchmarks](https://github.com/verdie-g/modern-caching/tree/main/src/ModernCaching.Benchmarks).
 
-## Instrumentation
+## Telemetry
 
-### Metrics
+### Metrics / Traces
 
-Metrics are exposed using .NET implementation of the [OpenTelemetry Metrics API](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/api.md)
-([System.Diagnostics.Metrics](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.metrics))
+Metrics and traces are exposed using .NET implementation of the [OpenTelemetry API](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/api.md)
+([System.Diagnostics](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics))
 under the source name `ModernCaching`. They can be exported using the
 [OpenTelemetry .NET SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
 

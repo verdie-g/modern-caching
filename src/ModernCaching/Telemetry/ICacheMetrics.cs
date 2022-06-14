@@ -1,4 +1,4 @@
-﻿namespace ModernCaching.Instrumentation;
+﻿namespace ModernCaching.Telemetry;
 
 internal interface ICacheMetrics
 {

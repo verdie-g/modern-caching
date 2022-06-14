@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.Logging;
-using ModernCaching.Instrumentation;
 using ModernCaching.LocalCaching;
+using ModernCaching.Telemetry;
 using Moq;
 using NUnit.Framework;
 
