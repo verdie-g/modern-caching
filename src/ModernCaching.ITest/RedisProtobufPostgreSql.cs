@@ -170,6 +170,8 @@ INSERT INTO users VALUES
 
     private class RedisAsyncCache : IAsyncCache
     {
+        private static readonly TimeSpan HardTimeToLive = TimeSpan.FromDays(7);
+
         private readonly IDatabase _database;
 
         public RedisAsyncCache(IConnectionMultiplexer redis)
@@ -192,9 +194,9 @@ INSERT INTO users VALUES
             }
         }
 
-        public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
+        public Task SetAsync(string key, byte[] value)
         {
-            return _database.StringSetAsync(key, value, timeToLive);
+            return _database.StringSetAsync(key, value, HardTimeToLive);
         }
 
         public Task DeleteAsync(string key)

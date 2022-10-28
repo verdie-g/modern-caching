@@ -109,7 +109,7 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
         }
 
         string keyStr = BuildDistributedCacheKey(key);
-        return _cache.SetAsync(keyStr, valueBytes, entry.TimeToLive);
+        return _cache.SetAsync(keyStr, valueBytes);
     }
 
     /// <inheritdoc />

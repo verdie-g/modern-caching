@@ -61,15 +61,15 @@ internal sealed class InstrumentedAsyncCache : IAsyncCache
         return res;
     }
 
-    public Task SetAsync(string key, byte[] value, TimeSpan timeToLive)
+    public Task SetAsync(string key, byte[] value)
     {
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.Log(LogLevel.Trace, "IAsyncCache: SET  {0} {1}B {2}", key, value.Length, timeToLive);
+            _logger.Log(LogLevel.Trace, "IAsyncCache: SET  {0} {1}B", key, value.Length);
         }
 
         _metrics.IncrementDistributedCacheSets();
-        return _cache.SetAsync(key, value, timeToLive);
+        return _cache.SetAsync(key, value);
     }
 
     public Task DeleteAsync(string key)

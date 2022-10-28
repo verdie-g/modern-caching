@@ -21,8 +21,12 @@ public interface IAsyncCache
     /// </summary>
     /// <param name="key">The key of the element to set.</param>
     /// <param name="value">The value of the element to set.</param>
-    /// <param name="timeToLive">Duration after which the element should get evicted.</param>
-    Task SetAsync(string key, byte[] value, TimeSpan timeToLive);
+    /// <remarks>
+    /// The method does not take a time-to-live the for key since some technologies don't support them at the key level
+    /// (e.g. S3). Instead a hard time-to-live should be used in the <see cref="IAsyncCache"/> implementation and the
+    /// <see cref="IReadOnlyCache{TKey,TValue}"/> uses a soft on in each cache entry.
+    /// </remarks>
+    Task SetAsync(string key, byte[] value);
 
     /// <summary>
     /// Deletes the value with the given key.
