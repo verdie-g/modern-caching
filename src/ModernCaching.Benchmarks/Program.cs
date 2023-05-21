@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-#if DEBUG
-using BenchmarkDotNet.Configs;
-#endif
 using BenchmarkDotNet.Running;
 using CacheManager.Core;
 using CacheTower;
@@ -17,6 +13,7 @@ using EasyCaching.Core;
 using EasyCaching.InMemory;
 using Foundatio.Caching;
 using LazyCache;
+using Microsoft.Extensions.Caching.Memory;
 using ModernCaching.DataSource;
 using ModernCaching.LocalCaching;
 using ZiggyCreatures.Caching.Fusion;
@@ -29,7 +26,8 @@ public static class Program
     public static void Main(string[] args)
     {
 #if DEBUG
-            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(Array.Empty<string>(), new DebugInProcessConfig());
+        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly)
+            .Run(Array.Empty<string>(), new BenchmarkDotNet.Configs.DebugInProcessConfig());
 #else
         BenchmarkRunner.Run<LocalGetBenchmark>();
 #endif
@@ -44,8 +42,8 @@ public class LocalGetBenchmark
         .Select(i => KeyValuePair.Create(Guid.NewGuid(), i))
         .ToArray();
 
-    private readonly ConcurrentDictionary<Guid, int> _concurrentDictionary;
     private readonly IReadOnlyCache<Guid, int> _modernCache;
+    private readonly MemoryCache _microsoftExtensionsCache;
     private readonly ICacheStack _cacheTower;
     private readonly ICacheClient _foundatio;
     private readonly IAppCache _lazyCache;
@@ -55,8 +53,8 @@ public class LocalGetBenchmark
 
     public LocalGetBenchmark()
     {
-        _concurrentDictionary = CreateConcurrentDictionary();
         _modernCache = CreateModernCache();
+        _microsoftExtensionsCache = CreateMicrosoftExtensionsCache();
         _cacheTower = CreateCacheTower();
         _foundatio = CreateFoundatio();
         _lazyCache = CreateLazyCache();
@@ -66,19 +64,6 @@ public class LocalGetBenchmark
     }
 
     [Benchmark(OperationsPerInvoke = DataCount, Baseline = true)]
-    public int ConcurrentDictionary()
-    {
-        int sum = 0;
-        foreach (var d in Data)
-        {
-            _concurrentDictionary.TryGetValue(d.Key, out int val);
-            sum += val;
-        }
-
-        return sum;
-    }
-
-    [Benchmark(OperationsPerInvoke = DataCount)]
     public int ModernCaching()
     {
         int sum = 0;
@@ -90,6 +75,20 @@ public class LocalGetBenchmark
 
         return sum;
     }
+
+    [Benchmark(OperationsPerInvoke = DataCount)]
+    public int Microsoft()
+    {
+        int sum = 0;
+        foreach (var d in Data)
+        {
+            _microsoftExtensionsCache.TryGetValue(d.Key, out int val);
+            sum += val;
+        }
+
+        return sum;
+    }
+
 
     [Benchmark(OperationsPerInvoke = DataCount)]
     public async ValueTask<int> CacheTower()
@@ -163,17 +162,23 @@ public class LocalGetBenchmark
         return sum;
     }
 
-    private ConcurrentDictionary<Guid, int> CreateConcurrentDictionary()
-    {
-        return new ConcurrentDictionary<Guid, int>(Data);
-    }
-
     private IReadOnlyCache<Guid, int> CreateModernCache()
     {
         return new ReadOnlyCacheBuilder<Guid, int>("benchmark_cache", new ModernCacheDataSource())
             .WithLocalCache(new MemoryCache<Guid, int>())
             .WithPreload(_ => Task.FromResult(Data.Select(d => d.Key)), null)
             .BuildAsync().GetAwaiter().GetResult();
+    }
+
+    private MemoryCache CreateMicrosoftExtensionsCache()
+    {
+        MemoryCache cache = new(new MemoryCacheOptions());
+        foreach ((Guid key, int value) in Data)
+        {
+            cache.Set(key, value, TimeSpan.FromHours(1));
+        }
+
+        return cache;
     }
 
     private ICacheStack CreateCacheTower()

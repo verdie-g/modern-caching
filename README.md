@@ -80,26 +80,25 @@ The rest of the code as well as other examples can be found in
 ## Benchmarks
 
 Benchmark of the very hot path of different caching libraries
-([CacheTower](https://github.com/TurnerSoftware/CacheTower),
+([Microsoft.Extensions.Caching.Memory](https://learn.microsoft.com/en-us/dotnet/core/extensions/caching),
+[CacheTower](https://github.com/TurnerSoftware/CacheTower),
 [Foundatio](https://github.com/FoundatioFx/Foundatio),
 [LazyCache](https://github.com/alastairtree/LazyCache),
 [FusionCache](https://github.com/jodydonetti/ZiggyCreatures.FusionCache),
 [EasyCaching](https://github.com/dotnetcore/EasyCaching),
 [CacheManager](https://github.com/MichaCo/CacheManager)),
-that is, getting locally cached data. The .NET
-[ConcurrentDictionary](https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2)
-was also added as a baseline.
+that is, getting locally cached data.
 
-|               Method |      Mean |    Error |   StdDev | Ratio | RatioSD | Allocated |
-|--------------------- |----------:|---------:|---------:|------:|--------:|----------:|
-| ConcurrentDictionary |  10.26 ns | 0.004 ns | 0.004 ns |  1.00 |    0.00 |         - |
-|        ModernCaching |  23.08 ns | 0.020 ns | 0.017 ns |  2.25 |    0.00 |         - |
-|           CacheTower | 103.02 ns | 0.255 ns | 0.199 ns | 10.04 |    0.02 |      96 B |
-|            LazyCache | 157.87 ns | 0.995 ns | 0.931 ns | 15.40 |    0.09 |      96 B |
-|            Foundatio | 158.23 ns | 0.337 ns | 0.299 ns | 15.43 |    0.03 |     216 B |
-|          FusionCache | 195.63 ns | 0.414 ns | 0.387 ns | 19.07 |    0.04 |     184 B |
-|          EasyCaching | 244.47 ns | 1.033 ns | 0.966 ns | 23.83 |    0.10 |     264 B |
-|         CacheManager | 312.22 ns | 0.811 ns | 0.758 ns | 30.43 |    0.07 |     344 B |
+|        Method |      Mean |    Error |   StdDev | Ratio | RatioSD | Allocated |
+|-------------- |----------:|---------:|---------:|------:|--------:|----------:|
+| ModernCaching |  19.92 ns | 0.047 ns | 0.044 ns |  1.00 |    0.00 |         - |
+|     Microsoft |  44.06 ns | 0.816 ns | 0.801 ns |  2.21 |    0.04 |      32 B |
+|    CacheTower | 109.38 ns | 0.895 ns | 0.837 ns |  5.49 |    0.04 |      96 B |
+|     Foundatio | 154.68 ns | 0.878 ns | 0.821 ns |  7.76 |    0.05 |     216 B |
+|     LazyCache | 110.48 ns | 0.220 ns | 0.195 ns |  5.54 |    0.01 |      96 B |
+|   FusionCache | 145.12 ns | 2.268 ns | 2.122 ns |  7.28 |    0.11 |     200 B |
+|   EasyCaching | 287.16 ns | 0.890 ns | 0.832 ns | 14.41 |    0.05 |     264 B |
+|  CacheManager | 338.85 ns | 0.495 ns | 0.413 ns | 17.00 |    0.05 |     344 B |
 
 This library has similar performance as a raw ConcurrentDictionary since its hot
 path is a thin layer around it. It doesn't allocate anything, putting no pressure
