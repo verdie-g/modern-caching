@@ -140,7 +140,7 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
 
         if (entry.HasValue)
         {
-            _keyValueSerializer.SerializeValue(entry.Value, writer);
+            _keyValueSerializer.SerializeValue(entry.Value, writer.BaseStream);
         }
 
         byte[] bytes = memoryStream.ToArray();
@@ -164,7 +164,7 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
         // If the end of the stream was reached it means that the entry has no value.
         var cacheEntry = reader.BaseStream.Position == reader.BaseStream.Length
             ? new CacheEntry<TValue>()
-            : new CacheEntry<TValue>(_keyValueSerializer.DeserializeValue(reader));
+            : new CacheEntry<TValue>(_keyValueSerializer.DeserializeValue(reader.BaseStream));
         cacheEntry.CreationTime = creationTime;
         cacheEntry.TimeToLive = timeToLive;
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using ModernCaching.DistributedCaching;
 using ModernCaching.LocalCaching;
@@ -76,19 +77,21 @@ public class DistributedCacheTest
         public int Version => 1;
         public string SerializeKey(int key) => key.ToString();
 
-        public void SerializeValue(int? value, BinaryWriter writer)
+        public void SerializeValue(int? value, Stream stream)
         {
+            using BinaryWriter writer = new(stream, Encoding.UTF8, leaveOpen: true);
+            writer.Write(value.HasValue);
             if (value.HasValue)
             {
                 writer.Write(value.Value);
             }
         }
 
-        public int? DeserializeValue(BinaryReader reader)
+        public int? DeserializeValue(Stream stream)
         {
-            return reader.BaseStream.Position < reader.BaseStream.Length
-                ? reader.ReadInt32()
-                : null;
+            using BinaryReader reader = new(stream, Encoding.UTF8, leaveOpen: true);
+            bool hasValue = reader.ReadBoolean();
+            return hasValue ? reader.ReadInt32() : null;
         }
     }
 
