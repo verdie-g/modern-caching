@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading;
-using ModernCaching.Utils;
 
 namespace ModernCaching.LocalCaching;
 
@@ -25,7 +24,7 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
     /// </summary>
     public MemoryCache()
     {
-        _dictionary = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>>();
+        _dictionary = new ConcurrentDictionary<TKey, CacheEntry<TValue>>();
         _count = 0;
     }
 

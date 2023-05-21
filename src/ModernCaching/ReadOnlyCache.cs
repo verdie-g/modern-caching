@@ -83,8 +83,8 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         _distributedCache = distributedCache;
         _dataSource = dataSource;
         _options = options;
-        _keysToRefresh = ConcurrentDictionaryHelper.Create<TKey, CacheEntry<TValue>?>();
-        _refreshTasks = ConcurrentDictionaryHelper.Create<TKey, Task<CacheEntry<TValue>?>>();
+        _keysToRefresh = new ConcurrentDictionary<TKey, CacheEntry<TValue>?>();
+        _refreshTasks = new ConcurrentDictionary<TKey, Task<CacheEntry<TValue>?>>();
         _backgroundRefreshTimer = loadingTimer;
         _dateTime = dateTime;
         _random = random;
