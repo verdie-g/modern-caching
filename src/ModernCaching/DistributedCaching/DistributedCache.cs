@@ -122,7 +122,7 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
     /// <summary>{cacheName}|{headerVersion}/{cacheVersion}|{key}</summary>
     private string BuildDistributedCacheKey(TKey key)
     {
-        return _keyPrefix + _keyValueSerializer.StringifyKey(key);
+        return _keyPrefix + _keyValueSerializer.SerializeKey(key);
     }
 
     private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)

@@ -21,7 +21,7 @@ public class DistributedCacheTest
 
         Mock<IKeyValueSerializer<int, int>> keyValueSerializerMock = new(MockBehavior.Strict);
         keyValueSerializerMock.Setup(s => s.Version).Returns(1);
-        keyValueSerializerMock.Setup(s => s.StringifyKey(10)).Returns("10");
+        keyValueSerializerMock.Setup(s => s.SerializeKey(10)).Returns("10");
 
         DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
             keyValueSerializerMock.Object, null);
@@ -37,7 +37,7 @@ public class DistributedCacheTest
 
         Mock<IKeyValueSerializer<int, int>> keyValueSerializerMock = new(MockBehavior.Strict);
         keyValueSerializerMock.Setup(s => s.Version).Returns(1);
-        keyValueSerializerMock.Setup(s => s.StringifyKey(10)).Returns("10");
+        keyValueSerializerMock.Setup(s => s.SerializeKey(10)).Returns("10");
 
         DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
             keyValueSerializerMock.Object, null);
@@ -74,7 +74,7 @@ public class DistributedCacheTest
     private class IntToIntKeyValueSerializer : IKeyValueSerializer<int, int?>
     {
         public int Version => 1;
-        public string StringifyKey(int key) => key.ToString();
+        public string SerializeKey(int key) => key.ToString();
 
         public void SerializeValue(int? value, BinaryWriter writer)
         {

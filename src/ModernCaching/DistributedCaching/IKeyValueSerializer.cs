@@ -3,7 +3,7 @@
 namespace ModernCaching.DistributedCaching;
 
 /// <summary>
-/// Key stringifier and value serializer for an <see cref="IAsyncCache"/>.
+/// Key and value serializer for an <see cref="IAsyncCache"/>.
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the <see cref="IAsyncCache"/>.</typeparam>
 /// <typeparam name="TValue">The type of the values in the <see cref="IAsyncCache"/>.</typeparam>
@@ -21,7 +21,7 @@ public interface IKeyValueSerializer<in TKey, TValue> where TKey : notnull
     /// </summary>
     /// <param name="key">The key.</param>
     /// <returns>The string representation of <paramref name="key" />.</returns>
-    string StringifyKey(TKey key);
+    string SerializeKey(TKey key);
 
     /// <summary>
     /// Writes the <paramref name="value"/> to <paramref name="writer"/>.

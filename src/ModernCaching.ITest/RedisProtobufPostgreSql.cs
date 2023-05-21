@@ -209,7 +209,7 @@ INSERT INTO users VALUES
     {
         // Protobuf is forward/backward-compatible so bumping the version shouldn't be needed.
         public int Version => 0;
-        public string StringifyKey(TKey key) => key.ToString()!;
+        public string SerializeKey(TKey key) => key.ToString()!;
         public void SerializeValue(TValue value, BinaryWriter writer) => Serializer.Serialize(writer.BaseStream, value);
         public TValue DeserializeValue(BinaryReader reader) => Serializer.Deserialize<TValue>(reader.BaseStream);
     }
