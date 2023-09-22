@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-using System.Threading;
 using ModernCaching.Utils;
 
 namespace ModernCaching.Telemetry;
@@ -9,13 +8,21 @@ internal sealed class CacheMetrics : ICacheMetrics
 {
     private const string MetricNamePrefix = "modern-caching";
 
-    private static readonly KeyValuePair<string, object?> GetOperationTag = new("operation", "get");
-    private static readonly KeyValuePair<string, object?> SetOperationTag = new("operation", "set");
-    private static readonly KeyValuePair<string, object?> DeleteOperationTag = new("operation", "del");
-    private static readonly KeyValuePair<string, object?> OkStatusTag = new("status", "ok");
-    private static readonly KeyValuePair<string, object?> HitStatusTag = new("status", "hit");
-    private static readonly KeyValuePair<string, object?> MissStatusTag = new("status", "miss");
-    private static readonly KeyValuePair<string, object?> ErrorStatusTag = new("status", "error");
+    private readonly HighReadLowWriteCounter _localCacheGetHits;
+    private readonly HighReadLowWriteCounter _localCacheGetMisses;
+    private readonly HighReadLowWriteCounter _localCacheSets;
+    private readonly HighReadLowWriteCounter _localCacheDeleteHits;
+    private readonly HighReadLowWriteCounter _localCacheDeleteMisses;
+    private readonly HighReadLowWriteCounter _distributedCacheGetHits;
+    private readonly HighReadLowWriteCounter _distributedCacheGetMisses;
+    private readonly HighReadLowWriteCounter _distributedCacheGetErrors;
+    private readonly HighReadLowWriteCounter _distributedCacheSets;
+    private readonly HighReadLowWriteCounter _distributedCacheDeletes;
+    private readonly HighReadLowWriteCounter _dataSourceLoadOks;
+    private readonly HighReadLowWriteCounter _dataSourceLoadErrors;
+    private readonly HighReadLowWriteCounter _dataSourceKeyLoadHits;
+    private readonly HighReadLowWriteCounter _dataSourceKeyLoadMisses;
+    private readonly HighReadLowWriteCounter _dataSourceKeyLoadErrors;
 
     // ReSharper disable NotAccessedField.Local
     private readonly ObservableCounter<long> _localCacheRequestsCounter;
@@ -25,52 +32,61 @@ internal sealed class CacheMetrics : ICacheMetrics
     private readonly ObservableCounter<long> _dataSourceKeyLoadsCounter;
     // ReSharper restore NotAccessedField.Local
 
-    private long _localCacheGetHits;
-    private long _localCacheGetMisses;
-    private long _localCacheSets;
-    private long _localCacheDeleteHits;
-    private long _localCacheDeleteMisses;
     private long _localCacheCount;
-    private long _distributedCacheGetHits;
-    private long _distributedCacheGetMisses;
-    private long _distributedCacheGetErrors;
-    private long _distributedCacheSets;
-    private long _distributedCacheDeletes;
-    private long _dataSourceLoadOks;
-    private long _dataSourceLoadErrors;
-    private long _dataSourceKeyLoadHits;
-    private long _dataSourceKeyLoadMisses;
-    private long _dataSourceKeyLoadErrors;
 
     public CacheMetrics(string cacheName)
     {
+        _localCacheGetHits = new HighReadLowWriteCounter();
+        _localCacheGetMisses = new HighReadLowWriteCounter();
+        _localCacheSets = new HighReadLowWriteCounter();
+        _localCacheDeleteHits = new HighReadLowWriteCounter();
+        _localCacheDeleteMisses = new HighReadLowWriteCounter();
+        _distributedCacheGetHits = new HighReadLowWriteCounter();
+        _distributedCacheGetMisses = new HighReadLowWriteCounter();
+        _distributedCacheGetErrors = new HighReadLowWriteCounter();
+        _distributedCacheSets = new HighReadLowWriteCounter();
+        _distributedCacheDeletes = new HighReadLowWriteCounter();
+        _dataSourceLoadOks = new HighReadLowWriteCounter();
+        _dataSourceLoadErrors = new HighReadLowWriteCounter();
+        _dataSourceKeyLoadHits = new HighReadLowWriteCounter();
+        _dataSourceKeyLoadMisses = new HighReadLowWriteCounter();
+        _dataSourceKeyLoadErrors = new HighReadLowWriteCounter();
+
+        KeyValuePair<string, object?> getOperationTag = new("operation", "get");
+        KeyValuePair<string, object?> setOperationTag = new("operation", "set");
+        KeyValuePair<string, object?> deleteOperationTag = new("operation", "del");
+        KeyValuePair<string, object?> okStatusTag = new("status", "ok");
+        KeyValuePair<string, object?> hitStatusTag = new("status", "hit");
+        KeyValuePair<string, object?> missStatusTag = new("status", "miss");
+        KeyValuePair<string, object?> errorStatusTag = new("status", "error");
+
         KeyValuePair<string, object?> cacheNameTag = new("name", cacheName);
-        KeyValuePair<string, object?>[] localCacheGetHitsTags = { cacheNameTag, GetOperationTag, HitStatusTag };
-        KeyValuePair<string, object?>[] localCacheGetMissesTags = { cacheNameTag, GetOperationTag, MissStatusTag };
-        KeyValuePair<string, object?>[] localCacheSetsTags = { cacheNameTag, SetOperationTag, OkStatusTag };
-        KeyValuePair<string, object?>[] localCacheDeleteHitsTags = { cacheNameTag, DeleteOperationTag, HitStatusTag };
-        KeyValuePair<string, object?>[] localCacheDeleteMissesTags = { cacheNameTag, DeleteOperationTag, MissStatusTag };
+        KeyValuePair<string, object?>[] localCacheGetHitsTags = { cacheNameTag, getOperationTag, hitStatusTag };
+        KeyValuePair<string, object?>[] localCacheGetMissesTags = { cacheNameTag, getOperationTag, missStatusTag };
+        KeyValuePair<string, object?>[] localCacheSetsTags = { cacheNameTag, setOperationTag, okStatusTag };
+        KeyValuePair<string, object?>[] localCacheDeleteHitsTags = { cacheNameTag, deleteOperationTag, hitStatusTag };
+        KeyValuePair<string, object?>[] localCacheDeleteMissesTags = { cacheNameTag, deleteOperationTag, missStatusTag };
         KeyValuePair<string, object?>[] localCacheCountTags = { cacheNameTag };
-        KeyValuePair<string, object?>[] distributedCacheGetHitsTags = { cacheNameTag, GetOperationTag, HitStatusTag };
-        KeyValuePair<string, object?>[] distributedCacheGetMissesTags = { cacheNameTag, GetOperationTag, MissStatusTag };
-        KeyValuePair<string, object?>[] distributedCacheGetErrorsTags = { cacheNameTag, GetOperationTag, ErrorStatusTag };
-        KeyValuePair<string, object?>[] distributedCacheSetsTags = { cacheNameTag, SetOperationTag, OkStatusTag };
-        KeyValuePair<string, object?>[] distributedCacheDeletesTags = { cacheNameTag, DeleteOperationTag, HitStatusTag };
-        KeyValuePair<string, object?>[] dataSourceLoadOksTags = { cacheNameTag, OkStatusTag };
-        KeyValuePair<string, object?>[] dataSourceLoadErrorsTags = { cacheNameTag, ErrorStatusTag };
-        KeyValuePair<string, object?>[] dataSourceKeyLoadHitsTags = { cacheNameTag, HitStatusTag };
-        KeyValuePair<string, object?>[] dataSourceKeyLoadMissesTags = { cacheNameTag, MissStatusTag };
-        KeyValuePair<string, object?>[] dataSourceKeyLoadErrorsTags = { cacheNameTag, ErrorStatusTag };
+        KeyValuePair<string, object?>[] distributedCacheGetHitsTags = { cacheNameTag, getOperationTag, hitStatusTag };
+        KeyValuePair<string, object?>[] distributedCacheGetMissesTags = { cacheNameTag, getOperationTag, missStatusTag };
+        KeyValuePair<string, object?>[] distributedCacheGetErrorsTags = { cacheNameTag, getOperationTag, errorStatusTag };
+        KeyValuePair<string, object?>[] distributedCacheSetsTags = { cacheNameTag, setOperationTag, okStatusTag };
+        KeyValuePair<string, object?>[] distributedCacheDeletesTags = { cacheNameTag, deleteOperationTag, hitStatusTag };
+        KeyValuePair<string, object?>[] dataSourceLoadOksTags = { cacheNameTag, okStatusTag };
+        KeyValuePair<string, object?>[] dataSourceLoadErrorsTags = { cacheNameTag, errorStatusTag };
+        KeyValuePair<string, object?>[] dataSourceKeyLoadHitsTags = { cacheNameTag, hitStatusTag };
+        KeyValuePair<string, object?>[] dataSourceKeyLoadMissesTags = { cacheNameTag, missStatusTag };
+        KeyValuePair<string, object?>[] dataSourceKeyLoadErrorsTags = { cacheNameTag, errorStatusTag };
 
         var meter = UtilsCache.Meter;
         _localCacheRequestsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.local-cache.requests",
             () => new[]
             {
-                new Measurement<long>(Volatile.Read(ref _localCacheGetHits), localCacheGetHitsTags),
-                new Measurement<long>(Volatile.Read(ref _localCacheGetMisses), localCacheGetMissesTags),
-                new Measurement<long>(Volatile.Read(ref _localCacheSets), localCacheSetsTags),
-                new Measurement<long>(Volatile.Read(ref _localCacheDeleteHits), localCacheDeleteHitsTags),
-                new Measurement<long>(Volatile.Read(ref _localCacheDeleteMisses), localCacheDeleteMissesTags),
+                new Measurement<long>(_localCacheGetHits.Value, localCacheGetHitsTags),
+                new Measurement<long>(_localCacheGetMisses.Value, localCacheGetMissesTags),
+                new Measurement<long>(_localCacheSets.Value, localCacheSetsTags),
+                new Measurement<long>(_localCacheDeleteHits.Value, localCacheDeleteHitsTags),
+                new Measurement<long>(_localCacheDeleteMisses.Value, localCacheDeleteMissesTags),
             }, description: "Local cache request statuses by operation");
         _localCacheCountGauge = meter.CreateObservableGauge($"{MetricNamePrefix}.local-cache.count", () =>
                 new Measurement<long>(_localCacheCount, localCacheCountTags),
@@ -78,41 +94,41 @@ internal sealed class CacheMetrics : ICacheMetrics
         _distributedCacheRequestsCounter = meter.CreateObservableCounter(
             $"{MetricNamePrefix}.distributed-cache.requests", () => new[]
             {
-                new Measurement<long>(Volatile.Read(ref _distributedCacheGetHits), distributedCacheGetHitsTags),
-                new Measurement<long>(Volatile.Read(ref _distributedCacheGetMisses), distributedCacheGetMissesTags),
-                new Measurement<long>(Volatile.Read(ref _distributedCacheGetErrors), distributedCacheGetErrorsTags),
-                new Measurement<long>(Volatile.Read(ref _distributedCacheSets), distributedCacheSetsTags),
-                new Measurement<long>(Volatile.Read(ref _distributedCacheDeletes), distributedCacheDeletesTags),
+                new Measurement<long>(_distributedCacheGetHits.Value, distributedCacheGetHitsTags),
+                new Measurement<long>(_distributedCacheGetMisses.Value, distributedCacheGetMissesTags),
+                new Measurement<long>(_distributedCacheGetErrors.Value, distributedCacheGetErrorsTags),
+                new Measurement<long>(_distributedCacheSets.Value, distributedCacheSetsTags),
+                new Measurement<long>(_distributedCacheDeletes.Value, distributedCacheDeletesTags),
             }, description: "Distributed cache request statuses by operation");
         _dataSourceLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.loads",
             () => new[]
             {
-                new Measurement<long>(Volatile.Read(ref _dataSourceLoadOks), dataSourceLoadOksTags),
-                new Measurement<long>(Volatile.Read(ref _dataSourceLoadErrors), dataSourceLoadErrorsTags),
+                new Measurement<long>(_dataSourceLoadOks.Value, dataSourceLoadOksTags),
+                new Measurement<long>(_dataSourceLoadErrors.Value, dataSourceLoadErrorsTags),
             }, description: "Data source load statuses");
         _dataSourceKeyLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.key-loads",
             () => new[]
             {
-                new Measurement<long>(Volatile.Read(ref _dataSourceKeyLoadHits), dataSourceKeyLoadHitsTags),
-                new Measurement<long>(Volatile.Read(ref _dataSourceKeyLoadMisses), dataSourceKeyLoadMissesTags),
-                new Measurement<long>(Volatile.Read(ref _dataSourceKeyLoadErrors), dataSourceKeyLoadErrorsTags),
+                new Measurement<long>(_dataSourceKeyLoadHits.Value, dataSourceKeyLoadHitsTags),
+                new Measurement<long>(_dataSourceKeyLoadMisses.Value, dataSourceKeyLoadMissesTags),
+                new Measurement<long>(_dataSourceKeyLoadErrors.Value, dataSourceKeyLoadErrorsTags),
             }, description: "Data source load statuses for each requested key");
     }
 
-    public void IncrementLocalCacheGetHits() => Interlocked.Increment(ref _localCacheGetHits);
-    public void IncrementLocalCacheGetMisses() => Interlocked.Increment(ref _localCacheGetMisses);
-    public void IncrementLocalCacheSets() => Interlocked.Increment(ref _localCacheSets);
-    public void IncrementLocalCacheDeleteHits() => Interlocked.Increment(ref _localCacheDeleteHits);
-    public void IncrementLocalCacheDeleteMisses() => Interlocked.Increment(ref _localCacheDeleteMisses);
+    public void IncrementLocalCacheGetHits() => _localCacheGetHits.Increment();
+    public void IncrementLocalCacheGetMisses() => _localCacheGetMisses.Increment();
+    public void IncrementLocalCacheSets() => _localCacheSets.Increment();
+    public void IncrementLocalCacheDeleteHits() => _localCacheDeleteHits.Increment();
+    public void IncrementLocalCacheDeleteMisses() => _localCacheDeleteMisses.Increment();
     public void UpdateLocalCacheCount(long count) => _localCacheCount = count;
-    public void IncrementDistributedCacheGetHits() => Interlocked.Increment(ref _distributedCacheGetHits);
-    public void IncrementDistributedCacheGetMisses() => Interlocked.Increment(ref _distributedCacheGetMisses);
-    public void IncrementDistributedCacheGetErrors() => Interlocked.Increment(ref _distributedCacheGetErrors);
-    public void IncrementDistributedCacheSets() => Interlocked.Increment(ref _distributedCacheSets);
-    public void IncrementDistributedCacheDeletes() => Interlocked.Increment(ref _distributedCacheDeletes);
-    public void IncrementDataSourceLoadOks() => Interlocked.Increment(ref _dataSourceLoadOks);
-    public void IncrementDataSourceLoadErrors() => Interlocked.Increment(ref _dataSourceLoadErrors);
-    public void IncrementDataSourceKeyLoadHits(long value) => Interlocked.Add(ref _dataSourceKeyLoadHits, value);
-    public void IncrementDataSourceKeyLoadMisses(long value) => Interlocked.Add(ref _dataSourceKeyLoadMisses, value);
-    public void IncrementDataSourceKeyLoadErrors(long value) => Interlocked.Add(ref _dataSourceKeyLoadErrors, value);
+    public void IncrementDistributedCacheGetHits() => _distributedCacheGetHits.Increment();
+    public void IncrementDistributedCacheGetMisses() => _distributedCacheGetMisses.Increment();
+    public void IncrementDistributedCacheGetErrors() => _distributedCacheGetErrors.Increment();
+    public void IncrementDistributedCacheSets() => _distributedCacheSets.Increment();
+    public void IncrementDistributedCacheDeletes() => _distributedCacheDeletes.Increment();
+    public void IncrementDataSourceLoadOks() => _dataSourceLoadOks.Increment();
+    public void IncrementDataSourceLoadErrors() => _dataSourceLoadErrors.Increment();
+    public void IncrementDataSourceKeyLoadHits(long value) => _dataSourceKeyLoadHits.Add(value);
+    public void IncrementDataSourceKeyLoadMisses(long value) => _dataSourceKeyLoadMisses.Add(value);
+    public void IncrementDataSourceKeyLoadErrors(long value) => _dataSourceKeyLoadErrors.Add(value);
 }

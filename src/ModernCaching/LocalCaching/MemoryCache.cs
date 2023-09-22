@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using System.Threading;
+using ModernCaching.Utils;
 
 namespace ModernCaching.LocalCaching;
 
@@ -13,11 +13,8 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
 {
     private readonly ConcurrentDictionary<TKey, CacheEntry<TValue>> _dictionary;
 
-    /// <summary>
-    /// Eventually consistent count of <see cref="_dictionary"/>. This count is increment/decremented using
-    /// <see cref="Interlocked.Increment(ref long)"/> to avoid using <see cref="ConcurrentDictionary{TKey,TValue}.Count"/>
-    /// that locks the entire dictionary.</summary>
-    private int _count;
+    // Avoid using ConcurrentDictionary.Count that locks the entire dictionary.
+    private readonly HighReadLowWriteCounter _count;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MemoryCache{TKey,TValue}"/> class.
@@ -25,11 +22,11 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
     public MemoryCache()
     {
         _dictionary = new ConcurrentDictionary<TKey, CacheEntry<TValue>>();
-        _count = 0;
+        _count = new HighReadLowWriteCounter();
     }
 
     /// <inheritdoc />
-    public int Count => _count;
+    public int Count => (int)_count.Value;
 
     /// <inheritdoc />
     public bool TryGet(TKey key, out CacheEntry<TValue> entry)
@@ -46,7 +43,7 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
         }
         else if (_dictionary.TryAdd(key, entry))
         {
-            Interlocked.Increment(ref _count);
+            _count.Increment();
         }
     }
 
@@ -58,8 +55,7 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
             return false;
         }
 
-        Interlocked.Decrement(ref _count);
+        _count.Decrement();
         return true;
-
     }
 }
