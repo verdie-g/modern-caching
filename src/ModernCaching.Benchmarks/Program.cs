@@ -183,10 +183,7 @@ public class LocalGetBenchmark
 
     private ICacheStack CreateCacheTower()
     {
-        CacheStack cache = new (new ICacheLayer[]
-        {
-            new MemoryCacheLayer(),
-        }, Array.Empty<ICacheExtension>());
+        CacheStack cache = new(null, new CacheStackOptions(new MemoryCacheLayer()));
         foreach ((Guid key, int value) in Data)
         {
             cache.SetAsync(key.ToString(), value, TimeSpan.FromHours(1));

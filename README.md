@@ -89,16 +89,16 @@ Benchmark of the very hot path of different caching libraries
 [CacheManager](https://github.com/MichaCo/CacheManager)),
 that is, getting locally cached data.
 
-|        Method |      Mean |    Error |   StdDev | Ratio | RatioSD | Allocated |
+| Method        | Mean      | Error    | StdDev   | Ratio | RatioSD | Allocated |
 |-------------- |----------:|---------:|---------:|------:|--------:|----------:|
-| ModernCaching |  19.92 ns | 0.047 ns | 0.044 ns |  1.00 |    0.00 |         - |
-|     Microsoft |  44.06 ns | 0.816 ns | 0.801 ns |  2.21 |    0.04 |      32 B |
-|    CacheTower | 109.38 ns | 0.895 ns | 0.837 ns |  5.49 |    0.04 |      96 B |
-|     Foundatio | 154.68 ns | 0.878 ns | 0.821 ns |  7.76 |    0.05 |     216 B |
-|     LazyCache | 110.48 ns | 0.220 ns | 0.195 ns |  5.54 |    0.01 |      96 B |
-|   FusionCache | 145.12 ns | 2.268 ns | 2.122 ns |  7.28 |    0.11 |     200 B |
-|   EasyCaching | 287.16 ns | 0.890 ns | 0.832 ns | 14.41 |    0.05 |     264 B |
-|  CacheManager | 338.85 ns | 0.495 ns | 0.413 ns | 17.00 |    0.05 |     344 B |
+| ModernCaching |  13.58 ns | 0.018 ns | 0.015 ns |  1.00 |    0.00 |         - |
+| Microsoft     |  32.25 ns | 0.226 ns | 0.189 ns |  2.38 |    0.01 |      32 B |
+| CacheTower    |  64.98 ns | 0.368 ns | 0.345 ns |  4.79 |    0.03 |      96 B |
+| Foundatio     | 104.12 ns | 0.651 ns | 0.577 ns |  7.67 |    0.04 |     216 B |
+| LazyCache     |  77.99 ns | 0.636 ns | 0.594 ns |  5.74 |    0.04 |      96 B |
+| FusionCache   |  92.17 ns | 0.405 ns | 0.379 ns |  6.80 |    0.02 |     160 B |
+| EasyCaching   | 141.51 ns | 0.455 ns | 0.425 ns | 10.42 |    0.03 |     264 B |
+| CacheManager  | 247.69 ns | 2.767 ns | 2.453 ns | 18.27 |    0.16 |     344 B |
 
 This library has similar performance as a raw ConcurrentDictionary since its hot
 path is a thin layer around it. It doesn't allocate anything, putting no pressure
