@@ -95,21 +95,24 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
     }
 
     /// <inheritdoc />
-    public Task SetAsync(TKey key, CacheEntry<TValue> entry)
+    public async Task SetAsync(TKey key, CacheEntry<TValue> entry)
     {
-        byte[] valueBytes;
+        MemoryStream memoryStream = UtilsCache.MemoryStreamPool.Get();
         try
         {
-            valueBytes = SerializeDistributedCacheValue(entry);
+            SerializeDistributedCacheValue(entry, memoryStream);
         }
         catch (Exception e)
         {
             _logger?.LogError(e, "An error occured serializing value for key '{key}' from cache '{cacheName}'", key, _name);
-            return Task.CompletedTask;
+            UtilsCache.MemoryStreamPool.Return(memoryStream);
+            return;
         }
 
         string keyStr = BuildDistributedCacheKey(key);
-        return _cache.SetAsync(keyStr, valueBytes);
+        var valueBytes = memoryStream.GetBuffer().AsMemory(0, (int)memoryStream.Length);
+        await _cache.SetAsync(keyStr, valueBytes);
+        UtilsCache.MemoryStreamPool.Return(memoryStream);
     }
 
     /// <inheritdoc />
@@ -125,9 +128,8 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
         return _keyPrefix + _keyValueSerializer.SerializeKey(key);
     }
 
-    private byte[] SerializeDistributedCacheValue(CacheEntry<TValue> entry)
+    private void SerializeDistributedCacheValue(CacheEntry<TValue> entry, MemoryStream memoryStream)
     {
-        MemoryStream memoryStream = UtilsCache.MemoryStreamPool.Get();
         BinaryWriter writer = new(memoryStream);
 
         writer.Write((int)AsyncCacheEntryOptions.None);
@@ -142,10 +144,6 @@ internal sealed class DistributedCache<TKey, TValue> : IDistributedCache<TKey, T
         {
             _keyValueSerializer.SerializeValue(entry.Value, writer.BaseStream);
         }
-
-        byte[] bytes = memoryStream.ToArray();
-        UtilsCache.MemoryStreamPool.Return(memoryStream);
-        return bytes;
     }
 
     private CacheEntry<TValue> DeserializeDistributedCacheValue(byte[] bytes)
