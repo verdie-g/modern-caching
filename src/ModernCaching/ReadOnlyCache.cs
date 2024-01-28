@@ -67,7 +67,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     /// <summary>
     /// Random number generator to randomize time-to-lives.
     /// </summary>
-    private readonly IRandom _random;
+    private readonly Random _random;
 
     /// <summary>
     /// To avoid loading the same key concurrently, the loading tasks are saved here to be reused by concurrent <see cref="TryGetAsync"/>.
@@ -76,7 +76,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
 
     public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache,
         IDistributedCache<TKey, TValue>? distributedCache, IDataSource<TKey, TValue> dataSource,
-        ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime, IRandom random)
+        ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime, Random random)
     {
         _name = name;
         _localCache = localCache;

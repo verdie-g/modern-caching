@@ -1,4 +1,5 @@
-﻿using ModernCaching.Utils;
+﻿using System;
+using ModernCaching.Utils;
 using Moq;
 using NUnit.Framework;
 
@@ -12,7 +13,7 @@ public class ReadOnlyCacheTest_ToString
     public void ToStringShouldReturnCacheName()
     {
         ReadOnlyCache<int, int> cache = new(C, null, null, null!, new ReadOnlyCacheOptions(), Mock.Of<ITimer>(),
-            Mock.Of<IDateTime>(), Mock.Of<IRandom>());
+            Mock.Of<IDateTime>(), Mock.Of<Random>());
         Assert.That(cache.ToString(), Is.EqualTo(C));
     }
 }

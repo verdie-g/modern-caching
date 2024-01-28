@@ -133,7 +133,7 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
             : null;
 
         var cache = new ReadOnlyCache<TKey, TValue>(_name, localCache, distributedCacheWrapper, dataSource,
-            _options, UtilsCache.LoadingTimer, UtilsCache.DateTime, UtilsCache.Random);
+            _options, UtilsCache.LoadingTimer, UtilsCache.DateTime, Random.Shared);
 
         if (_getKeys != null)
         {
@@ -173,7 +173,7 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
 
     private static IEnumerable<TKey> ShuffleKeys(IList<TKey> keys)
     {
-        IRandom rng = UtilsCache.Random;
+        Random rng = Random.Shared;
         int i = keys.Count;
         while (i > 1)
         {

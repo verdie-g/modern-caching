@@ -20,7 +20,6 @@ public class ReadOnlyCacheTest_LoadAsync
     private static readonly ITimer Timer = Mock.Of<ITimer>();
 #pragma warning restore NUnit1032
     private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
-    private static readonly IRandom Random = new ThreadSafeRandom();
 
     [Theory]
     public async Task ShouldLoadKeys(bool cacheDataSourceMisses)
@@ -83,7 +82,7 @@ public class ReadOnlyCacheTest_LoadAsync
         ReadOnlyCacheOptions options = new() { CacheDataSourceMisses = cacheDataSourceMisses };
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
-            dataSourceMock.Object, options, Timer, MachineDateTime, Random);
+            dataSourceMock.Object, options, Timer, MachineDateTime, Random.Shared);
         await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
         int expectedSetAsyncInvocations = cacheDataSourceMisses ? 4 : 2;
@@ -106,7 +105,7 @@ public class ReadOnlyCacheTest_LoadAsync
         Mock<IDataSource<int, int>> dataSourceMock = new();
 
         ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
-            Random);
+            Random.Shared);
         await cache.LoadAsync(Array.Empty<int>());
 
         dataSourceMock.Verify(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()),
@@ -122,7 +121,7 @@ public class ReadOnlyCacheTest_LoadAsync
             .Returns(CreateDataSourceResults());
 
         ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
-            Random);
+            Random.Shared);
         await cache.LoadAsync(Enumerable.Range(1, 5432));
 
         dataSourceMock.Verify(s => s.LoadAsync(
@@ -144,7 +143,7 @@ public class ReadOnlyCacheTest_LoadAsync
             .Throws<Exception>();
 
         ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer,
-            MachineDateTime, Random);
+            MachineDateTime, Random.Shared);
         Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(new[] { 0 }));
     }
 

@@ -16,7 +16,6 @@ internal static class UtilsCache
 
     public static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
     public static readonly IDateTime DateTime = new CachedDateTime(LoadingTimer);
-    public static readonly IRandom Random = new ThreadSafeRandom();
     public static readonly DefaultObjectPool<MemoryStream> MemoryStreamPool = new(new PooledMemoryStreamPolicy());
     public static readonly Meter Meter = new(InstrumentationName, InstrumentationVersion);
     public static readonly ActivitySource ActivitySource = new(InstrumentationName, InstrumentationVersion);

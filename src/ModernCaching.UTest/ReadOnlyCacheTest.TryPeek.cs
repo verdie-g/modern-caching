@@ -14,7 +14,6 @@ public class ReadOnlyCacheTest_TryPeek
     private static readonly ITimer Timer = Mock.Of<ITimer>();
 #pragma warning restore NUnit1032
     private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
-    private static readonly IRandom Random = new ThreadSafeRandom();
     private static readonly CacheEntry<int> FreshEntry = new(10)
     {
         CreationTime = DateTime.UtcNow,
@@ -34,7 +33,7 @@ public class ReadOnlyCacheTest_TryPeek
     [Test]
     public void GettingNullKeyShouldThrow()
     {
-        ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random);
+        ReadOnlyCache<string, string> cache = new(C, null, null, null!, Options, Timer, MachineDateTime, Random.Shared);
         Assert.Throws<ArgumentNullException>(() => cache.TryPeek(null!, out _));
     }
 
@@ -49,7 +48,7 @@ public class ReadOnlyCacheTest_TryPeek
             .Returns(true);
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-            Random);
+            Random.Shared);
         bool found = cache.TryPeek(5, out int val);
         if (entryHasValue)
         {
@@ -74,7 +73,7 @@ public class ReadOnlyCacheTest_TryPeek
             .Returns(true);
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-            Random);
+            Random.Shared);
         Assert.That(cache.TryPeek(5, out int val), Is.True);
         Assert.That(val, Is.EqualTo(10));
     }
@@ -90,7 +89,7 @@ public class ReadOnlyCacheTest_TryPeek
             .Returns(false);
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
-            Random);
+            Random.Shared);
         Assert.That(cache.TryPeek(5, out int val), Is.False);
         Assert.That(val, Is.Zero);
     }
@@ -110,7 +109,7 @@ public class ReadOnlyCacheTest_TryPeek
             .Returns(true);
 
         ReadOnlyCache<int, object?> cache = new(C, localCacheMock.Object, null, null!, Options, Timer,
-            MachineDateTime, Random);
+            MachineDateTime, Random.Shared);
         Assert.That(cache.TryPeek(5, out object? val), Is.True);
         Assert.That(val, Is.Null);
     }
