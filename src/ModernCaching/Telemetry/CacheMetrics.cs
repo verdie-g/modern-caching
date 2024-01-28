@@ -6,7 +6,7 @@ namespace ModernCaching.Telemetry;
 
 internal sealed class CacheMetrics : ICacheMetrics
 {
-    private const string MetricNamePrefix = "modern-caching";
+    private const string MetricNamePrefix = "modern_caching";
 
     private readonly HighReadLowWriteCounter _localCacheGetHits;
     private readonly HighReadLowWriteCounter _localCacheGetMisses;
@@ -79,7 +79,7 @@ internal sealed class CacheMetrics : ICacheMetrics
         KeyValuePair<string, object?>[] dataSourceKeyLoadErrorsTags = { cacheNameTag, errorStatusTag };
 
         var meter = UtilsCache.Meter;
-        _localCacheRequestsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.local-cache.requests",
+        _localCacheRequestsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.local_cache.requests",
             () => new[]
             {
                 new Measurement<long>(_localCacheGetHits.Value, localCacheGetHitsTags),
@@ -88,11 +88,11 @@ internal sealed class CacheMetrics : ICacheMetrics
                 new Measurement<long>(_localCacheDeleteHits.Value, localCacheDeleteHitsTags),
                 new Measurement<long>(_localCacheDeleteMisses.Value, localCacheDeleteMissesTags),
             }, description: "Local cache request statuses by operation");
-        _localCacheCountGauge = meter.CreateObservableGauge($"{MetricNamePrefix}.local-cache.count", () =>
+        _localCacheCountGauge = meter.CreateObservableGauge($"{MetricNamePrefix}.local_cache.count", () =>
                 new Measurement<long>(_localCacheCount, localCacheCountTags),
             description: "Local cache entries count");
         _distributedCacheRequestsCounter = meter.CreateObservableCounter(
-            $"{MetricNamePrefix}.distributed-cache.requests", () => new[]
+            $"{MetricNamePrefix}.distributed_cache.requests", () => new[]
             {
                 new Measurement<long>(_distributedCacheGetHits.Value, distributedCacheGetHitsTags),
                 new Measurement<long>(_distributedCacheGetMisses.Value, distributedCacheGetMissesTags),
@@ -100,13 +100,13 @@ internal sealed class CacheMetrics : ICacheMetrics
                 new Measurement<long>(_distributedCacheSets.Value, distributedCacheSetsTags),
                 new Measurement<long>(_distributedCacheDeletes.Value, distributedCacheDeletesTags),
             }, description: "Distributed cache request statuses by operation");
-        _dataSourceLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.loads",
+        _dataSourceLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.loads",
             () => new[]
             {
                 new Measurement<long>(_dataSourceLoadOks.Value, dataSourceLoadOksTags),
                 new Measurement<long>(_dataSourceLoadErrors.Value, dataSourceLoadErrorsTags),
             }, description: "Data source load statuses");
-        _dataSourceKeyLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data-source.key-loads",
+        _dataSourceKeyLoadsCounter = meter.CreateObservableCounter($"{MetricNamePrefix}.data_source.key_loads",
             () => new[]
             {
                 new Measurement<long>(_dataSourceKeyLoadHits.Value, dataSourceKeyLoadHitsTags),
