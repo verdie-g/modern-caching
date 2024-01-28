@@ -10,7 +10,9 @@ public class ReadOnlyCacheTest_TryPeek
 {
     private const string C = "cache_test";
     private static readonly ReadOnlyCacheOptions Options = new();
+#pragma warning disable NUnit1032
     private static readonly ITimer Timer = Mock.Of<ITimer>();
+#pragma warning restore NUnit1032
     private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
     private static readonly IRandom Random = new ThreadSafeRandom();
     private static readonly CacheEntry<int> FreshEntry = new(10)
@@ -51,13 +53,13 @@ public class ReadOnlyCacheTest_TryPeek
         bool found = cache.TryPeek(5, out int val);
         if (entryHasValue)
         {
-            Assert.IsTrue(found);
-            Assert.AreEqual(10, val);
+            Assert.That(found, Is.True);
+            Assert.That(val, Is.EqualTo(10));
         }
         else
         {
-            Assert.IsFalse(found);
-            Assert.Zero(val);
+            Assert.That(found, Is.False);
+            Assert.That(val, Is.Zero);
         }
     }
 
@@ -73,8 +75,8 @@ public class ReadOnlyCacheTest_TryPeek
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
             Random);
-        Assert.IsTrue(cache.TryPeek(5, out int val));
-        Assert.AreEqual(10, val);
+        Assert.That(cache.TryPeek(5, out int val), Is.True);
+        Assert.That(val, Is.EqualTo(10));
     }
 
     [Test]
@@ -89,8 +91,8 @@ public class ReadOnlyCacheTest_TryPeek
 
         ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, null, null!, Options, Timer, MachineDateTime,
             Random);
-        Assert.IsFalse(cache.TryPeek(5, out int val));
-        Assert.Zero(val);
+        Assert.That(cache.TryPeek(5, out int val), Is.False);
+        Assert.That(val, Is.Zero);
     }
 
     [Test]
@@ -109,7 +111,7 @@ public class ReadOnlyCacheTest_TryPeek
 
         ReadOnlyCache<int, object?> cache = new(C, localCacheMock.Object, null, null!, Options, Timer,
             MachineDateTime, Random);
-        Assert.IsTrue(cache.TryPeek(5, out object? val));
-        Assert.IsNull(val);
+        Assert.That(cache.TryPeek(5, out object? val), Is.True);
+        Assert.That(val, Is.Null);
     }
 }

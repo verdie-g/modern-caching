@@ -70,7 +70,7 @@ public class ReadOnlyCacheBuilderTest
     {
         var cache = await new ReadOnlyCacheBuilder<int, int>("-Ri cé#\t ^k.ro Ll_", Mock.Of<IDataSource<int, int>>())
             .BuildAsync();
-        Assert.AreEqual("-Rick.roLl_", cache.ToString());
+        Assert.That(cache.ToString(), Is.EqualTo("-Rick.roLl_"));
     }
 
     [Test]

@@ -10,18 +10,18 @@ public class CacheEntryTest
     public void ParameterlessConstructorShouldCreateEntryWithNoValue()
     {
         CacheEntry<int> entry = new();
-        Assert.IsFalse(entry.HasValue);
+        Assert.That(entry.HasValue, Is.False);
         Assert.Throws<InvalidOperationException>(() => _ = entry.Value);
-        Assert.AreEqual(default(int), entry.GetValueOrDefault());
+        Assert.That(entry.GetValueOrDefault(), Is.EqualTo(default(int)));
     }
 
     [Test]
     public void ConstructorWithParameterShouldCreateEntryWithValue()
     {
         CacheEntry<int> entry = new(5);
-        Assert.IsTrue(entry.HasValue);
-        Assert.AreEqual(5, entry.Value);
-        Assert.AreEqual(5, entry.GetValueOrDefault());
+        Assert.That(entry.HasValue, Is.True);
+        Assert.That(entry.Value, Is.EqualTo(5));
+        Assert.That(entry.GetValueOrDefault(), Is.EqualTo(5));
     }
 
     [Test]
@@ -38,7 +38,7 @@ public class CacheEntryTest
             TimeToLive = TimeSpan.FromHours(2),
         };
 
-        Assert.AreEqual(entry1, entry2);
+        Assert.That(entry2, Is.EqualTo(entry1));
     }
 
     [Test]
@@ -47,7 +47,7 @@ public class CacheEntryTest
         CacheEntry<int> entry1 = new();
         CacheEntry<int> entry2 = new();
 
-        Assert.AreEqual(entry1, entry2);
+        Assert.That(entry2, Is.EqualTo(entry1));
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class CacheEntryTest
         CacheEntry<int> entry1 = new();
         CacheEntry<int> entry2 = new(5);
 
-        Assert.AreNotEqual(entry1, entry2);
+        Assert.That(entry2, Is.Not.EqualTo(entry1));
     }
 
     [Test]
@@ -64,7 +64,7 @@ public class CacheEntryTest
     {
         CacheEntry<int> entry = new();
 
-        Assert.Zero(entry.GetHashCode());
+        Assert.That(entry.GetHashCode(), Is.Zero);
     }
 
     [Test]
@@ -72,7 +72,7 @@ public class CacheEntryTest
     {
         CacheEntry<int> entry = new();
 
-        Assert.IsEmpty(entry.ToString());
+        Assert.That(entry.ToString(), Is.Empty);
     }
 
     [Theory]
@@ -80,11 +80,11 @@ public class CacheEntryTest
     {
         CacheEntry<int> entry = hasValue ? new(5) : new();
         CacheEntry<int> clone = entry.Clone();
-            
-        Assert.AreNotSame(entry, clone);
-        Assert.AreEqual(entry.HasValue, clone.HasValue);
-        Assert.AreEqual(entry.GetValueOrDefault(), clone.GetValueOrDefault());
-        Assert.AreEqual(entry.CreationTime, clone.CreationTime);
-        Assert.AreEqual(entry.TimeToLive, clone.TimeToLive);
+
+        Assert.That(clone, Is.Not.SameAs(entry));
+        Assert.That(clone.HasValue, Is.EqualTo(entry.HasValue));
+        Assert.That(clone.GetValueOrDefault(), Is.EqualTo(entry.GetValueOrDefault()));
+        Assert.That(clone.CreationTime, Is.EqualTo(entry.CreationTime));
+        Assert.That(clone.TimeToLive, Is.EqualTo(entry.TimeToLive));
     }
 }

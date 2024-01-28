@@ -16,7 +16,9 @@ public class ReadOnlyCacheTest_LoadAsync
 {
     private const string C = "cache_test";
     private static readonly ReadOnlyCacheOptions Options = new();
+#pragma warning disable NUnit1032
     private static readonly ITimer Timer = Mock.Of<ITimer>();
+#pragma warning restore NUnit1032
     private static readonly IDateTime MachineDateTime = new CachedDateTime(Timer);
     private static readonly IRandom Random = new ThreadSafeRandom();
 

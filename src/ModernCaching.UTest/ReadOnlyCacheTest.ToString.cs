@@ -13,6 +13,6 @@ public class ReadOnlyCacheTest_ToString
     {
         ReadOnlyCache<int, int> cache = new(C, null, null, null!, new ReadOnlyCacheOptions(), Mock.Of<ITimer>(),
             Mock.Of<IDateTime>(), Mock.Of<IRandom>());
-        Assert.AreEqual(C, cache.ToString());
+        Assert.That(cache.ToString(), Is.EqualTo(C));
     }
 }

@@ -34,7 +34,7 @@ public class WebApiCache
     public async Task TestGoogle()
     {
         var (found, _) = await _cache.TryGetAsync(IPAddress.Parse("8.8.8.8"));
-        Assert.IsTrue(found);
+        Assert.That(found, Is.True);
     }
 
     private class IpApiDataSource : IDataSource<IPAddress, LatLon>

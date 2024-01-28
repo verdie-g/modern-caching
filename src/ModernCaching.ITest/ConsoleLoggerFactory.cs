@@ -28,7 +28,7 @@ internal class ConsoleLogger : ILogger, IDisposable
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
-    public IDisposable BeginScope<TState>(TState state) => this;
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => this;
 
     public void Dispose()
     {

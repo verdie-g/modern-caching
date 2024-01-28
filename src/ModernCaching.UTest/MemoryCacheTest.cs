@@ -12,34 +12,34 @@ public class MemoryCacheTest
     public void BasicTests()
     {
         MemoryCache<int, int> cache = new();
-        Assert.Zero(cache.Count);
-        Assert.IsFalse(cache.TryGet(5, out _));
+        Assert.That(cache.Count, Is.Zero);
+        Assert.That(cache.TryGet(5, out _), Is.False);
 
         CacheEntry<int> entry1 = new(10);
         cache.Set(5, entry1);
-        Assert.AreEqual(1, cache.Count, "Setting a new key should increase the count");
+        Assert.That(cache.Count, Is.EqualTo(1), "Setting a new key should increase the count");
 
-        Assert.IsTrue(cache.TryGet(5, out var entry2), "New key should be available in the cache");
-        Assert.AreEqual(entry1, entry2);
+        Assert.That(cache.TryGet(5, out var entry2), Is.True, "New key should be available in the cache");
+        Assert.That(entry2, Is.EqualTo(entry1));
 
         CacheEntry<int> entry3 = new(20);
         cache.Set(5, entry3);
-        Assert.AreEqual(1, cache.Count, "Setting an existing key should not increase the count");
+        Assert.That(cache.Count, Is.EqualTo(1), "Setting an existing key should not increase the count");
 
-        Assert.IsTrue(cache.TryGet(5, out var entry4));
-        Assert.AreEqual(entry3, entry4);
+        Assert.That(cache.TryGet(5, out var entry4), Is.True);
+        Assert.That(entry4, Is.EqualTo(entry3));
 
         CacheEntry<int> entry5 = new(30);
         cache.Set(10, entry5);
-        Assert.AreEqual(2, cache.Count, "Setting a new key should increase the count");
+        Assert.That(cache.Count, Is.EqualTo(2), "Setting a new key should increase the count");
 
-        Assert.IsTrue(cache.TryDelete(5), "Deleting an existing key should return true");
-        Assert.AreEqual(1, cache.Count, "Removing an existing key should decrease the count");
+        Assert.That(cache.TryDelete(5), Is.True, "Deleting an existing key should return true");
+        Assert.That(cache.Count, Is.EqualTo(1), "Removing an existing key should decrease the count");
 
-        Assert.IsFalse(cache.TryGet(5, out _), "Getting an unknown key should return false");
+        Assert.That(cache.TryGet(5, out _), Is.False, "Getting an unknown key should return false");
 
-        Assert.IsFalse(cache.TryDelete(5), "Deleting an unknown key should return false");
-        Assert.AreEqual(1, cache.Count, "Removing an unknown key should not decrease the count");
+        Assert.That(cache.TryDelete(5), Is.False, "Deleting an unknown key should return false");
+        Assert.That(cache.Count, Is.EqualTo(1), "Removing an unknown key should not decrease the count");
     }
 
     [Test]
@@ -57,6 +57,6 @@ public class MemoryCacheTest
             }
         });
 
-        Assert.AreEqual(100, cache.Count);
+        Assert.That(cache.Count, Is.EqualTo(100));
     }
 }

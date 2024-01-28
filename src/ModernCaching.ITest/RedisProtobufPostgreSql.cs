@@ -54,28 +54,30 @@ public class RedisProtobufPostgreSql
     [OneTimeTearDown]
     public async Task OneTimeTearDown()
     {
+        // ReSharper disable once AccessToDisposedClosure
         await Task.WhenAll(_containerIds.Select(id => KillContainerAsync(_docker!, id)));
+        _docker!.Dispose();
     }
 
     [Test]
     public void PreloadedKeyShouldPresentInCache()
     {
         Guid userId = new("c11f0067-ec91-4355-8c7e-1caf4c940136");
-        Assert.IsTrue(_cache.TryPeek(userId, out User? user));
-        Assert.AreEqual("Raphaël", user!.Name);
+        Assert.That(_cache.TryPeek(userId, out User? user), Is.True);
+        Assert.That(user!.Name, Is.EqualTo("Raphaël"));
     }
 
     [Test]
     public async Task TryPeekShouldRefreshKeyInBackground()
     {
         Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");
-        Assert.IsFalse(_cache.TryPeek(userId, out User? user));
+        Assert.That(_cache.TryPeek(userId, out User? user), Is.False);
         do
         {
             await Task.Delay(1000);
         } while (!_cache.TryPeek(userId, out user));
-        Assert.IsNotNull(user);
-        Assert.AreEqual("Gabriel", user.Name);
+        Assert.That(user, Is.Not.Null);
+        Assert.That(user.Name, Is.EqualTo("Gabriel"));
     }
 
     [Test]
@@ -83,7 +85,7 @@ public class RedisProtobufPostgreSql
     {
         Guid userId = new("cd288523-a602-47d2-ad6b-ceff590fcda9");
         (bool found, User? _) = await _cache.TryGetAsync(userId);
-        Assert.IsFalse(found);
+        Assert.That(found, Is.False);
     }
 
     [Test]
@@ -91,9 +93,9 @@ public class RedisProtobufPostgreSql
     {
         Guid userId = new("ed67d23e-74bc-42ca-bc6d-ee9f302b67c1");
         (bool found, User? user) = await _cache.TryGetAsync(userId);
-        Assert.IsTrue(found);
-        Assert.IsNotNull(user);
-        Assert.AreEqual("Léo", user!.Name);
+        Assert.That(found, Is.True);
+        Assert.That(user, Is.Not.Null);
+        Assert.That(user!.Name, Is.EqualTo("Léo"));
     }
 
     private static async Task InitializePostgreSql(string connectionString)
@@ -185,7 +187,7 @@ INSERT INTO users VALUES
             {
                 var res = await _database.StringGetAsync(key);
                 return res.HasValue
-                    ? new AsyncCacheResult(AsyncCacheStatus.Hit, (byte[])res)
+                    ? new AsyncCacheResult(AsyncCacheStatus.Hit, (byte[])res!)
                     : new AsyncCacheResult(AsyncCacheStatus.Miss, null);
             }
             catch (Exception)

@@ -31,10 +31,10 @@ public class HtmlTemplateCache
     public async Task CacheEntriesShouldOnlyBeMatchedByUserId()
     {
         var (found, template1) = await _cache.TryGetAsync(new TemplateData(1, "toto"));
-        Assert.IsTrue(found);
-        Assert.NotZero(template1!.Length);
-        Assert.IsTrue(_cache.TryPeek(new TemplateData(1, "zozo"), out string? template2));
-        Assert.AreSame(template1, template2);
+        Assert.That(found, Is.True);
+        Assert.That(template1!.Length, Is.Not.Zero);
+        Assert.That(_cache.TryPeek(new TemplateData(1, "zozo"), out string? template2), Is.True);
+        Assert.That(template2, Is.SameAs(template1));
     }
 
     private class TemplateDataSource : IDataSource<TemplateData, string>

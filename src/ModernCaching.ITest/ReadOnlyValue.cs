@@ -26,7 +26,7 @@ internal class ReadOnlyValueExample
     public async Task GetMyIp()
     {
         var myIp = await _myIp.GetAsync();
-        Assert.IsNotNull(myIp);
+        Assert.That(myIp, Is.Not.Null);
     }
 
     private class MyIpValueSource : IValueSource<IPAddress>

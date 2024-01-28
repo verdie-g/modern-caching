@@ -27,7 +27,7 @@ public class DistributedCacheTest
         DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
             keyValueSerializerMock.Object, null);
 
-        Assert.AreEqual((status, null as CacheEntry<int>), await distributedCache.GetAsync(10));
+        Assert.That(await distributedCache.GetAsync(10), Is.EqualTo((status, null as CacheEntry<int>)));
     }
 
     [Test]
@@ -43,7 +43,7 @@ public class DistributedCacheTest
         DistributedCache<int, int> distributedCache = new("c", asyncCacheMock.Object,
             keyValueSerializerMock.Object, null);
 
-        Assert.AreEqual((AsyncCacheStatus.Error, null as CacheEntry<int>), await distributedCache.GetAsync(10));
+        Assert.That(await distributedCache.GetAsync(10), Is.EqualTo((AsyncCacheStatus.Error, null as CacheEntry<int>)));
     }
 
     [TestCase(true, 22)]
@@ -64,12 +64,12 @@ public class DistributedCacheTest
         await distributedCache.SetAsync(10, entry);
 
         var res = await distributedCache.GetAsync(10);
-        Assert.AreEqual(AsyncCacheStatus.Hit, res.status);
-        Assert.AreEqual(entryHasValue, entry.HasValue);
-        Assert.AreEqual(entry.GetValueOrDefault(), res.entry!.GetValueOrDefault());
-        Assert.AreEqual(entry.CreationTime.Ticks, res.entry.CreationTime.Ticks, TimeSpan.FromSeconds(1).Ticks);
-        Assert.AreEqual(DateTimeKind.Utc, entry.CreationTime.Kind);
-        Assert.AreEqual(entry.TimeToLive.TotalSeconds, res.entry.TimeToLive.TotalSeconds, TimeSpan.FromSeconds(1).Ticks);
+        Assert.That(res.status, Is.EqualTo(AsyncCacheStatus.Hit));
+        Assert.That(entry.HasValue, Is.EqualTo(entryHasValue));
+        Assert.That(res.entry!.GetValueOrDefault(), Is.EqualTo(entry.GetValueOrDefault()));
+        Assert.That(res.entry.CreationTime.Ticks, Is.EqualTo(entry.CreationTime.Ticks).Within(TimeSpan.FromSeconds(1).Ticks));
+        Assert.That(entry.CreationTime.Kind, Is.EqualTo(DateTimeKind.Utc));
+        Assert.That(res.entry.TimeToLive.TotalSeconds, Is.EqualTo(entry.TimeToLive.TotalSeconds).Within(TimeSpan.FromSeconds(1).Ticks));
     }
 
     private class IntToIntKeyValueSerializer : IKeyValueSerializer<int, int?>

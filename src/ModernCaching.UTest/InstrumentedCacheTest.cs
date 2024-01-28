@@ -16,7 +16,7 @@ public class InstrumentedCacheTest
         cacheMock.Setup(c => c.Count).Returns(5);
 
         InstrumentedCache<int, int> instrumentedCache = new(cacheMock.Object, Mock.Of<ICacheMetrics>(), Mock.Of<ILogger>());
-        Assert.AreEqual(5, instrumentedCache.Count);
+        Assert.That(instrumentedCache.Count, Is.EqualTo(5));
     }
 
     [Test]
