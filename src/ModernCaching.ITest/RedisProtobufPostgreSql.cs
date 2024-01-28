@@ -194,7 +194,7 @@ INSERT INTO users VALUES
             }
         }
 
-        public Task SetAsync(string key, byte[] value)
+        public Task SetAsync(string key, ReadOnlyMemory<byte> value)
         {
             return _database.StringSetAsync(key, value, HardTimeToLive);
         }

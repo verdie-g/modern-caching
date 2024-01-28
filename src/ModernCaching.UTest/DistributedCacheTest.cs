@@ -108,9 +108,9 @@ public class DistributedCacheTest
                 : new AsyncCacheResult(AsyncCacheStatus.Miss, value));
         }
 
-        public Task SetAsync(string key, byte[] value)
+        public Task SetAsync(string key, ReadOnlyMemory<byte> value)
         {
-            _dictionary[key] = value;
+            _dictionary[key] = value.ToArray();
             return Task.CompletedTask;
         }
 

@@ -26,7 +26,7 @@ public interface IAsyncCache
     /// (e.g. S3). Instead a hard time-to-live should be used in the <see cref="IAsyncCache"/> implementation and the
     /// <see cref="IReadOnlyCache{TKey,TValue}"/> uses a soft on in each cache entry.
     /// </remarks>
-    Task SetAsync(string key, byte[] value);
+    Task SetAsync(string key, ReadOnlyMemory<byte> value);
 
     /// <summary>
     /// Deletes the value with the given key.

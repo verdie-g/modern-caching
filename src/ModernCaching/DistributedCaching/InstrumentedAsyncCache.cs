@@ -61,7 +61,7 @@ internal sealed class InstrumentedAsyncCache : IAsyncCache
         return res;
     }
 
-    public Task SetAsync(string key, byte[] value)
+    public Task SetAsync(string key, ReadOnlyMemory<byte> value)
     {
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {

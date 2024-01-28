@@ -42,7 +42,7 @@ public class InstrumentedAsyncCacheTest
     public void SetAsyncShouldEmitMetric()
     {
         Mock<IAsyncCache> cacheMock = new();
-        cacheMock.Setup(c => c.SetAsync("0", It.IsAny<byte[]>()));
+        cacheMock.Setup(c => c.SetAsync("0", It.IsAny<ReadOnlyMemory<byte>>()));
 
         Mock<ICacheMetrics> metricsMock = new();
 
