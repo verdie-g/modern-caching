@@ -76,6 +76,7 @@ public class DistributedCacheTest
     {
         public int Version => 1;
         public string SerializeKey(int key) => key.ToString();
+        public int DeserializeKey(string keyStr) => int.Parse(keyStr);
 
         public void SerializeValue(int? value, Stream stream)
         {

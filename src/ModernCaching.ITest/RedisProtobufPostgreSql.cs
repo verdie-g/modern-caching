@@ -45,7 +45,7 @@ public class RedisProtobufPostgreSql
 
         _cache = await new ReadOnlyCacheBuilder<Guid, User>("test", new UserDataSource(postgreSqlConnectionString))
             .WithLocalCache(new MemoryCache<Guid, User>())
-            .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
+            .WithDistributedCache(new RedisAsyncCache(redis), new UserSerializer())
             .WithLoggerFactory(new ConsoleLoggerFactory())
             .WithPreload(_ => Task.FromResult<IEnumerable<Guid>>(new Guid[] { new("c11f0067-ec91-4355-8c7e-1caf4c940136")}), null)
             .BuildAsync();
@@ -75,7 +75,7 @@ public class RedisProtobufPostgreSql
             await Task.Delay(1000);
         } while (!_cache.TryPeek(userId, out user));
         Assert.IsNotNull(user);
-        Assert.AreEqual("Gabriel", user!.Name);
+        Assert.AreEqual("Gabriel", user.Name);
     }
 
     [Test]
@@ -205,13 +205,14 @@ INSERT INTO users VALUES
         }
     }
 
-    private class ProtobufKeyValueSerializer<TKey, TValue> : IKeyValueSerializer<TKey, TValue> where TKey : notnull
+    private class UserSerializer : IKeyValueSerializer<Guid, User>
     {
         // Protobuf is forward/backward-compatible so bumping the version shouldn't be needed.
         public int Version => 0;
-        public string SerializeKey(TKey key) => key.ToString()!;
-        public void SerializeValue(TValue value, Stream stream) => Serializer.Serialize(stream, value);
-        public TValue DeserializeValue(Stream stream) => Serializer.Deserialize<TValue>(stream);
+        public string SerializeKey(Guid key) => key.ToString();
+        public Guid DeserializeKey(string keyStr) => Guid.Parse(keyStr);
+        public void SerializeValue(User value, Stream stream) => Serializer.Serialize(stream, value);
+        public User DeserializeValue(Stream stream) => Serializer.Deserialize<User>(stream);
     }
 
     private class UserDataSource : IDataSource<Guid, User>
