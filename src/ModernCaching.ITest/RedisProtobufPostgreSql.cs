@@ -43,9 +43,10 @@ public class RedisProtobufPostgreSql
         string postgreSqlConnectionString = "Host=localhost;User ID=postgres";
         await InitializePostgreSql(postgreSqlConnectionString);
 
-        _cache = await new ReadOnlyCacheBuilder<Guid, User>("test", new UserDataSource(postgreSqlConnectionString))
+        _cache = await new ReadOnlyCacheBuilder<Guid, User>("test")
             .WithLocalCache(new MemoryCache<Guid, User>())
             .WithDistributedCache(new RedisAsyncCache(redis), new UserSerializer())
+            .WithDataSource(new UserDataSource(postgreSqlConnectionString))
             .WithLoggerFactory(new ConsoleLoggerFactory())
             .WithPreload(_ => Task.FromResult<IEnumerable<Guid>>(new Guid[] { new("c11f0067-ec91-4355-8c7e-1caf4c940136")}), null)
             .BuildAsync();

@@ -21,8 +21,9 @@ public class HtmlTemplateCache
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _cache = await new ReadOnlyCacheBuilder<TemplateData, string>("templates", new TemplateDataSource())
+        _cache = await new ReadOnlyCacheBuilder<TemplateData, string>("templates")
             .WithLocalCache(new MemoryCache<TemplateData, string>())
+            .WithDataSource(new TemplateDataSource())
             .WithLoggerFactory(new ConsoleLoggerFactory())
             .BuildAsync();
     }

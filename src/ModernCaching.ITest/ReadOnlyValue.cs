@@ -59,8 +59,9 @@ internal class ReadOnlyValue<T>
 {
     public static async Task<ReadOnlyValue<T>> CreateAsync(string name, IValueSource<T> valueSource)
     {
-        var cache = await new ReadOnlyCacheBuilder<int, T>(name, new ValueDataSource<T>(valueSource))
+        var cache = await new ReadOnlyCacheBuilder<int, T>(name)
             .WithLocalCache(new ValueCache<T>())
+            .WithDataSource(new ValueDataSource<T>(valueSource))
             .WithLoggerFactory(new ConsoleLoggerFactory())
             .WithPreload(_ => Task.FromResult<IEnumerable<int>>(new[] { 0 }), null)
             .BuildAsync();

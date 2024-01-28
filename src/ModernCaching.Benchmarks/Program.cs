@@ -164,8 +164,9 @@ public class LocalGetBenchmark
 
     private IReadOnlyCache<Guid, int> CreateModernCache()
     {
-        return new ReadOnlyCacheBuilder<Guid, int>("benchmark_cache", new ModernCacheDataSource())
+        return new ReadOnlyCacheBuilder<Guid, int>("benchmark_cache")
             .WithLocalCache(new MemoryCache<Guid, int>())
+            .WithDataSource(new ModernCacheDataSource())
             .WithPreload(_ => Task.FromResult(Data.Select(d => d.Key)), null)
             .BuildAsync().GetAwaiter().GetResult();
     }

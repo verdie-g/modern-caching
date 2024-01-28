@@ -16,7 +16,7 @@ public class ReadOnlyCacheBuilderTest
     public void ConstructorShouldThrowIfKeyDoesNotOverrideEquals()
     {
         Assert.Throws<ArgumentException>(() =>
-            new ReadOnlyCacheBuilder<NoEqualsType, int>("test", Mock.Of<IDataSource<NoEqualsType, int>>())
+            _ = new ReadOnlyCacheBuilder<NoEqualsType, int>("test")
         );
     }
 
@@ -24,7 +24,7 @@ public class ReadOnlyCacheBuilderTest
     public void ConstructorShouldThrowIfKeyDoesNotOverrideGetHashCode()
     {
         Assert.Throws<ArgumentException>(() =>
-            new ReadOnlyCacheBuilder<NoGetHashCodeType, int>("test", Mock.Of<IDataSource<NoGetHashCodeType, int>>())
+            _ = new ReadOnlyCacheBuilder<NoGetHashCodeType, int>("test")
         );
     }
 
@@ -32,7 +32,7 @@ public class ReadOnlyCacheBuilderTest
     public void ConstructorShouldNotThrowIfKeyOverridesEqualsAndGetHashCode()
     {
         Assert.DoesNotThrow(() =>
-            new ReadOnlyCacheBuilder<OkType, int>("test", Mock.Of<IDataSource<OkType, int>>())
+            _ = new ReadOnlyCacheBuilder<OkType, int>("test")
         );
     }
 
@@ -40,7 +40,7 @@ public class ReadOnlyCacheBuilderTest
     public void ConstructorShouldNotThrowIfKeyDerivesFromTypeOverridingEqualsAndGetHashCode()
     {
         Assert.DoesNotThrow(() =>
-            new ReadOnlyCacheBuilder<DeriveOkType, int>("test", Mock.Of<IDataSource<DeriveOkType, int>>())
+            _ = new ReadOnlyCacheBuilder<DeriveOkType, int>("test")
         );
     }
 
@@ -48,7 +48,7 @@ public class ReadOnlyCacheBuilderTest
     public void ConstructorShouldNotThrowIfKeyIsCommonType()
     {
         static void T<T>() where T : notnull => Assert.DoesNotThrow(() =>
-            new ReadOnlyCacheBuilder<T, int>("test", Mock.Of<IDataSource<T, int>>())
+            _ = new ReadOnlyCacheBuilder<T, int>("test")
         );
 
         T<sbyte>();
@@ -66,9 +66,19 @@ public class ReadOnlyCacheBuilderTest
     }
 
     [Test]
+    public void BuildAsyncShouldThrowIfNoDataSource()
+    {
+        Assert.That(() =>
+            new ReadOnlyCacheBuilder<string, IPEndPoint>("test").BuildAsync(),
+            Throws.InvalidOperationException
+        );
+    }
+
+    [Test]
     public async Task CacheNameShouldGetNormalized()
     {
-        var cache = await new ReadOnlyCacheBuilder<int, int>("-Ri cé#\t ^k.ro Ll_", Mock.Of<IDataSource<int, int>>())
+        var cache = await new ReadOnlyCacheBuilder<int, int>("-Ri cé#\t ^k.ro Ll_")
+            .WithDataSource(Mock.Of<IDataSource<int, int>>())
             .BuildAsync();
         Assert.That(cache.ToString(), Is.EqualTo("-Rick.roLl_"));
     }
@@ -77,9 +87,10 @@ public class ReadOnlyCacheBuilderTest
     public void FullBuilderShouldNotThrow()
     {
         Assert.DoesNotThrowAsync(() =>
-            new ReadOnlyCacheBuilder<string, IPEndPoint>("test", Mock.Of<IDataSource<string, IPEndPoint>>())
+            new ReadOnlyCacheBuilder<string, IPEndPoint>("test")
                 .WithLocalCache(Mock.Of<ICache<string, IPEndPoint>>())
                 .WithDistributedCache(Mock.Of<IAsyncCache>(), Mock.Of<IKeyValueSerializer<string, IPEndPoint>>())
+                .WithDataSource(Mock.Of<IDataSource<string, IPEndPoint>>())
                 .WithLoggerFactory(new NullLoggerFactory())
                 .BuildAsync()
         );

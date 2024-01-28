@@ -28,12 +28,12 @@ namespace ModernCaching;
 public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
 {
     private readonly string _name;
-    private readonly IDataSource<TKey, TValue> _dataSource;
     private readonly ReadOnlyCacheOptions _options;
 
     private ICache<TKey, TValue>? _localCache;
     private IAsyncCache? _distributedCache;
     private IKeyValueSerializer<TKey, TValue>? _keyValueSerializer;
+    private IDataSource<TKey, TValue>? _dataSource;
     private Func<object?, Task<IEnumerable<TKey>>>? _getKeys;
     private object? _getKeysState;
     private ILoggerFactory? _loggerFactory;
@@ -42,14 +42,12 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     /// Initializes a new instance of <see cref="ReadOnlyCacheBuilder{TKey,TValue}"/> class.
     /// </summary>
     /// <param name="name">Name of cache. Used in the distributed cache key, logging and metrics.</param>
-    /// <param name="dataSource">Source of the data.</param>
     /// <param name="options">Extra options to control the cache.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> or <paramref name="dataSource"/> is null.</exception>
-    public ReadOnlyCacheBuilder(string name, IDataSource<TKey, TValue> dataSource, ReadOnlyCacheOptions? options = null)
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
+    public ReadOnlyCacheBuilder(string name, ReadOnlyCacheOptions? options = null)
     {
         CheckTypeOverrideEqualsAndGetHashCode(typeof(TKey));
         _name = NormalizeCacheName(name ?? throw new ArgumentNullException(nameof(name)));
-        _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         _options = options ?? new ReadOnlyCacheOptions();
     }
 
@@ -78,6 +76,18 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     {
         _distributedCache = distributedCache ?? throw new ArgumentNullException(nameof(distributedCache));
         _keyValueSerializer = keyValueSerializer ?? throw new ArgumentNullException(nameof(keyValueSerializer));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds the source of the data to the resulting <see cref="IReadOnlyCache{TKey,TValue}"/>.
+    /// </summary>
+    /// <param name="dataSource">Source of the data.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="dataSource"/> is null.</exception>
+    /// <returns>A reference to this instance.</returns>
+    public ReadOnlyCacheBuilder<TKey, TValue> WithDataSource(IDataSource<TKey, TValue> dataSource)
+    {
+        _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         return this;
     }
 
@@ -125,6 +135,11 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
         var distributedCache = _distributedCache != null ? new InstrumentedAsyncCache(_distributedCache, metrics, distributedCacheLogger) : null;
 
         ILogger? dataSourceLogger = _loggerFactory?.CreateLogger<IDataSource<TKey, TValue>>();
+        if (_dataSource == null)
+        {
+            throw new InvalidOperationException($"No data source was specified. You need to call" +
+                                                $" {nameof(WithDataSource)} on the builder");
+        }
         var dataSource = new InstrumentedDataSource<TKey, TValue>(_dataSource, metrics, dataSourceLogger);
 
         ILogger? distributedCacheWrapperLogger = _loggerFactory?.CreateLogger<IDistributedCache<TKey, TValue>>();

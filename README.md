@@ -64,9 +64,10 @@ key and how to serialize the value using the interface `IKeyValueSerializer`.
 Behind these two layers stands the `IDataSource`.
 
 ```csharp
-var cache = await new ReadOnlyCacheBuilder<Guid, User>("user-cache", new UserDataSource("Host=localhost;User ID=postgres"))
+var cache = await new ReadOnlyCacheBuilder<Guid, User>("user_cache")
     .WithLocalCache(new MemoryCache<Guid, User>())
     .WithDistributedCache(new RedisAsyncCache(redis), new ProtobufKeyValueSerializer<Guid, User>())
+    .WithDataSource(new UserDataSource("Host=localhost;User ID=postgres"))
     .BuildAsync();
 
 Guid userId = new("cb22ff11-4683-4ec3-b212-7f1d0ab378cc");

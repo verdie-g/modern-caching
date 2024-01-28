@@ -24,8 +24,9 @@ public class WebApiCache
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>("ip-lat-lng", new IpApiDataSource())
+        _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>("ip-lat-lng")
             .WithLocalCache(new MemoryCache<IPAddress, LatLon>())
+            .WithDataSource(new IpApiDataSource())
             .WithLoggerFactory(new ConsoleLoggerFactory())
             .BuildAsync();
     }
