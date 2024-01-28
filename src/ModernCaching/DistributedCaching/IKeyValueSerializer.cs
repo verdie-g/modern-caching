@@ -24,7 +24,7 @@ public interface IKeyValueSerializer<in TKey, TValue> where TKey : notnull
     string SerializeKey(TKey key);
 
     /// <summary>
-    /// Writes the <paramref name="value"/> to <paramref name="writer"/>.
+    /// Writes the <paramref name="value"/> to <paramref name="stream"/>.
     /// </summary>
     /// <remarks>The method should handle null values if the data source can return null values.</remarks>
     /// <param name="value">The value to write. Can be null if the data source returned null.</param>
