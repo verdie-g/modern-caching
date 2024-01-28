@@ -11,6 +11,7 @@ using ModernCaching.LocalCaching;
 using ModernCaching.Utils;
 using Moq;
 using NUnit.Framework;
+using ITimer = ModernCaching.Utils.ITimer;
 
 namespace ModernCaching.UTest;
 

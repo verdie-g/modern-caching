@@ -12,7 +12,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '7.0.302' # SDK Version
+          dotnet-version: '8.0.101' # SDK Version
       - name: Build
         run: dotnet build --configuration Release src/ModernCaching
       - name: Test
