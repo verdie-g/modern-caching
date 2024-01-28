@@ -21,7 +21,7 @@ public class HtmlTemplateCache
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _cache = await new ReadOnlyCacheBuilder<TemplateData, string>("templates")
+        _cache = await new ReadOnlyCacheBuilder<TemplateData, string>(new ReadOnlyCacheOptions("templates", TimeSpan.FromHours(1)))
             .WithLocalCache(new MemoryCache<TemplateData, string>())
             .WithDataSource(new TemplateDataSource())
             .WithLoggerFactory(new ConsoleLoggerFactory())
@@ -41,14 +41,14 @@ public class HtmlTemplateCache
     private class TemplateDataSource : IDataSource<TemplateData, string>
     {
 #pragma warning disable 1998
-        public async IAsyncEnumerable<DataSourceResult<TemplateData, string>> LoadAsync(
+        public async IAsyncEnumerable<KeyValuePair<TemplateData, string>> LoadAsync(
 #pragma warning restore 1998
             IEnumerable<TemplateData> datas,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             foreach (var data in datas)
             {
-                yield return new DataSourceResult<TemplateData, string>(data, Render(data), TimeSpan.FromHours(1));
+                yield return new KeyValuePair<TemplateData, string>(data, Render(data));
             }
         }
 

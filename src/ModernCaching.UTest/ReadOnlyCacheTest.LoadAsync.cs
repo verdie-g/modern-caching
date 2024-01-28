@@ -15,8 +15,7 @@ namespace ModernCaching.UTest;
 
 public class ReadOnlyCacheTest_LoadAsync
 {
-    private const string C = "cache_test";
-    private static readonly ReadOnlyCacheOptions Options = new();
+    private static readonly ReadOnlyCacheOptions Options = new("cache_test", TimeSpan.FromHours(5));
 #pragma warning disable NUnit1032
     private static readonly ITimer Timer = Mock.Of<ITimer>();
 #pragma warning restore NUnit1032
@@ -74,16 +73,16 @@ public class ReadOnlyCacheTest_LoadAsync
         Mock<IDataSource<int, int>> dataSourceMock = new(MockBehavior.Strict);
         dataSourceMock
             .Setup(s => s.LoadAsync(It.Is<IEnumerable<int>>(e => e.Count() == 4), It.IsAny<CancellationToken>()))
-            .Returns(CreateDataSourceResults(new[]
+            .Returns(CreateKeyValuePairs(new[]
             {
-                new DataSourceResult<int, int>(3, 333, TimeSpan.FromHours(5)),
-                new DataSourceResult<int, int>(5, 555, TimeSpan.FromHours(5)),
+                new KeyValuePair<int, int>(3, 333),
+                new KeyValuePair<int, int>(5, 555),
             }));
 
-        ReadOnlyCacheOptions options = new() { CacheDataSourceMisses = cacheDataSourceMisses };
+        ReadOnlyCacheOptions options = new(Options.Name, Options.TimeToLive) { CacheDataSourceMisses = cacheDataSourceMisses };
 
-        ReadOnlyCache<int, int> cache = new(C, localCacheMock.Object, distributedCacheMock.Object,
-            dataSourceMock.Object, options, Timer, MachineDateTime, Random.Shared);
+        ReadOnlyCache<int, int> cache = new(options, localCacheMock.Object, distributedCacheMock.Object,
+            dataSourceMock.Object, Timer, MachineDateTime, Random.Shared);
         await cache.LoadAsync(new[] { 1, 2, 3, 4, 5, 6 });
 
         int expectedSetAsyncInvocations = cacheDataSourceMisses ? 4 : 2;
@@ -105,7 +104,7 @@ public class ReadOnlyCacheTest_LoadAsync
     {
         Mock<IDataSource<int, int>> dataSourceMock = new();
 
-        ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
+        ReadOnlyCache<int, int> cache = new(Options, null, null, dataSourceMock.Object, Timer, MachineDateTime,
             Random.Shared);
         await cache.LoadAsync(Array.Empty<int>());
 
@@ -119,9 +118,9 @@ public class ReadOnlyCacheTest_LoadAsync
         Mock<IDataSource<int, int>> dataSourceMock = new();
         dataSourceMock
             .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
-            .Returns(CreateDataSourceResults());
+            .Returns(CreateKeyValuePairs());
 
-        ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer, MachineDateTime,
+        ReadOnlyCache<int, int> cache = new(Options, null, null, dataSourceMock.Object, Timer, MachineDateTime,
             Random.Shared);
         await cache.LoadAsync(Enumerable.Range(1, 5432));
 
@@ -143,13 +142,13 @@ public class ReadOnlyCacheTest_LoadAsync
             .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
             .Throws<Exception>();
 
-        ReadOnlyCache<int, int> cache = new(C, null, null, dataSourceMock.Object, Options, Timer,
+        ReadOnlyCache<int, int> cache = new(Options, null, null, dataSourceMock.Object, Timer,
             MachineDateTime, Random.Shared);
         Assert.ThrowsAsync<Exception>(() => cache.LoadAsync(new[] { 0 }));
     }
 
 #pragma warning disable 1998
-    private async IAsyncEnumerable<DataSourceResult<int, int>> CreateDataSourceResults(params DataSourceResult<int, int>[] results)
+    private async IAsyncEnumerable<KeyValuePair<int, int>> CreateKeyValuePairs(params KeyValuePair<int, int>[] results)
 #pragma warning restore 1998
     {
         foreach (var result in results)

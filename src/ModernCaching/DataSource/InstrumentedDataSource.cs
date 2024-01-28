@@ -22,7 +22,7 @@ internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, T
         _logger = logger;
     }
 
-    public async IAsyncEnumerable<DataSourceResult<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys,
+    public async IAsyncEnumerable<KeyValuePair<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         HashSet<TKey> keysNotFoundInSource = keys.ToHashSet();
@@ -33,7 +33,7 @@ internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, T
             _logger.Log(LogLevel.Trace, "IDataSource: LOAD [{0}]", keysStr);
         }
 
-        IAsyncEnumerator<DataSourceResult<TKey, TValue>> results;
+        IAsyncEnumerator<KeyValuePair<TKey, TValue>> results;
         try
         {
             results = _dataSource.LoadAsync(keysNotFoundInSource, cancellationToken).GetAsyncEnumerator(cancellationToken)
@@ -51,7 +51,7 @@ internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, T
         int errors = 0;
         while (true)
         {
-            DataSourceResult<TKey, TValue> dataSourceResult;
+            KeyValuePair<TKey, TValue> dataSourceResult;
             try
             {
                 if (!await results.MoveNextAsync())
@@ -61,12 +61,6 @@ internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, T
 
                 dataSourceResult = results.Current;
 
-                if (dataSourceResult == null)
-                {
-                    throw new NullReferenceException($"A null {nameof(DataSourceResult<TKey, TValue>)} was returned"
-                                                     + $" by {nameof(IDataSource<TKey, TValue>.LoadAsync)}");
-                }
-
                 if (dataSourceResult.Key == null)
                 {
                     throw new ArgumentNullException(nameof(dataSourceResult.Key));
@@ -74,19 +68,11 @@ internal sealed class InstrumentedDataSource<TKey, TValue> : IDataSource<TKey, T
 
                 if (!keysNotFoundInSource.Contains(dataSourceResult.Key))
                 {
-                    throw new ArgumentException(nameof(dataSourceResult.TimeToLive),
+                    throw new ArgumentException(nameof(dataSourceResult.Key),
                         $"The key '{dataSourceResult.Key}' was returned but not requested");
                 }
 
                 keysNotFoundInSource.Remove(dataSourceResult.Key);
-
-                if (dataSourceResult.TimeToLive < TimeSpan.Zero)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(dataSourceResult.TimeToLive),
-                        dataSourceResult.TimeToLive,
-                        "The time-to-live value must be positive.");
-                }
             }
             catch (Exception e)
             {

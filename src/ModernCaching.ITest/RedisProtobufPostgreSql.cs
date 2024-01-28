@@ -43,7 +43,7 @@ public class RedisProtobufPostgreSql
         string postgreSqlConnectionString = "Host=localhost;User ID=postgres";
         await InitializePostgreSql(postgreSqlConnectionString);
 
-        _cache = await new ReadOnlyCacheBuilder<Guid, User>("test")
+        _cache = await new ReadOnlyCacheBuilder<Guid, User>(new ReadOnlyCacheOptions("test", TimeSpan.FromHours(1)))
             .WithLocalCache(new MemoryCache<Guid, User>())
             .WithDistributedCache(new RedisAsyncCache(redis), new UserSerializer())
             .WithDataSource(new UserDataSource(postgreSqlConnectionString))
@@ -224,7 +224,7 @@ INSERT INTO users VALUES
 
         public UserDataSource(string connectionString) => _connectionString = connectionString;
 
-        public async IAsyncEnumerable<DataSourceResult<Guid, User>> LoadAsync(IEnumerable<Guid> ids,
+        public async IAsyncEnumerable<KeyValuePair<Guid, User>> LoadAsync(IEnumerable<Guid> ids,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             await using var conn = new NpgsqlConnection(_connectionString);
@@ -239,7 +239,7 @@ INSERT INTO users VALUES
                 Guid id = reader.GetGuid(0);
                 string name = reader.GetString(1);
                 User user = new() { Id = id, Name = name };
-                yield return new DataSourceResult<Guid, User>(id, user, TimeSpan.FromHours(1));
+                yield return new KeyValuePair<Guid, User>(id, user);
             }
         }
     }

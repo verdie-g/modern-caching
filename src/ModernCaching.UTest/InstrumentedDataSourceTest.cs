@@ -17,7 +17,7 @@ public class InstrumentedDataSourceTest
         Mock<IDataSource<string, string>> dataSourceMock = new();
         dataSourceMock
             .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .Returns(CreateDataSourceResults(new DataSourceResult<string, string>("1", "1111", TimeSpan.FromMilliseconds(1))));
+            .Returns(CreateKeyValuePairs(new KeyValuePair<string, string>("1", "1111")));
 
         Mock<ICacheMetrics> metricsMock = new();
 
@@ -56,7 +56,7 @@ public class InstrumentedDataSourceTest
         Mock<IDataSource<string, string>> dataSourceMock = new();
         dataSourceMock
             .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .Returns((IAsyncEnumerable<DataSourceResult<string, string>>)null!);
+            .Returns((IAsyncEnumerable<KeyValuePair<string, string>>)null!);
 
         Mock<ICacheMetrics> metricsMock = new();
 
@@ -75,12 +75,10 @@ public class InstrumentedDataSourceTest
         Mock<IDataSource<string, string>> dataSourceMock = new();
         dataSourceMock
             .Setup(s => s.LoadAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .Returns(CreateDataSourceResults(new DataSourceResult<string, string>?[]
+            .Returns(CreateKeyValuePairs(new KeyValuePair<string, string>[]
             {
-                null, // Null result.
-                new(null!, "1111", TimeSpan.FromMilliseconds(1)), // Null key.
-                new("XXXXXXX", "2222", TimeSpan.FromMilliseconds(1)), // Key not requested.
-                new("3", "3333", TimeSpan.FromMilliseconds(-1)), // Negative ttl.
+                new(null!, "1111"), // Null key.
+                new("XXXXXXX", "2222"), // Key not requested.
             }!));
 
         Mock<ICacheMetrics> metricsMock = new();
@@ -91,11 +89,11 @@ public class InstrumentedDataSourceTest
             .MoveNextAsync();
 
         metricsMock.Verify(m => m.IncrementDataSourceLoadOks(), Times.Once);
-        metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(4), Times.Once);
+        metricsMock.Verify(m => m.IncrementDataSourceKeyLoadErrors(2), Times.Once);
     }
 
 #pragma warning disable 1998
-    private async IAsyncEnumerable<DataSourceResult<string, string>> CreateDataSourceResults(params DataSourceResult<string, string>[] results)
+    private async IAsyncEnumerable<KeyValuePair<string, string>> CreateKeyValuePairs(params KeyValuePair<string, string>[] results)
 #pragma warning restore 1998
     {
         foreach (var result in results)

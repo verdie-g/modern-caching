@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ModernCaching.DataSource;
@@ -27,7 +26,6 @@ namespace ModernCaching;
 /// </typeparam>
 public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
 {
-    private readonly string _name;
     private readonly ReadOnlyCacheOptions _options;
 
     private ICache<TKey, TValue>? _localCache;
@@ -41,14 +39,11 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     /// <summary>
     /// Initializes a new instance of <see cref="ReadOnlyCacheBuilder{TKey,TValue}"/> class.
     /// </summary>
-    /// <param name="name">Name of cache. Used in the distributed cache key, logging and metrics.</param>
-    /// <param name="options">Extra options to control the cache.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
-    public ReadOnlyCacheBuilder(string name, ReadOnlyCacheOptions? options = null)
+    /// <param name="options">Options to control the cache.</param>
+    public ReadOnlyCacheBuilder(ReadOnlyCacheOptions options)
     {
         CheckTypeOverrideEqualsAndGetHashCode(typeof(TKey));
-        _name = NormalizeCacheName(name ?? throw new ArgumentNullException(nameof(name)));
-        _options = options ?? new ReadOnlyCacheOptions();
+        _options = options;
     }
 
     /// <summary>
@@ -126,7 +121,7 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
     /// <returns>The built <see cref="IReadOnlyCache{TKey,TValue}"/>.</returns>
     public async Task<IReadOnlyCache<TKey, TValue>> BuildAsync()
     {
-        CacheMetrics metrics = new(_name);
+        CacheMetrics metrics = new(_options.Name);
 
         ILogger? localCacheLogger = _loggerFactory?.CreateLogger<ICache<TKey, TValue>>();
         var localCache = _localCache != null ? new InstrumentedCache<TKey, TValue>(_localCache, metrics, localCacheLogger) : null;
@@ -144,11 +139,11 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
 
         ILogger? distributedCacheWrapperLogger = _loggerFactory?.CreateLogger<IDistributedCache<TKey, TValue>>();
         IDistributedCache<TKey, TValue>? distributedCacheWrapper = distributedCache != null
-            ? new DistributedCache<TKey, TValue>(_name, distributedCache, _keyValueSerializer!, distributedCacheWrapperLogger)
+            ? new DistributedCache<TKey, TValue>(_options.Name, distributedCache, _keyValueSerializer!, distributedCacheWrapperLogger)
             : null;
 
-        var cache = new ReadOnlyCache<TKey, TValue>(_name, localCache, distributedCacheWrapper, dataSource,
-            _options, UtilsCache.LoadingTimer, UtilsCache.DateTime, Random.Shared);
+        var cache = new ReadOnlyCache<TKey, TValue>(_options, localCache, distributedCacheWrapper, dataSource,
+            UtilsCache.LoadingTimer, UtilsCache.DateTime, Random.Shared);
 
         if (_getKeys != null)
         {
@@ -159,11 +154,6 @@ public sealed class ReadOnlyCacheBuilder<TKey, TValue> where TKey : notnull
         }
 
         return cache;
-    }
-
-    private string NormalizeCacheName(string name)
-    {
-        return Regex.Replace(name, "[^a-zA-Z0-9.\\-_]", "");
     }
 
     private void CheckTypeOverrideEqualsAndGetHashCode(Type type)

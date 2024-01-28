@@ -15,16 +15,16 @@ public interface IDataSource<TKey, TValue>
     /// </summary>
     /// <param name="keys">The keys to load.</param>
     /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.
+    ///     The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.
     /// </param>
     /// <returns>
     /// The loading results associated with a duration during which the data is considered fresh. The <see cref="IAsyncEnumerable{T}"/>
     /// can contain less elements than <paramref name="keys"/> if some keys were not found.
     /// </returns>
     /// <remarks>
-    /// If a key was not found in the source, the implementation should either not include a <see cref="DataSourceResult{TKey,TValue}"/>
+    /// If a key was not found in the source, the implementation should either not include a <see cref="KeyValuePair{TKey,TValue}"/>
     /// in the results for that key or include one with a null value so it will be cached in the distributed and local
     /// caches. Alternatively the option <see cref="ReadOnlyCacheOptions.CacheDataSourceMisses"/> can be used.
     /// </remarks>
-    IAsyncEnumerable<DataSourceResult<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken);
+    IAsyncEnumerable<KeyValuePair<TKey, TValue>> LoadAsync(IEnumerable<TKey> keys, CancellationToken cancellationToken);
 }

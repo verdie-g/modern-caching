@@ -24,7 +24,7 @@ public class WebApiCache
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>("ip-lat-lng")
+        _cache = await new ReadOnlyCacheBuilder<IPAddress, LatLon>(new ReadOnlyCacheOptions("ip-lat-lng", TimeSpan.FromDays(1)))
             .WithLocalCache(new MemoryCache<IPAddress, LatLon>())
             .WithDataSource(new IpApiDataSource())
             .WithLoggerFactory(new ConsoleLoggerFactory())
@@ -51,7 +51,7 @@ public class WebApiCache
         }
 
 #pragma warning disable 1998
-        public async IAsyncEnumerable<DataSourceResult<IPAddress, LatLon>> LoadAsync(
+        public async IAsyncEnumerable<KeyValuePair<IPAddress, LatLon>> LoadAsync(
 #pragma warning restore 1998
             IEnumerable<IPAddress> ips,
             [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ public class WebApiCache
             {
                 var latLon = await _httpClient.GetFromJsonAsync<LatLon>($"{ip}?fields=message,lat,lon",
                     cancellationToken: cancellationToken);
-                yield return new DataSourceResult<IPAddress, LatLon>(ip, latLon!, TimeSpan.FromDays(1));
+                yield return new KeyValuePair<IPAddress, LatLon>(ip, latLon!);
             }
         }
     }

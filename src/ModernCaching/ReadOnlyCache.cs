@@ -16,7 +16,7 @@ using ModernCaching.Utils;
 namespace ModernCaching;
 
 /// <inheritdoc />
-[DebuggerDisplay("{_name} (Count = {_localCache?.Count ?? 0})")]
+[DebuggerDisplay("{_options.Name} (Count = {_localCache?.Count ?? 0})")]
 internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue> where TKey : notnull
 {
     /// <summary>
@@ -25,9 +25,9 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     private const int LoadBatchSize = 1000;
 
     /// <summary>
-    /// Name of the cache.
+    /// Cache options.
     /// </summary>
-    private readonly string _name;
+    private readonly ReadOnlyCacheOptions _options;
 
     /// <summary>
     /// First caching layer, local to the program. If null, this layer is always skipped.
@@ -43,11 +43,6 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     /// Source of the data that is being cached.
     /// </summary>
     private readonly IDataSource<TKey, TValue> _dataSource;
-
-    /// <summary>
-    /// Cache options.
-    /// </summary>
-    private readonly ReadOnlyCacheOptions _options;
 
     /// <summary>
     /// Batch of keys to refresh in the background.
@@ -74,15 +69,14 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     /// </summary>
     private readonly ConcurrentDictionary<TKey, Task<CacheEntry<TValue>?>> _refreshTasks;
 
-    public ReadOnlyCache(string name, ICache<TKey, TValue>? localCache,
+    public ReadOnlyCache(ReadOnlyCacheOptions options, ICache<TKey, TValue>? localCache,
         IDistributedCache<TKey, TValue>? distributedCache, IDataSource<TKey, TValue> dataSource,
-        ReadOnlyCacheOptions options, ITimer loadingTimer, IDateTime dateTime, Random random)
+        ITimer loadingTimer, IDateTime dateTime, Random random)
     {
-        _name = name;
+        _options = options;
         _localCache = localCache;
         _distributedCache = distributedCache;
         _dataSource = dataSource;
-        _options = options;
         _keysToRefresh = new ConcurrentDictionary<TKey, CacheEntry<TValue>?>();
         _refreshTasks = new ConcurrentDictionary<TKey, Task<CacheEntry<TValue>?>>();
         _backgroundRefreshTimer = loadingTimer;
@@ -172,7 +166,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
 
     public override string ToString()
     {
-        return _name;
+        return _options.Name;
     }
 
     public void Dispose()
@@ -280,7 +274,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         using var span = UtilsCache.ActivitySource.StartActivity("cache refresh");
         if (span != null && span.IsAllDataRequested)
         {
-            span.SetTag("cache.name", _name);
+            span.SetTag("cache.name", _options.Name);
         }
 
         var distributedCacheResults = await Task.WhenAll(keyEntryPairs.Select(async keyEntryPair =>
@@ -322,7 +316,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         {
             localCacheEntriesByKey.Remove(dataSourceResult.Key, out CacheEntry<TValue>? localCacheEntry);
 
-            CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(dataSourceResult.Value, dataSourceResult.TimeToLive);
+            CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(dataSourceResult.Value);
             _ = Task.Run(() => SetRemotelyAsync(dataSourceResult.Key, dataSourceCacheEntry));
             // SetOrExtendLocally randomizes the TTL so to avoid SetRemotelyAsync to set a random TTL, the cache entry is cloned.
             SetOrExtendLocally(dataSourceResult.Key, dataSourceCacheEntry.Clone(), localCacheEntry);
@@ -330,10 +324,9 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
 
         if (_options.CacheDataSourceMisses)
         {
-            TimeSpan ttl = _options.DefaultTimeToLive;
             foreach (var (key, _) in localCacheEntriesByKey)
             {
-                CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry(ttl);
+                CacheEntry<TValue> dataSourceCacheEntry = NewCacheEntry();
                 _ = Task.Run(() => SetRemotelyAsync(key, dataSourceCacheEntry));
                 SetOrExtendLocally(key, dataSourceCacheEntry.Clone(), null);
             }
@@ -363,7 +356,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         using var span = UtilsCache.ActivitySource.StartActivity("cache refresh");
         if (span != null && span.IsAllDataRequested)
         {
-            span.SetTag("cache.name", _name);
+            span.SetTag("cache.name", _options.Name);
             span.SetTag("cache.key", key.ToString());
         }
 
@@ -393,7 +386,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         {
             if (_options.CacheDataSourceMisses)
             {
-                dataSourceEntry = NewCacheEntry(_options.DefaultTimeToLive);
+                dataSourceEntry = NewCacheEntry();
             }
             else
             {
@@ -465,7 +458,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
             }
 
             var dataSourceResult = results.Current;
-            return (true, NewCacheEntry(dataSourceResult.Value, dataSourceResult.TimeToLive));
+            return (true, NewCacheEntry(dataSourceResult.Value));
         }
         catch
         {
@@ -473,14 +466,14 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
         }
     }
 
-    private CacheEntry<TValue> NewCacheEntry(TimeSpan timeToLive)
+    private CacheEntry<TValue> NewCacheEntry()
     {
-        return InitCacheEntry(new CacheEntry<TValue>(), timeToLive);
+        return InitCacheEntry(new CacheEntry<TValue>(), _options.TimeToLive);
     }
 
-    private CacheEntry<TValue> NewCacheEntry(TValue value, TimeSpan timeToLive)
+    private CacheEntry<TValue> NewCacheEntry(TValue value)
     {
-        return InitCacheEntry(new CacheEntry<TValue>(value), timeToLive);
+        return InitCacheEntry(new CacheEntry<TValue>(value), _options.TimeToLive);
     }
 
     private CacheEntry<TValue> InitCacheEntry(CacheEntry<TValue> entry, TimeSpan timeToLive)

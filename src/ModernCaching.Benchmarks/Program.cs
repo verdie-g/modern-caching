@@ -164,7 +164,7 @@ public class LocalGetBenchmark
 
     private IReadOnlyCache<Guid, int> CreateModernCache()
     {
-        return new ReadOnlyCacheBuilder<Guid, int>("benchmark_cache")
+        return new ReadOnlyCacheBuilder<Guid, int>(new ReadOnlyCacheOptions("benchmark_cache", TimeSpan.FromHours(1)))
             .WithLocalCache(new MemoryCache<Guid, int>())
             .WithDataSource(new ModernCacheDataSource())
             .WithPreload(_ => Task.FromResult(Data.Select(d => d.Key)), null)
@@ -260,13 +260,13 @@ public class LocalGetBenchmark
     class ModernCacheDataSource : IDataSource<Guid, int>
     {
 #pragma warning disable 1998
-        public async IAsyncEnumerable<DataSourceResult<Guid, int>> LoadAsync(IEnumerable<Guid> keys,
-#pragma warning restore 1998
+        public async IAsyncEnumerable<KeyValuePair<Guid, int>> LoadAsync(IEnumerable<Guid> keys,
             [EnumeratorCancellation] CancellationToken cancellationToken)
+#pragma warning restore 1998)
         {
             foreach ((Guid key, int value) in Data)
             {
-                yield return new DataSourceResult<Guid, int>(key, value, TimeSpan.FromHours(1));
+                yield return new KeyValuePair<Guid, int>(key, value);
             }
         }
     }

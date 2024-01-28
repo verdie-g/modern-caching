@@ -12,8 +12,8 @@ public class ReadOnlyCacheTest_Dispose
     [Test]
     public void DisposeShouldNotThrow()
     {
-        ReadOnlyCache<int, int> cache = new(C, null, null, null!, new ReadOnlyCacheOptions(), Mock.Of<ITimer>(),
-            Mock.Of<IDateTime>(), Mock.Of<Random>());
+        ReadOnlyCache<int, int> cache = new(new ReadOnlyCacheOptions("a", TimeSpan.MaxValue), null, null, null!,
+            Mock.Of<ITimer>(), Mock.Of<IDateTime>(), Mock.Of<Random>());
         Assert.DoesNotThrow(() => cache.Dispose());
     }
 }

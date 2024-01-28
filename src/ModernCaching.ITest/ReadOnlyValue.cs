@@ -19,7 +19,7 @@ internal class ReadOnlyValueExample
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        _myIp = await ReadOnlyValue<IPAddress>.CreateAsync("my_ip", new MyIpValueSource());
+        _myIp = await ReadOnlyValue<IPAddress>.CreateAsync("my_ip", TimeSpan.FromHours(2), new MyIpValueSource());
     }
 
     [Test, Explicit]
@@ -41,11 +41,11 @@ internal class ReadOnlyValueExample
             };
         }
 
-        public async Task<ValueSourceResult<IPAddress>> LoadAsync(CancellationToken cancellationToken)
+        public async Task<IPAddress> LoadAsync(CancellationToken cancellationToken)
         {
             var ipObject = await _httpClient.GetFromJsonAsync<IPObject>("", cancellationToken: cancellationToken);
             var ip = IPAddress.Parse(ipObject!.Ip);
-            return new ValueSourceResult<IPAddress>(ip, TimeSpan.FromMinutes(15));
+            return ip;
         }
 
         private record IPObject(string Ip);
@@ -57,9 +57,9 @@ internal class ReadOnlyValueExample
 /// </summary>
 internal class ReadOnlyValue<T>
 {
-    public static async Task<ReadOnlyValue<T>> CreateAsync(string name, IValueSource<T> valueSource)
+    public static async Task<ReadOnlyValue<T>> CreateAsync(string name, TimeSpan timeToLive, IValueSource<T> valueSource)
     {
-        var cache = await new ReadOnlyCacheBuilder<int, T>(name)
+        var cache = await new ReadOnlyCacheBuilder<int, T>(new ReadOnlyCacheOptions(name, timeToLive))
             .WithLocalCache(new ValueCache<T>())
             .WithDataSource(new ValueDataSource<T>(valueSource))
             .WithLoggerFactory(new ConsoleLoggerFactory())
@@ -88,11 +88,9 @@ internal class ReadOnlyValue<T>
     }
 }
 
-internal record ValueSourceResult<T>(T Value, TimeSpan TimeToLive);
-
 internal interface IValueSource<T>
 {
-    Task<ValueSourceResult<T>> LoadAsync(CancellationToken cancellationToken);
+    Task<T> LoadAsync(CancellationToken cancellationToken);
 }
 
 internal class ValueDataSource<T> : IDataSource<int, T>
@@ -104,11 +102,11 @@ internal class ValueDataSource<T> : IDataSource<int, T>
         _valueSource = valueSource;
     }
 
-    public async IAsyncEnumerable<DataSourceResult<int, T>> LoadAsync(IEnumerable<int> keys,
+    public async IAsyncEnumerable<KeyValuePair<int, T>> LoadAsync(IEnumerable<int> keys,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var (value, timeToLive) = await _valueSource.LoadAsync(cancellationToken);
-        yield return new DataSourceResult<int, T>(0, value, timeToLive);
+        var value = await _valueSource.LoadAsync(cancellationToken);
+        yield return new KeyValuePair<int, T>(0, value);
     }
 }
 
