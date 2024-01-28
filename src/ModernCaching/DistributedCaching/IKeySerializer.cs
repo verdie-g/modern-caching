@@ -14,7 +14,7 @@ public interface IKeySerializer<TKey> where TKey : notnull
     string SerializeKey(TKey key);
 
     /// <summary>
-    /// Converts <see cref="keyStr"/> to its equivalent object representation.
+    /// Converts <paramref name="keyStr"/> to its equivalent object representation.
     /// </summary>
     /// <param name="keyStr">The string representation of a key.</param>
     /// <returns>The key object.</returns>

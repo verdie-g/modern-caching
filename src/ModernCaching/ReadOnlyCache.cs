@@ -228,7 +228,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     }
 
     /// <summary>Refreshes the keys set in <see cref="_keysToRefresh"/> by <see cref="TryPeek"/>.</summary>
-    private void BackgroundRefresh(object _, ElapsedEventArgs __)
+    private void BackgroundRefresh(object? _, ElapsedEventArgs __)
     {
         var keysToLoad = Interlocked.Exchange(ref _keysToRefresh, new ConcurrentDictionary<TKey, CacheEntry<TValue>?>());
         Task.Run(() => ChunkedRefreshAsync(keysToLoad));
@@ -276,7 +276,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
     private async Task RefreshAsync(IEnumerable<KeyValuePair<TKey, CacheEntry<TValue>?>> keyEntryPairs)
     {
         // TODO: could also set tasks in _loadingTasks.
-        
+
         using var span = UtilsCache.ActivitySource.StartActivity("cache refresh");
         if (span != null && span.IsAllDataRequested)
         {
@@ -366,7 +366,7 @@ internal sealed class ReadOnlyCache<TKey, TValue> : IReadOnlyCache<TKey, TValue>
             span.SetTag("cache.name", _name);
             span.SetTag("cache.key", key.ToString());
         }
-        
+
         var (status, distributedCacheEntry) = await TryGetRemotelyAsync(key);
         if (status == AsyncCacheStatus.Error)
         {

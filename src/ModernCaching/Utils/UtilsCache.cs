@@ -11,9 +11,9 @@ namespace ModernCaching.Utils;
 internal static class UtilsCache
 {
     private static readonly AssemblyName AssemblyName = typeof(CacheMetrics).Assembly.GetName();
-    private static readonly string InstrumentationName = AssemblyName.Name;
-    private static readonly string InstrumentationVersion = AssemblyName.Version.ToString();
-    
+    private static readonly string InstrumentationName = AssemblyName.Name!;
+    private static readonly string InstrumentationVersion = AssemblyName.Version!.ToString();
+
     public static readonly ITimer LoadingTimer = new TimerWrapper(TimeSpan.FromSeconds(3));
     public static readonly IDateTime DateTime = new CachedDateTime(LoadingTimer);
     public static readonly IRandom Random = new ThreadSafeRandom();

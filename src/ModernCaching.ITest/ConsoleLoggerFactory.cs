@@ -21,7 +21,7 @@ internal class ConsoleLoggerFactory : ILoggerFactory
 
 internal class ConsoleLogger : ILogger, IDisposable
 {
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         Console.WriteLine(formatter(state, exception));
     }

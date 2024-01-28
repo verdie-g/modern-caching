@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using ModernCaching.Utils;
 
 namespace ModernCaching.LocalCaching;
@@ -29,7 +30,7 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
     public int Count => (int)_count.Value;
 
     /// <inheritdoc />
-    public bool TryGet(TKey key, out CacheEntry<TValue> entry)
+    public bool TryGet(TKey key, [MaybeNullWhen(false)] out CacheEntry<TValue> entry)
     {
         return _dictionary.TryGetValue(key, out entry);
     }
@@ -37,7 +38,7 @@ public sealed class MemoryCache<TKey, TValue> : ICache<TKey, TValue> where TKey 
     /// <inheritdoc />
     public void Set(TKey key, CacheEntry<TValue> entry)
     {
-        if (_dictionary.TryGetValue(key, out CacheEntry<TValue> existingEntry))
+        if (_dictionary.TryGetValue(key, out CacheEntry<TValue>? existingEntry))
         {
             _dictionary.TryUpdate(key, entry, existingEntry);
         }

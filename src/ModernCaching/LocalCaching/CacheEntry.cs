@@ -77,7 +77,12 @@ public sealed class CacheEntry<TValue>
     /// <inheritdoc />
     public override string ToString()
     {
-        return HasValue && Value != null ? Value.ToString() : string.Empty;
+        if (!HasValue || Value == null)
+        {
+            return string.Empty;
+        }
+
+        return Value.ToString() ?? string.Empty;
     }
 
     /// <summary>Creates a copy of the current instance.</summary>

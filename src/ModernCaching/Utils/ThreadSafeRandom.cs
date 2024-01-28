@@ -16,6 +16,6 @@ internal sealed class ThreadSafeRandom : IRandom
     /// <inheritdoc/>
     public int Next(int minValue, int maxValue)
     {
-        return _instance.Value.Next(minValue, maxValue);
+        return _instance.Value!.Next(minValue, maxValue);
     }
 }

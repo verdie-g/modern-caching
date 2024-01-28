@@ -39,21 +39,21 @@ internal sealed class InstrumentedAsyncCache : IAsyncCache
                 _metrics.IncrementDistributedCacheGetHits();
                 if (shouldLog)
                 {
-                    _logger.Log(LogLevel.Trace, "IAsyncCache: GET {0} -> HIT {1}B", key, res.Value!.Length);
+                    _logger!.Log(LogLevel.Trace, "IAsyncCache: GET {0} -> HIT {1}B", key, res.Value!.Length);
                 }
                 break;
             case AsyncCacheStatus.Miss:
                 _metrics.IncrementDistributedCacheGetMisses();
                 if (shouldLog)
                 {
-                    _logger.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> MISS", key);
+                    _logger!.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> MISS", key);
                 }
                 break;
             case AsyncCacheStatus.Error:
                 _metrics.IncrementDistributedCacheGetErrors();
                 if (shouldLog)
                 {
-                    _logger.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> ERROR", key);
+                    _logger!.Log(LogLevel.Trace, "IAsyncCache: GET  {0} -> ERROR", key);
                 }
                 break;
         }
